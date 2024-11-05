@@ -1,6 +1,10 @@
 <?php
 session_start();
 include '../../config/connection.php';
+if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
+  header("Location: ../../auth/restricted.php");
+  exit();
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add'])) {
   $nama = $_POST['nama'];
