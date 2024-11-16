@@ -2,16 +2,13 @@
 session_start();
 include '../../config/connection.php';
 
-// Pagination settings
-$itemsPerPage = 5; // Number of items to display per page
+$itemsPerPage = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
-// Search functionality
 $searchTerm = isset($_POST['search']) ? $_POST['search'] : '';
 $searchQuery = $searchTerm ? " WHERE NAMAITEM LIKE :searchTerm" : '';
 
-// Fetch stock items with pagination and search
 $sql = "SELECT * FROM Stock" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 $stid = oci_parse($conn, $sql);
 if ($searchTerm) {
@@ -27,7 +24,6 @@ while ($row = oci_fetch_assoc($stid)) {
 }
 oci_free_statement($stid);
 
-// Get total stock items for pagination
 $totalSql = "SELECT COUNT(*) AS total FROM Stock" . $searchQuery;
 $totalStid = oci_parse($conn, $totalSql);
 if ($searchTerm) {
@@ -84,11 +80,10 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         <h2>Stock Management</h2>
         <a href="../Stock/add_stock.php" class="btn btn-primary mb-3">Add Stock Item</a>
 
-        <!-- Search Form -->
         <form method="POST" class="mb-3">
             <div class="input-group">
                 <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
-                <button class="btn btn-outline-secondary" type="submit">Search </button>
+                <button class="btn btn-outline-secondary" type="submit">Search</button>
             </div>
         </form>
 
@@ -133,7 +128,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </tbody>
         </table>
 
-        <!-- Pagination -->
         <nav aria-label="Page navigation">
             <ul class="pagination">
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
