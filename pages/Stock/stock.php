@@ -80,12 +80,13 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         <h2>Stock Management</h2>
         <a href="../Stock/add_stock.php" class="btn btn-primary mb-3">Add Stock Item</a>
 
-        <form method="POST" class="mb-3">
-            <div class="input-group">
-                <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
-                <button class="btn btn-outline-secondary" type="submit">Search</button>
-            </div>
-        </form>
+        <form method="GET" class="mb-3">
+    <div class="input-group">
+        <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
+        <button class="btn btn-outline-secondary" type="submit">Search</button>
+    </div>
+</form>
+
 
         <table class="table">
             <thead>
