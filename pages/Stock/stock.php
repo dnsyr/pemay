@@ -54,6 +54,7 @@ while ($row = oci_fetch_assoc($stid)) {
     $stocks[] = $row;
 }
 oci_free_statement($stid);
+
 // Fetch categories
 $categoryQuery = "SELECT * FROM KategoriProduk";
 $categoryStid = oci_parse($conn, $categoryQuery);
@@ -64,6 +65,7 @@ while ($categoryRow = oci_fetch_assoc($categoryStid)) {
     $categoriesList[] = $categoryRow;
 }
 oci_free_statement($categoryStid);
+
 // Count total items for pagination
 $totalSql = "SELECT COUNT(*) AS total 
              FROM Produk P 
@@ -89,19 +91,15 @@ oci_close($conn);
 
 $totalPages = ceil($totalItems / $itemsPerPage);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Management</title>
     <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../public/css/index.css">
 </head>
-
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-container">
         <div class="container-fluid">
@@ -112,10 +110,10 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
+                        <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/dashboard.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
+                        <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/users.php">Users</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="stock.php">Stock</a>
@@ -140,20 +138,13 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <div class="mb-3">
                 <label for="categories" class="form-label">Filter by Category:</label>
                 <div>
-                    <?php
-                    $categoryQuery = "SELECT * FROM KategoriProduk";
-                    $categoryStid = oci_parse($conn, $categoryQuery);
-                    oci_execute($categoryStid);
-
-                    while ($categoryRow = oci_fetch_assoc($categoryStid)) {
-                        $isChecked = (isset($_POST['categories']) && in_array($categoryRow['ID'], $categories)) ? 'checked' : '';
-                        echo '<label class="form-check-label me-3">';
-                        echo '<input type="checkbox" class="form-check-input" name="categories[]" value="' . $categoryRow['ID'] . '" ' . $isChecked . '>';
-                        echo htmlentities($categoryRow['NAMA']);
-                        echo '</label>';
-                    }
-                    oci_free_statement($categoryStid);
-                    ?>
+                    <?php foreach ($categoriesList as $category): ?>
+                        <?php $isChecked = in_array($category['ID'], $categories) ? 'checked' : ''; ?>
+                        <label class="form-check-label me-3">
+                            <input type="checkbox" class="form-check-input" name="categories[]" value="<?php echo $category['ID']; ?>" <?php echo $isChecked; ?>>
+                            <?php echo htmlentities($category['NAMA']); ?>
+                        </label>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <button class="btn btn-outline-secondary" type="submit">Filter</button>
@@ -195,7 +186,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
-
 </html>
