@@ -23,7 +23,11 @@ if (!empty($categories)) {
 $searchQuery = $searchTerm ? " WHERE UPPER(NAMA) LIKE UPPER(:searchTerm)" : " WHERE 1=1";
 $searchQuery .= $categoryQueryPart;
 
-$sql = "SELECT * FROM Produk" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
+$sql = "SELECT P.*, K.Nama AS KategoriNama 
+        FROM Produk P 
+        JOIN KategoriProduk K ON P.KategoriProduk_ID = K.ID" . 
+        $searchQuery . 
+        " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 $stid = oci_parse($conn, $sql);
 
 // Bind search term if exists
@@ -52,7 +56,10 @@ while ($row = oci_fetch_assoc($stid)) {
 oci_free_statement($stid);
 
 // Count total items for pagination
-$totalSql = "SELECT COUNT(*) AS total FROM Produk" . $searchQuery;
+$totalSql = "SELECT COUNT(*) AS total 
+             FROM Produk P 
+             JOIN KategoriProduk K ON P.KategoriProduk_ID = K.ID" . 
+             $searchQuery;
 $totalStid = oci_parse($conn, $totalSql);
 
 if ($searchTerm) {
@@ -131,10 +138,10 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                     oci_execute($categoryStid);
 
                     while ($categoryRow = oci_fetch_assoc($categoryStid)) {
-                        $isChecked = (isset($_POST['categories']) && in_array($categoryRow['ID'], $_POST['categories'])) ? 'checked' : '';
+                        $isChecked = (isset($_POST['categories']) && in_array($categoryRow['ID'], $categories)) ? 'checked' : '';
                         echo '<label class="form-check-label me-3">';
                         echo '<input type="checkbox" class="form-check-input" name="categories[]" value="' . $categoryRow['ID'] . '" ' . $isChecked . '>';
-                        echo htmlentities($categoryRow['Nama']);
+                        echo htmlentities($categoryRow['NAMA']);
                         echo '</label>';
                     }
                     oci_free_statement($categoryStid);
@@ -161,7 +168,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                         <td><?php echo htmlentities($stock['NAMA']); ?></td>
                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
-                        <td><?php echo htmlentities($stock['KATEGORIPRODUK_ID']); ?></td>
+                        <td><?php echo htmlentities($stock['KATEGORINAMA']); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -182,4 +189,5 @@ $totalPages = ceil($totalItems / $itemsPerPage);
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>
