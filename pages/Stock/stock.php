@@ -54,7 +54,16 @@ while ($row = oci_fetch_assoc($stid)) {
     $stocks[] = $row;
 }
 oci_free_statement($stid);
+// Fetch categories
+$categoryQuery = "SELECT * FROM KategoriProduk";
+$categoryStid = oci_parse($conn, $categoryQuery);
+oci_execute($categoryStid);
 
+$categoriesList = [];
+while ($categoryRow = oci_fetch_assoc($categoryStid)) {
+    $categoriesList[] = $categoryRow;
+}
+oci_free_statement($categoryStid);
 // Count total items for pagination
 $totalSql = "SELECT COUNT(*) AS total 
              FROM Produk P 
