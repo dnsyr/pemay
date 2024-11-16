@@ -2,21 +2,47 @@
 session_start();
 include '../../config/connection.php';
 
+// Pagination setup
 $itemsPerPage = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
+// Search term and categories
 $searchTerm = isset($_POST['search']) && !empty(trim($_POST['search'])) ? trim($_POST['search']) : '';
 $searchWildcard = '%' . $searchTerm . '%';
-$searchQuery = $searchTerm ? " WHERE UPPER (NAMAITEM) LIKE UPPER(:searchTerm)" : '';
+$categories = isset($_POST['categories']) ? $_POST['categories'] : [];
+$categoryQueryPart = '';
 
-$sql = "SELECT * FROM Stock" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
+if (!empty($categories)) {
+    // Prepare placeholders for category IDs
+    $placeholders = implode(', ', array_fill(0, count($categories), ':category'));
+    $categoryQueryPart = " AND KategoriProduk_ID IN ($placeholders)";
+}
+
+// Build main query
+$searchQuery = $searchTerm ? " WHERE UPPER(NAMA) LIKE UPPER(:searchTerm)" : " WHERE 1=1";
+$searchQuery .= $categoryQueryPart;
+
+$sql = "SELECT * FROM Produk" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 $stid = oci_parse($conn, $sql);
+
+// Bind search term if exists
 if ($searchTerm) {
     oci_bind_by_name($stid, ":searchTerm", $searchWildcard);
 }
+
+// Bind categories if selected
+if (!empty($categories)) {
+    foreach ($categories as $index => $category) {
+        oci_bind_by_name($stid, ":category" . $index, $categories[$index]);
+    }
+}
+
+// Bind pagination parameters
 oci_bind_by_name($stid, ":offset", $offset, -1, SQLT_INT);
 oci_bind_by_name($stid, ":itemsPerPage", $itemsPerPage, -1, SQLT_INT);
+
+// Execute query
 oci_execute($stid);
 
 $stocks = [];
@@ -25,11 +51,20 @@ while ($row = oci_fetch_assoc($stid)) {
 }
 oci_free_statement($stid);
 
-$totalSql = "SELECT COUNT(*) AS total FROM Stock" . $searchQuery;
+// Count total items for pagination
+$totalSql = "SELECT COUNT(*) AS total FROM Produk" . $searchQuery;
 $totalStid = oci_parse($conn, $totalSql);
+
 if ($searchTerm) {
-    oci_bind_by_name($totalStid, ":searchTerm", $searchTerm);
+    oci_bind_by_name($totalStid, ":searchTerm", $searchWildcard);
 }
+
+if (!empty($categories)) {
+    foreach ($categories as $index => $category) {
+        oci_bind_by_name($totalStid, ":category" . $index, $categories[$index]);
+    }
+}
+
 oci_execute($totalStid);
 $totalRow = oci_fetch_assoc($totalStid);
 $totalItems = $totalRow['TOTAL'];
@@ -82,10 +117,31 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         <a href="../Stock/add_stock.php" class="btn btn-primary mb-3">Add Stock Item</a>
 
         <form method="POST" class="mb-3">
-            <div class="input-group">
+            <div class="input-group mb-3">
                 <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
                 <button class="btn btn-outline-secondary" type="submit">Search</button>
             </div>
+            <div class="mb-3">
+                <label for="categories" class="form-label">Filter by Category:</label>
+                <div>
+                    <?php
+                    // Fetch categories from the database
+                    $categoryQuery = "SELECT * FROM KategoriProduk";
+                    $categoryStid = oci_parse($conn, $categoryQuery);
+                    oci_execute($categoryStid);
+
+                    while ($categoryRow = oci_fetch_assoc($categoryStid)) {
+                        $isChecked = (isset($_POST['categories']) && in_array($categoryRow['ID'], $_POST['categories'])) ? 'checked' : '';
+                        echo '<label class="form-check-label me-3">';
+                        echo '<input type="checkbox" class="form-check-input" name="categories[]" value="' . $categoryRow['ID'] . '" ' . $isChecked . '>';
+                        echo htmlentities($categoryRow['Nama']);
+                        echo '</label>';
+                    }
+                    oci_free_statement($categoryStid);
+                    ?>
+                </div>
+            </div>
+            <button class="btn btn-outline-secondary" type="submit">Filter</button>
         </form>
 
         <table class="table">
@@ -96,34 +152,16 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                     <th>Quantity</th>
                     <th>Price</th>
                     <th>Category</th>
-                    <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($stocks as $stock): ?>
                     <tr>
                         <td><?php echo htmlentities($stock['ID']); ?></td>
-                        <td><?php echo htmlentities($stock['NAMAITEM']); ?></td>
+                        <td><?php echo htmlentities($stock['NAMA']); ?></td>
                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
-                        <td><?php echo htmlentities($stock['KATEGORI']); ?></td>
-                        <td>
-                            <?php
-                            $jumlah = $stock['JUMLAH'];
-                            if ($jumlah < 5) {
-                                echo '<span class="text-danger">Restock Woy!!</span>';
-                            } elseif ($jumlah >= 5 && $jumlah <= 7) {
-                                echo '<span class="text-warning">Restock Yuk, Udah menipis nih!</span>';
-                            } else {
-                                echo '<span class="text-success">Stock Aman Bro</span>';
-                            }
-                            ?>
-                        </td>
-                        <td>
-                            <a href="../Stock/update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
-                            <a href="../Stock/delete_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm">Delete</a>
-                        </td>
+                        <td><?php echo htmlentities($stock['KATEGORIPRODUK_ID']); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -133,7 +171,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <ul class="pagination">
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($searchTerm); ?>"><?php echo $i; ?></a>
+                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
                     </li>
                 <?php endfor; ?>
             </ul>
