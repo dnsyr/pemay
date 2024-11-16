@@ -1,7 +1,6 @@
 <?php
 session_start();
 include '../../config/connection.php';
-$_SESSION['pegawai_id'] = $user['ID'];
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
