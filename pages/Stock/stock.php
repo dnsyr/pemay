@@ -100,7 +100,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light navbar-container">
+<nav class="navbar navbar-expand-lg navbar-light navbar-container">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
         <img src="../../public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
@@ -113,16 +113,16 @@ $totalPages = ceil($totalItems / $itemsPerPage);
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="dashboard.php">Dashboard</a>
+            <a class="nav-link active" aria-current="page" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="users.php">Users</a>
+            <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="../Stock/stock.php">Stok</a>
+            <a class="nav-link" href="/pemay/pages/Stock/stock.php">Stok</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="../Kategori/kategori.php">Kategori</a>
+            <a class="nav-link" href="/pemay/pages/Kategori/kategori.php">Kategori</a>
 </li>
         </ul>
       </div>
