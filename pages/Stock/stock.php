@@ -6,7 +6,8 @@ $itemsPerPage = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
-$searchTerm = isset($_POST['search']) ? trim($_POST['search']) : '';
+$searchTerm = isset($_POST['search']) ? trim($_POST['search']) : 
+              (isset($_GET['search']) ? trim($_GET['search']) : '')
 $searchQuery = $searchTerm ? " WHERE NAMAITEM LIKE :searchTerm" : '';
 
 $sql = "SELECT * FROM Stock" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
