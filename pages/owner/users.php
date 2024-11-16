@@ -46,6 +46,7 @@ oci_close($conn);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
   <link rel="stylesheet" href="../../public/css/index.css">
+  <link rel="stylesheet" href="../../public/css/components.css">
 </head>
 
 <body>
@@ -86,7 +87,7 @@ oci_close($conn);
     <div class="d-flex justify-content-between">
       <h2>Manage Users</h2>
 
-      <a href="add_user.php" class="btn btn-primary mb-3"><i class="fas fa-plus"></i> Add User</a>
+      <a href="add_user.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
     </div>
 
     <table class="table table-striped">
