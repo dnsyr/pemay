@@ -7,21 +7,19 @@ $itemsPerPage = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
-// Search term and categories
+// Search term and category
 $searchTerm = isset($_POST['search']) && !empty(trim($_POST['search'])) ? trim($_POST['search']) : '';
 $searchWildcard = '%' . $searchTerm . '%';
-$categories = isset($_POST['categories']) ? $_POST['categories'] : [];
-$categoryQueryPart = '';
-
-if (!empty($categories)) {
-    // Prepare placeholders for category IDs
-    $placeholders = implode(', ', array_fill(0, count($categories), ':category'));
-    $categoryQueryPart = " AND KategoriProduk_ID IN ($placeholders)";
-}
+$selectedCategory = isset($_POST['category']) ? $_POST['category'] : '';
 
 // Build main query
-$searchQuery = $searchTerm ? " WHERE UPPER(NAMA) LIKE UPPER(:searchTerm)" : " WHERE 1=1";
-$searchQuery .= $categoryQueryPart;
+$searchQuery = " WHERE 1=1";
+if ($searchTerm) {
+    $searchQuery .= " AND UPPER(P.NAMA) LIKE UPPER(:searchTerm)";
+}
+if ($selectedCategory) {
+    $searchQuery .= " AND P.KategoriProduk_ID = :category";
+}
 
 $sql = "SELECT P.*, K.Nama AS KategoriNama 
         FROM Produk P 
@@ -35,11 +33,9 @@ if ($searchTerm) {
     oci_bind_by_name($stid, ":searchTerm", $searchWildcard);
 }
 
-// Bind categories if selected
-if (!empty($categories)) {
-    foreach ($categories as $index => $category) {
-        oci_bind_by_name($stid, ":category" . $index, $categories[$index]);
-    }
+// Bind category if selected
+if ($selectedCategory) {
+    oci_bind_by_name($stid, ":category", $selectedCategory);
 }
 
 // Bind pagination parameters
@@ -55,8 +51,8 @@ while ($row = oci_fetch_assoc($stid)) {
 }
 oci_free_statement($stid);
 
-// Fetch categories
-$categoryQuery = "SELECT * FROM KategoriProduk";
+// Fetch categories for filter
+$categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
 $categoryStid = oci_parse($conn, $categoryQuery);
 oci_execute($categoryStid);
 
@@ -76,11 +72,8 @@ $totalStid = oci_parse($conn, $totalSql);
 if ($searchTerm) {
     oci_bind_by_name($totalStid, ":searchTerm", $searchWildcard);
 }
-
-if (!empty($categories)) {
-    foreach ($categories as $index => $category) {
-        oci_bind_by_name($totalStid, ":category" . $index, $categories[$index]);
-    }
+if ($selectedCategory) {
+    oci_bind_by_name($totalStid, ":category", $selectedCategory);
 }
 
 oci_execute($totalStid);
@@ -91,8 +84,10 @@ oci_close($conn);
 
 $totalPages = ceil($totalItems / $itemsPerPage);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,6 +95,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
     <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-container">
         <div class="container-fluid">
@@ -126,31 +122,32 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         </div>
     </nav>
 
-    <div class="page-container">
+    <div class="container mt-4">
         <h2>Stock Management</h2>
         <a href="../Stock/add_stock.php" class="btn btn-primary mb-3">Add Stock Item</a>
 
-        <form method="POST" class="mb-3">
-            <div class="input-group mb-3">
+        <!-- Filter Form -->
+        <form method="POST" class="row g-3 mb-4">
+            <div class="col-md-4">
                 <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
-                <button class="btn btn-outline-secondary" type="submit">Search</button>
             </div>
-            <div class="mb-3">
-                <label for="categories" class="form-label">Filter by Category:</label>
-                <div>
+            <div class="col-md-4">
+                <select class="form-select" name="category">
+                    <option value="">-- Filter by Category --</option>
                     <?php foreach ($categoriesList as $category): ?>
-                        <?php $isChecked = in_array($category['ID'], $categories) ? 'checked' : ''; ?>
-                        <label class="form-check-label me-3">
-                            <input type="checkbox" class="form-check-input" name="categories[]" value="<?php echo $category['ID']; ?>" <?php echo $isChecked; ?>>
+                        <option value="<?php echo $category['ID']; ?>" <?php echo $selectedCategory == $category['ID'] ? 'selected' : ''; ?>>
                             <?php echo htmlentities($category['NAMA']); ?>
-                        </label>
+                        </option>
                     <?php endforeach; ?>
-                </div>
+                </select>
             </div>
-            <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            <div class="col-md-4">
+                <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            </div>
         </form>
 
-        <table class="table">
+        <!-- Table -->
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -173,10 +170,11 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </tbody>
         </table>
 
+        <!-- Pagination -->
         <nav aria-label="Page navigation">
             <ul class="pagination">
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
                         <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
                     </li>
                 <?php endfor; ?>
@@ -188,4 +186,5 @@ $totalPages = ceil($totalItems / $itemsPerPage);
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>
