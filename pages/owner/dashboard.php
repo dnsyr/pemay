@@ -39,7 +39,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
             <a class="nav-link" href="users.php">Users</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="../Stock/stock.php">Stock</a>
+            <a class="nav-link" href="../Stock/stock.php">Stok</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="../Kategori/kategori.php">Kategori</a>
