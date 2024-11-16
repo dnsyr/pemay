@@ -26,6 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Gagal memperbarui kategori.";
         }
         oci_free_statement($stid);
+        
+        // Redirect ke kategori.php setelah update
+        header("Location: kategori.php?message=" . urlencode($message));
+        exit;
     }
 }
 
@@ -40,6 +44,21 @@ oci_free_statement($stid);
 // Jika kategori tidak ditemukan, kembali ke halaman kategori
 if (!$row) {
     header("Location: kategori.php?message=" . urlencode("Kategori tidak ditemukan."));
+    exit;
+}
+
+// Check if category is used in another table (Produk)
+$checkSql = "SELECT COUNT(*) AS total FROM Produk WHERE KategoriProduk_ID = :id";
+$checkStid = oci_parse($conn, $checkSql);
+oci_bind_by_name($checkStid, ":id", $id);
+oci_execute($checkStid);
+$checkRow = oci_fetch_assoc($checkStid);
+oci_free_statement($checkStid);
+
+// If the category is used in another table, show a message
+if ($checkRow['TOTAL'] > 0) {
+    $message = "Kategori tidak dapat dihapus karena masih digunakan oleh produk.";
+    header("Location: kategori.php?message=" . urlencode($message));
     exit;
 }
 
