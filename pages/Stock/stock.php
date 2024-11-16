@@ -103,10 +103,10 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/dashboard.php">Dashboard</a>
+                        <a class="nav-link" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/users.php">Users</a>
+                        <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="stock.php">Stock</a>
@@ -132,7 +132,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                 <label for="categories" class="form-label">Filter by Category:</label>
                 <div>
                     <?php
-                    // Fetch categories from the database
                     $categoryQuery = "SELECT * FROM KategoriProduk";
                     $categoryStid = oci_parse($conn, $categoryQuery);
                     oci_execute($categoryStid);
