@@ -8,7 +8,7 @@ $offset = ($page - 1) * $itemsPerPage;
 
 $searchTerm = isset($_POST['search']) && !empty(trim($_POST['search'])) ? trim($_POST['search']) : '';
 $searchWildcard = '%' . $searchTerm . '%';
-$searchQuery = $searchTerm ? " WHERE NAMAITEM LIKE :searchTerm" : '';
+$searchQuery = $searchTerm ? " WHERE UPPER (NAMAITEM) LIKE UPPER(:searchTerm)" : '';
 
 $sql = "SELECT * FROM Stock" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 $stid = oci_parse($conn, $sql);
