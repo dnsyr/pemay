@@ -1,6 +1,6 @@
 <?php
-$username = "DVF";
-$password = "DVF";
+$username = "C##PETSHOP";
+$password = "petshop";
 $connection_string = "localhost/XE";
 
 $conn = oci_connect($username, $password, $connection_string);
