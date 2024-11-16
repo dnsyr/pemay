@@ -1,10 +1,6 @@
 <?php
 session_start();
 include '../../config/connection.php';
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
-  header("Location: ../../auth/restricted.php");
-  exit();
-}
 
 $sql = "SELECT * FROM Pegawai";
 $stid = oci_parse($conn, $sql);
@@ -46,7 +42,6 @@ oci_close($conn);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
   <link rel="stylesheet" href="../../public/css/index.css">
-  <link rel="stylesheet" href="../../public/css/components.css">
 </head>
 
 <body>
@@ -69,7 +64,7 @@ oci_close($conn);
             <a class="nav-link active" href="users.php">Users</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
+            <a class="nav-link" href="../Stock/stock.php">Stock</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
@@ -87,7 +82,7 @@ oci_close($conn);
     <div class="d-flex justify-content-between">
       <h2>Manage Users</h2>
 
-      <a href="add_user.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
+      <a href="add_user.php" class="btn btn-primary mb-3"><i class="fas fa-plus"></i> Add User</a>
     </div>
 
     <table class="table table-striped">
