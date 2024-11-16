@@ -1,12 +1,7 @@
 <?php
 session_start();
 include '../../config/connection.php';
-
-// Check if the user ID (Pegawai) is set in the session (you need to be logged in)
-if (!isset($_SESSION['pegawai_id'])) {
-    header("Location: ../../auth/login.php");
-    exit();
-}
+$_SESSION['pegawai_id'] = $user['ID'];
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
