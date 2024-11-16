@@ -75,7 +75,7 @@ oci_close($conn);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Users</title>
+  <title>Manage Kategori</title>
   <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -108,8 +108,7 @@ oci_close($conn);
           </li>
           <li class="nav-item">
             <a class="nav-link" href="../Kategori/kategori.php">Kategori</a>
-</li>
-
+          </li>
         </ul>
       </div>
 
@@ -177,6 +176,9 @@ oci_close($conn);
                                 <td><?php echo htmlentities($category['BIAYA']); ?></td>
                             <?php endif; ?>
                             <td>
+                                <!-- Edit Button -->
+                                <a href="update_category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <!-- Delete Button -->
                                 <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus?')">Hapus</a>
                             </td>
                         </tr>
