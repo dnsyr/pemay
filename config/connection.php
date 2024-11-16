@@ -1,6 +1,7 @@
 <?php
-$username = "C##PETSHOP";
-$password = "petshop";
+// Adjust with ur username & password Oracle DB
+$username = "DVF";
+$password = "DVF";
 $connection_string = "localhost/XE";
 
 $conn = oci_connect($username, $password, $connection_string);

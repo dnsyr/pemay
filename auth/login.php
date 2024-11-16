@@ -1,5 +1,14 @@
 <?php
+session_start();
+
 include '../config/connection.php';
+
+$role;
+$is_logged_in = isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true;
+
+if (isset($_SESSION['posisi'])) {
+  $role = $_SESSION['posisi'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -16,6 +25,20 @@ include '../config/connection.php';
 
   <link rel="stylesheet" href="../public/css/index.css">
   <link rel="stylesheet" href="../public/css/components.css">
+
+  <script>
+    const isLoggedIn = <?php echo json_encode($is_logged_in); ?>;
+    const role = <?php echo json_encode($role); ?>;
+    if (isLoggedIn) {
+      if (role === 'owner') {
+        window.location.href = '/pemay/pages/owner/dashboard.php'
+      } else if (role === 'vet') {
+        window.location.href = '/pemay/pages/vet/dashboard.php'
+      } else if (role === 'staff') {
+        window.location.href = '/pemay/pages/staff/dashboard.php'
+      }
+    }
+  </script>
 </head>
 
 <body>
@@ -60,7 +83,7 @@ include '../config/connection.php';
         </div>
       </form>
 
-      <!-- <form action="generate_dummy_users.php" method="post">
+      <!-- <form action="generate-dummy-users.php" method="post">
         <button type="submit">Generate Dummy Users</button>
       </form> -->
     </div>

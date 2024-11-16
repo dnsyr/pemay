@@ -3,6 +3,8 @@ session_start();
 include '../../config/connection.php';
 include '../owner/header.php';
 
+$pageTitle = 'Manage Users';
+
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
@@ -38,11 +40,12 @@ oci_close($conn);
 <!DOCTYPE html>
 <html lang="en">
 
+<body>
   <div class="page-container">
     <div class="d-flex justify-content-between">
       <h2>Manage Users</h2>
 
-      <a href="add_user.php" class="btn btn-primary mb-3"><i class="fas fa-plus"></i> Add User</a>
+      <a href="add-user.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
     </div>
 
     <table class="table table-striped">
@@ -65,7 +68,7 @@ oci_close($conn);
             <td><?php echo htmlentities($user['EMAIL']); ?></td>
             <td><?php echo htmlentities($user['NOMORTELPON']); ?></td>
             <td>
-              <a href="update_user.php?username=<?php echo $user['USERNAME']; ?>" class="btn btn-warning">
+              <a href="update-user.php?username=<?php echo $user['USERNAME']; ?>" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit
               </a>
               <a href="users.php?delete=<?php echo $user['USERNAME']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this user?');">
@@ -78,9 +81,6 @@ oci_close($conn);
     </table>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

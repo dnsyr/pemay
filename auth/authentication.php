@@ -8,7 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $posisi = $_POST['posisi'];
 
   // Prepare SQL to retrieve user info
-  $sql = "SELECT password, posisi FROM Pegawai WHERE username = :username AND posisi = :posisi";
+  $sql = "SELECT id, password, posisi FROM Pegawai WHERE username = :username AND posisi = :posisi";
   $stid = oci_parse($conn, $sql);
 
   // Bind parameters
@@ -24,6 +24,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Set session variables for authenticated user
     $_SESSION['username'] = $username;
     $_SESSION['posisi'] = $user['POSISI'];
+    $_SESSION['user_logged_in'] = true;
+    $_SESSION['employee_id'] = $user['ID'];
 
     // Redirect based on role
     if ($user['POSISI'] == 'owner') {
@@ -33,6 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif ($user['POSISI'] == 'staff') {
       header("Location: ../pages/staff/dashboard.php");
     }
+
     exit();
   } else {
     echo "Invalid username, password, or role.";

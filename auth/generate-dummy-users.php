@@ -22,7 +22,8 @@ function insertDummyUser($db, $name, $username, $password, $position, $email, $p
 }
 
 try {
-  $db = new PDO("oci:dbname=//localhost/XE", "C##PETSHOP", "petshop");
+  // Adjust with ur username & password Oracle DB
+  $db = new PDO("oci:dbname=//localhost/XE", "DVF", "DVF");
 
   insertDummyUser($db, 'Owner User', 'owner', 'owner', 'owner', 'owner@example.com', '1234567890');
   insertDummyUser($db, 'Staff User', 'staff', 'staff', 'staff', 'staff@example.com', '1234567120');

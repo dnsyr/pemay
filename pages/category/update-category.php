@@ -7,7 +7,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
 
 // If there's no ID, redirect to the category list page
 if (!$id) {
-    header("Location: kategori.php?tab=" . $tab);
+    header("Location: category.php?tab=" . $tab);
     exit;
 }
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'update') {
         $namaKategori = trim($_POST['namaKategori']);
-        
+
         // Check if the category is used elsewhere (e.g., in Produk or other relevant tables)
         $checkSql = "SELECT COUNT(*) AS total FROM Produk WHERE {$currentTable}_ID = :id";
         $checkStid = oci_parse($conn, $checkSql);
@@ -91,13 +91,13 @@ oci_close($conn);
 <body>
     <div class="container mt-5">
         <h2>Update <?php echo $currentLabel; ?></h2>
-        <form method="POST" action="update_kategori.php?id=<?php echo htmlentities($id); ?>&tab=<?php echo $tab; ?>">
+        <form method="POST" action="update_category.php?id=<?php echo htmlentities($id); ?>&tab=<?php echo $tab; ?>">
             <div class="mb-3">
                 <label for="namaKategori" class="form-label">Nama <?php echo $currentLabel; ?></label>
                 <input type="text" class="form-control" id="namaKategori" name="namaKategori" value="<?php echo htmlentities($row['NAMA']); ?>" required>
             </div>
             <button type="submit" name="action" value="update" class="btn btn-primary">Update</button>
-            <a href="kategori.php?tab=<?php echo $tab; ?>" class="btn btn-secondary">Kembali</a>
+            <a href="category.php?tab=<?php echo $tab; ?>" class="btn btn-secondary">Kembali</a>
         </form>
     </div>
 </body>

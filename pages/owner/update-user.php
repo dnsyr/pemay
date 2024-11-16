@@ -2,6 +2,9 @@
 session_start();
 include '../../config/connection.php';
 include '../owner/header.php';
+
+$pageTitle = 'Update User';
+
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
@@ -52,7 +55,6 @@ oci_close($conn);
 <html lang="en">
 
 <body>
-
   <div class="page-container">
     <h2>Update User</h2>
 
@@ -102,9 +104,6 @@ oci_close($conn);
     </form>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

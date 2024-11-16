@@ -82,8 +82,9 @@ oci_close($conn);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <body>
-    <div class="container mt-5">
+    <div class="page-container">
         <h2>CRUD Kategori</h2>
         <?php if (isset($message)): ?>
             <div class="alert alert-info">
@@ -116,7 +117,7 @@ oci_close($conn);
                         <input type="number" class="form-control" id="biaya" name="biaya" required>
                     </div>
                 <?php endif; ?>
-                <button type="submit" class="btn btn-primary">Tambah</button>
+                <button type="submit" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></button>
             </form>
 
             <!-- Category List -->
@@ -141,7 +142,7 @@ oci_close($conn);
                             <?php endif; ?>
                             <td>
                                 <!-- Edit Button -->
-                                <a href="update_kategori.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="update_category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
                                 <!-- Delete Button -->
                                 <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus?')">Hapus</a>
                             </td>
@@ -156,4 +157,5 @@ oci_close($conn);
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>
