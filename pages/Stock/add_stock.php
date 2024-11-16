@@ -15,16 +15,16 @@ oci_free_statement($categoryStid);
 
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $namaItem = $_POST['nama_item'];
+    $Nama = $_POST['nama_item'];
     $jumlah = $_POST['jumlah'];
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
 
     // Insert new stock item
-    $sql = "INSERT INTO PRODUK (NamaItem, Jumlah, Harga, KategoriProduk_ID) VALUES (:namaItem, :jumlah, :harga, :kategori)";
+    $sql = "INSERT INTO PRODUK (Nama, Jumlah, Harga, KategoriProduk_ID) VALUES (:Nama, :jumlah, :harga, :kategori)";
     $stid = oci_parse($conn, $sql);
     
-    oci_bind_by_name($stid, ":namaItem", $namaItem);
+    oci_bind_by_name($stid, ":Nama", $Nama);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
     oci_bind_by_name($stid, ":harga", $harga);
     oci_bind_by_name($stid, ":kategori", $kategori);
