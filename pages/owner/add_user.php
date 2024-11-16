@@ -83,7 +83,7 @@ oci_close($conn);
             <a class="nav-link active" href="users.php">Users</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
+            <a class="nav-link" href="#">Stock</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
