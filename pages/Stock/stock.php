@@ -79,21 +79,17 @@ oci_close($conn);
                             <?php
                             $jumlah = $stock['JUMLAH'];
                             if ($jumlah < 5) {
-                                echo '<span class="text-danger">Restock Needed</span>';
+                                echo '<span class="text-danger">Restock Woy!!</span>';
                             } elseif ($jumlah >= 5 && $jumlah <= 7) {
-                                echo '<span class="text-warning">Warning: Restock Soon</span>';
+                                echo '<span class="text-warning">Restock Yuk, Udah menipis nih!</span>';
                             } else {
-                                echo '<span class="text-success">Stock Sufficient</span>';
+                                echo '<span class="text-success">Stock Aman Bro</span>';
                             }
                             ?>
                         </td>
                         <td>
                             <a href="../Stock/update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
                             <a href="../Stock/delete_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm">Delete</a>
-                        </td>
-                        <td>
-                            <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
-                            <a href="delete_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm">Delete</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
