@@ -1,6 +1,6 @@
 <?php
-$username = "xdb";
-$password = "xdb";
+$username = "DVF";
+$password = "DVF";
 $connection_string = "localhost/XE";
 
 $conn = oci_connect($username, $password, $connection_string);

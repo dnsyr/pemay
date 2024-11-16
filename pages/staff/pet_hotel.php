@@ -10,7 +10,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
 
 <head>
   <meta charset="UTF-8">
-  <title>Staff Dashboard</title>
+  <title>Pet Hotel</title>
   <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -34,10 +34,10 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="dashboard.php">Dashboard</a>
+            <a class="nav-link" aria-current="page" href="dashboard.php">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="pet_hotel.php">Pet Hotel</a>
+            <a class="nav-link active" href="pet_hotel.php">Pet Hotel</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
@@ -55,12 +55,15 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
   </nav>
 
   <div class="page-container">
-    <h1>Welcome to the Staff Dashboard, <?php echo $_SESSION['username']; ?>!</h1>
-  </div>
+    <div class="d-flex justify-content-between">
+      <h2>Pet Hotel Information</h2>
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+      <a href="reserve_hotel.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>
