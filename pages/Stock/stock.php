@@ -6,18 +6,19 @@ $itemsPerPage = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
-$searchTerm = isset($_POST['search']) ? ($_POST['search']) : '';
+$searchTerm = isset($_POST['search']) && !empty(trim($_POST['search'])) ? trim($_POST['search']) : '';
+$searchWildcard = '%' . $searchTerm . '%';
 $searchQuery = $searchTerm ? " WHERE NAMAITEM LIKE :searchTerm" : '';
 
 $sql = "SELECT * FROM Stock" . $searchQuery . " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 $stid = oci_parse($conn, $sql);
 if ($searchTerm) {
-    $searchWildcard = '%' . $searchTerm . '%';
-    oci_bind_by_name($stid, ":searchTerm", $searchTerm);
+    oci_bind_by_name($stid, ":searchTerm", $searchWildcard);
 }
 oci_bind_by_name($stid, ":offset", $offset, -1, SQLT_INT);
 oci_bind_by_name($stid, ":itemsPerPage", $itemsPerPage, -1, SQLT_INT);
 oci_execute($stid);
+
 $stocks = [];
 while ($row = oci_fetch_assoc($stid)) {
     $stocks[] = $row;
