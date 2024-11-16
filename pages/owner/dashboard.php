@@ -44,7 +44,6 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
           <li class="nav-item">
             <a class="nav-link" href="../Kategori/kategori.php">Kategori</a>
 </li>
-
         </ul>
       </div>
 
