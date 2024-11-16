@@ -1,10 +1,6 @@
 <?php
 session_start();
 include '../../config/connection.php';
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
-  header("Location: ../../auth/restricted.php");
-  exit();
-}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add'])) {
   $nama = $_POST['nama'];
@@ -60,7 +56,6 @@ oci_close($conn);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
   <link rel="stylesheet" href="../../public/css/index.css">
-  <link rel="stylesheet" href="../../public/css/components.css">
 </head>
 
 <body>
@@ -83,7 +78,7 @@ oci_close($conn);
             <a class="nav-link active" href="users.php">Users</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Stock</a>
+            <a class="nav-link" href="/../../Stock/stock.php">Stock</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
