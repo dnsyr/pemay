@@ -42,8 +42,9 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
             <a class="nav-link" href="../Stock/stock.php">Stock</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
-          </li>
+            <a class="nav-link" href="../Kategori/kategori.php">Kategori</a>
+</li>
+
         </ul>
       </div>
 
