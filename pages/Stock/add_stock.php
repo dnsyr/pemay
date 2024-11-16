@@ -2,6 +2,15 @@
 session_start();
 include '../../config/connection.php';
 
+// Check if the user is logged in and the session is active
+if (!isset($_SESSION['pegawai_id'])) {
+    // If no session exists, redirect to the login page
+    header("Location: ../../login.php");
+    exit();
+}
+
+$pegawai_id = $_SESSION['pegawai_id']; // Automatically get the logged-in Pegawai_ID
+
 // Fetch available categories
 $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
 $categoryStid = oci_parse($conn, $categoryQuery);
@@ -13,26 +22,14 @@ while ($row = oci_fetch_assoc($categoryStid)) {
 }
 oci_free_statement($categoryStid);
 
-// Fetch available employees (Pegawai) for the Pegawai_ID
-$pegawaiQuery = "SELECT * FROM Pegawai ORDER BY Nama";
-$pegawaiStid = oci_parse($conn, $pegawaiQuery);
-oci_execute($pegawaiStid);
-
-$pegawai = [];
-while ($row = oci_fetch_assoc($pegawaiStid)) {
-    $pegawai[] = $row;
-}
-oci_free_statement($pegawaiStid);
-
-// Check if form is submitted
+// Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $namaItem = $_POST['nama_item'];
     $jumlah = $_POST['jumlah'];
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
-    $pegawai_id = $_POST['pegawai'];  // New field for Pegawai_ID
 
-    // Insert new stock item into Produk table
+    // Insert new stock item into the Produk table, automatically using Pegawai_ID from the session
     $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID) 
             VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
     $stid = oci_parse($conn, $sql);
@@ -40,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
     oci_bind_by_name($stid, ":harga", $harga);
-    oci_bind_by_name($stid, ":pegawai_id", $pegawai_id);
+    oci_bind_by_name($stid, ":pegawai_id", $pegawai_id);  // Automatically using session Pegawai_ID
     oci_bind_by_name($stid, ":kategori", $kategori);
 
     if (oci_execute($stid)) {
@@ -121,17 +118,6 @@ oci_close($conn);
                     <?php foreach ($categories as $category): ?>
                         <option value="<?php echo $category['ID']; ?>">
                             <?php echo htmlentities($category['NAMA']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="pegawai" class="form-label">Employee</label>
-                <select class="form-select" id="pegawai" name="pegawai" required>
-                    <option value="">-- Select Employee --</option>
-                    <?php foreach ($pegawai as $emp): ?>
-                        <option value="<?php echo $emp['ID']; ?>">
-                            <?php echo htmlentities($emp['NAMA']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
