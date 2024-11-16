@@ -4,12 +4,26 @@ include '../../config/connection.php';
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
+
+    // Fetch item data
     $sql = "SELECT * FROM Stock WHERE Id = :id";
     $stid = oci_parse($conn, $sql);
     oci_bind_by_name($stid, ":id", $id);
     oci_execute($stid);
     $item = oci_fetch_assoc($stid);
     oci_free_statement($stid);
+
+    // Fetch available categories
+    $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
+    $categoryStid = oci_parse($conn, $categoryQuery);
+    oci_execute($categoryStid);
+
+    $categories = [];
+    while ($row = oci_fetch_assoc($categoryStid)) {
+        $categories[] = $row;
+    }
+    oci_free_statement($categoryStid);
+
 } else {
     header("Location: stock.php");
     exit();
@@ -21,7 +35,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
 
-    $sql = "UPDATE Stock SET NamaItem = :namaItem, Jumlah = :jumlah, Harga = :harga, Kategori = :kategori WHERE Id = :id";
+    $sql = "UPDATE Stock 
+            SET NamaItem = :namaItem, Jumlah = :jumlah, Harga = :harga, KategoriProduk_ID = :kategori 
+            WHERE Id = :id";
     $stid = oci_parse($conn, $sql);
     oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
@@ -48,13 +64,15 @@ oci_close($conn);
     <title>Update Stock Item</title>
     <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../public/css/index.css">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-container">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Pemay</a>
+        </div>
     </nav>
 
-    <div class="page-container">
+    <div class="container mt-4">
         <h2>Update Stock Item</h2>
         <form action="update_stock.php?id=<?php echo $id; ?>" method="post">
             <div class="mb-3">
@@ -71,7 +89,15 @@ oci_close($conn);
             </div>
             <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
-                <input type="text" class=" form-control" id="kategori" name="kategori" value="<?php echo htmlentities($item['KATEGORI']); ?>" required>
+                <select class="form-select" id="kategori" name="kategori" required>
+                    <option value="">-- Select Category --</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" 
+                                <?php echo $item['KATEGORIPRODUK_ID'] == $category['ID'] ? 'selected' : ''; ?>>
+                            <?php echo htmlentities($category['NAMA']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="mb-3">
                 <button type="submit" name="update" class="btn btn-warning">Update Stock Item</button>
