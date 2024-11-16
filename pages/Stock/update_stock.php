@@ -2,6 +2,12 @@
 session_start();
 include '../../config/connection.php';
 
+// Ensure the user is logged in
+if (!isset($_SESSION['pegawai_id'])) {
+    header("Location: ../../login.php");
+    exit();
+}
+
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
 
@@ -13,6 +19,11 @@ if (isset($_GET['id'])) {
     $item = oci_fetch_assoc($stid);
     oci_free_statement($stid);
 
+    if (!$item) {
+        echo "<script>alert('Product not found!'); window.location.href='stock.php';</script>";
+        exit();
+    }
+
     // Fetch categories for the dropdown
     $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
     $categoryStid = oci_parse($conn, $categoryQuery);
@@ -23,7 +34,6 @@ if (isset($_GET['id'])) {
         $categories[] = $row;
     }
     oci_free_statement($categoryStid);
-
 } else {
     header("Location: stock.php");
     exit();
@@ -36,23 +46,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
     $kategori = $_POST['kategori'];
     $pegawaiId = $_SESSION['pegawai_id'];  // Use the logged-in user ID
 
-    $sql = "UPDATE Produk 
-            SET Nama = :namaItem, Jumlah = :jumlah, Harga = :harga, KategoriProduk_ID = :kategori, Pegawai_ID = :pegawaiId 
-            WHERE ID = :id";
-    $stid = oci_parse($conn, $sql);
-    oci_bind_by_name($stid, ":namaItem", $namaItem);
-    oci_bind_by_name($stid, ":jumlah", $jumlah);
-    oci_bind_by_name($stid, ":harga", $harga);
-    oci_bind_by_name($stid, ":kategori", $kategori);
-    oci_bind_by_name($stid, ":pegawaiId", $pegawaiId);
-    oci_bind_by_name($stid, ":id", $id);
-
-    if (oci_execute($stid)) {
-        echo "<script>alert('Stock item updated successfully!'); window.location.href='stock.php';</script>";
+    // Ensure that input values are valid
+    if ($jumlah <= 0 || $harga <= 0) {
+        echo "<script>alert('Quantity and Price must be positive values!');</script>";
     } else {
-        echo "<script>alert('Failed to update stock item.');</script>";
+        $sql = "UPDATE Produk 
+                SET Nama = :namaItem, Jumlah = :jumlah, Harga = :harga, KategoriProduk_ID = :kategori, Pegawai_ID = :pegawaiId 
+                WHERE ID = :id";
+        $stid = oci_parse($conn, $sql);
+        oci_bind_by_name($stid, ":namaItem", $namaItem);
+        oci_bind_by_name($stid, ":jumlah", $jumlah);
+        oci_bind_by_name($stid, ":harga", $harga);
+        oci_bind_by_name($stid, ":kategori", $kategori);
+        oci_bind_by_name($stid, ":pegawaiId", $pegawaiId);
+        oci_bind_by_name($stid, ":id", $id);
+
+        if (oci_execute($stid)) {
+            echo "<script>alert('Stock item updated successfully!'); window.location.href='stock.php';</script>";
+        } else {
+            echo "<script>alert('Failed to update stock item.');</script>";
+        }
+        oci_free_statement($stid);
     }
-    oci_free_statement($stid);
 }
 
 oci_close($conn);
@@ -62,11 +77,9 @@ oci_close($conn);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <title>Update Stock Item</title>
     <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../../public/css/index.css">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-light navbar-container">
