@@ -36,7 +36,7 @@ oci_close($conn);
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="dashboard.php">Dashboard</a>
+                        <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/dashboard.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
                     <a class="nav-link" href="/pemay-master/pemay-master/pages/owner/users.php">Users</a>
@@ -90,6 +90,10 @@ oci_close($conn);
                         <td>
                             <a href="../Stock/update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
                             <a href="../Stock/delete_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm">Delete</a>
+                        </td>
+                        <td>
+                            <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
+                            <a href="delete_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm">Delete</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
