@@ -60,9 +60,9 @@ include '../config/connection.php';
         </div>
       </form>
 
-      <form action="generate_dummy_users.php" method="post">
+      <!-- <form action="generate_dummy_users.php" method="post">
         <button type="submit">Generate Dummy Users</button>
-      </form>
+      </form> -->
     </div>
   </div>
 
