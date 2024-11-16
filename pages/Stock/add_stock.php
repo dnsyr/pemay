@@ -13,20 +13,34 @@ while ($row = oci_fetch_assoc($categoryStid)) {
 }
 oci_free_statement($categoryStid);
 
+// Fetch available employees (Pegawai) for the Pegawai_ID
+$pegawaiQuery = "SELECT * FROM Pegawai ORDER BY Nama";
+$pegawaiStid = oci_parse($conn, $pegawaiQuery);
+oci_execute($pegawaiStid);
+
+$pegawai = [];
+while ($row = oci_fetch_assoc($pegawaiStid)) {
+    $pegawai[] = $row;
+}
+oci_free_statement($pegawaiStid);
+
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $Nama = $_POST['nama_item'];
+    $namaItem = $_POST['nama_item'];
     $jumlah = $_POST['jumlah'];
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
+    $pegawai_id = $_POST['pegawai'];  // New field for Pegawai_ID
 
-    // Insert new stock item
-    $sql = "INSERT INTO PRODUK (Nama, Jumlah, Harga, KategoriProduk_ID) VALUES (:Nama, :jumlah, :harga, :kategori)";
+    // Insert new stock item into Produk table
+    $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID) 
+            VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
     $stid = oci_parse($conn, $sql);
     
-    oci_bind_by_name($stid, ":Nama", $Nama);
+    oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
     oci_bind_by_name($stid, ":harga", $harga);
+    oci_bind_by_name($stid, ":pegawai_id", $pegawai_id);
     oci_bind_by_name($stid, ":kategori", $kategori);
 
     if (oci_execute($stid)) {
@@ -52,38 +66,38 @@ oci_close($conn);
 </head>
 
 <body>
-<nav class="navbar navbar-expand-lg navbar-light navbar-container">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">
-        <img src="../../public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
-        <span class="navbar-title">Pemay</span>
-      </a>
+    <nav class="navbar navbar-expand-lg navbar-light navbar-container">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="../../public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
+                <span class="navbar-title">Pemay</span>
+            </a>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/Stock/stock.php">Stok</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/Kategori/kategori.php">Kategori</a>
-</li>
-        </ul>
-      </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pemay/pages/Stock/stock.php">Stock</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pemay/pages/Kategori/kategori.php">Kategori</a>
+                    </li>
+                </ul>
+            </div>
 
-      <form action="../../auth/logout.php" method="post">
-        <button class="btn btn-link text-dark text-decoration-none" type="submit">Logout</button>
-      </form>
-    </div>
-  </nav>
+            <form action="../../auth/logout.php" method="post">
+                <button class="btn btn-link text-dark text-decoration-none" type="submit">Logout</button>
+            </form>
+        </div>
+    </nav>
 
     <div class="container mt-4">
         <h2>Add Stock Item</h2>
@@ -107,6 +121,17 @@ oci_close($conn);
                     <?php foreach ($categories as $category): ?>
                         <option value="<?php echo $category['ID']; ?>">
                             <?php echo htmlentities($category['NAMA']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="pegawai" class="form-label">Employee</label>
+                <select class="form-select" id="pegawai" name="pegawai" required>
+                    <option value="">-- Select Employee --</option>
+                    <?php foreach ($pegawai as $emp): ?>
+                        <option value="<?php echo $emp['ID']; ?>">
+                            <?php echo htmlentities($emp['NAMA']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
