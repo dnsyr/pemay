@@ -1,7 +1,17 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+
+// Only include the header based on the user role
+if ($_SESSION['posisi'] === 'owner') {
+    include '../owner/header.php';  // Owner's header
+} elseif ($_SESSION['posisi'] === 'staff') {
+    include '../staff/header.php';  // Staff's header
+} else {
+    // Redirect to login page if the user is not logged in or has an invalid role
+    header("Location: ../../auth/login.php");
+    exit();
+}
 
 // Pagination setup
 $itemsPerPage = 5;
@@ -104,7 +114,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 
 <!DOCTYPE html>
 <html lang="en">
-
 <body>
 
 <div class="container mt-4">

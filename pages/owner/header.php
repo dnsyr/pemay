@@ -1,10 +1,3 @@
-<!-- <?php
-session_start();
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
-  header("Location: ../../auth/restricted.php");
-  exit();
-}
-?> -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -28,25 +21,40 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+      
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
+          <!-- Dashboard Menu Item -->
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
+            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
           </li>
+          <!-- Users Menu Item -->
           <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/owner/users.php">Users</a>
+            <a class="nav-link <?php echo ($currentPage === 'users') ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Users</a>
           </li>
+          <!-- Stock Menu Item -->
           <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/Stock/stock.php">Stok</a>
+            <a class="nav-link <?php echo ($currentPage === 'stock') ? 'active' : ''; ?>" href="/pemay/pages/Stock/stock.php">Stok</a>
           </li>
+          <!-- Kategori Menu Item -->
           <li class="nav-item">
-            <a class="nav-link" href="/pemay/pages/Kategori/kategori.php">Kategori</a>
+            <a class="nav-link <?php echo ($currentPage === 'kategori') ? 'active' : ''; ?>" href="/pemay/pages/Kategori/kategori.php">Kategori</a>
           </li>
         </ul>
       </div>
 
-      <form action="../../auth/logout.php" method="post">
+      <!-- Logout Button -->
+      <form action="../../auth/logout.php" method="post" class="d-flex">
         <button class="btn btn-link text-dark text-decoration-none" type="submit">Logout</button>
       </form>
-</div>
+    </div>
   </nav>
+
+  <!-- Bootstrap JS (for functionality of navbar-toggler) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>

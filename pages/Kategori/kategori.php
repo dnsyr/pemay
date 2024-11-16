@@ -1,7 +1,18 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+
+// Include the header based on user role
+if ($_SESSION['posisi'] === 'owner') {
+    include '../owner/header.php';  // Owner's header
+} elseif ($_SESSION['posisi'] === 'staff') {
+    include '../staff/header.php';  // Staff's header
+} else {
+    // Redirect to login page if the user is not logged in or has an invalid role
+    header("Location: ../../auth/login.php");
+    exit();
+}
+
 // Default tab
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
 
@@ -71,9 +82,7 @@ oci_close($conn);
 
 <!DOCTYPE html>
 <html lang="en">
-
 <body>
-    <!-- Content -->
     <div class="container mt-5">
         <h2>CRUD Kategori</h2>
         <?php if (isset($message)): ?>
@@ -147,5 +156,4 @@ oci_close($conn);
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
-
 </html>
