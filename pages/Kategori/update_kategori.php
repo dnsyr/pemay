@@ -26,35 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Gagal memperbarui kategori.";
         }
         oci_free_statement($stid);
-    } elseif ($action === 'delete') {
-        // Cek apakah kategori masih digunakan oleh produk
-        $checkSql = "SELECT COUNT(*) AS total FROM Produk WHERE KategoriProduk_ID = :id";
-        $checkStid = oci_parse($conn, $checkSql);
-        oci_bind_by_name($checkStid, ":id", $id);
-        oci_execute($checkStid);
-        $row = oci_fetch_assoc($checkStid);
-        oci_free_statement($checkStid);
-
-        if ($row['TOTAL'] > 0) {
-            $message = "Kategori tidak dapat dihapus karena masih digunakan oleh produk.";
-        } else {
-            // Hapus kategori
-            $sql = "DELETE FROM KategoriProduk WHERE ID = :id";
-            $stid = oci_parse($conn, $sql);
-            oci_bind_by_name($stid, ":id", $id);
-
-            if (oci_execute($stid)) {
-                $message = "Kategori berhasil dihapus.";
-            } else {
-                $message = "Gagal menghapus kategori.";
-            }
-            oci_free_statement($stid);
-
-            // Setelah kategori dihapus, kembali ke halaman kategori
-            oci_close($conn);
-            header("Location: kategori.php?message=" . urlencode($message));
-            exit;
-        }
     }
 }
 
@@ -94,7 +65,6 @@ oci_close($conn);
                 <input type="text" class="form-control" id="namaKategori" name="namaKategori" value="<?php echo htmlentities($row['NAMA']); ?>" required>
             </div>
             <button type="submit" name="action" value="update" class="btn btn-primary">Update</button>
-            <button type="submit" name="action" value="delete" class="btn btn-danger">Hapus</button>
             <a href="kategori.php" class="btn btn-secondary">Kembali</a>
         </form>
     </div>
