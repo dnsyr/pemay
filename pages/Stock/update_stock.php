@@ -2,11 +2,6 @@
 session_start();
 include '../../config/connection.php';
 
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
-    header("Location: ../../auth/restricted.php");
-    exit();
-}
-
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $sql = "SELECT * FROM Stock WHERE Id = :id";
@@ -57,7 +52,6 @@ oci_close($conn);
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-container">
-        <!-- Navbar content here -->
     </nav>
 
     <div class="page-container">
