@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $kategori = $_POST['kategori'];
 
     // Insert new stock item
-    $sql = "INSERT INTO Stock (NamaItem, Jumlah, Harga, KategoriProduk_ID) VALUES (:namaItem, :jumlah, :harga, :kategori)";
+    $sql = "INSERT INTO PRODUK (NamaItem, Jumlah, Harga, KategoriProduk_ID) VALUES (:namaItem, :jumlah, :harga, :kategori)";
     $stid = oci_parse($conn, $sql);
     
     oci_bind_by_name($stid, ":namaItem", $namaItem);
