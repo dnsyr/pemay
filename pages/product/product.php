@@ -1,7 +1,10 @@
 <?php
 session_start();
 include '../../config/connection.php';
-
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+    header("Location: ../../auth/login.php");
+    exit();
+}
 $pageTitle = 'Manage Product';
 
 // Only include the header based on the user role
@@ -164,7 +167,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                         <td><?php echo htmlentities($stock['KATEGORINAMA']); ?></td>
                         <td>
                             <!-- Update Button -->
-                            <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
+                            <a href="update-product.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
 
                             <!-- Delete Button -->
                             <a href="stock.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>

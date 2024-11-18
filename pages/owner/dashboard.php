@@ -1,16 +1,17 @@
 <?php
 session_start();
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
-  header("Location: ../../auth/restricted.php");
-  exit();
+    header("Location: ../../auth/restricted.php");
+    exit();
 }
-include '../owner/header.php';
 
 $pageTitle = 'Owner Dashboard';
 
-echo '<pre>';
-var_dump($_SESSION['user']); // Display all session variables
-echo '</pre>';
+// echo '<pre>';
+// var_dump($_SESSION);
+// echo '</pre>';
+
+include '../owner/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

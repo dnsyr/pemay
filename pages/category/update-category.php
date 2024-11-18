@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If category is being used, show an alert
         if ($checkRow['TOTAL'] > 0) {
             $message = "$currentLabel tidak dapat diperbarui karena masih digunakan oleh produk.";
-            echo "<script type='text/javascript'>alert('$message'); window.location.href='kategori.php?tab=$tab';</script>";
+            echo "<script type='text/javascript'>alert('$message'); window.location.href='category.php?tab=$tab';</script>";
             exit;
         }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         oci_free_statement($stid);
 
         // Redirect back with message
-        echo "<script type='text/javascript'>alert('$message'); window.location.href='kategori.php?tab=$tab';</script>";
+        echo "<script type='text/javascript'>alert('$message'); window.location.href='category.php?tab=$tab';</script>";
         exit;
     }
 }
@@ -78,7 +78,7 @@ oci_free_statement($stid);
 
 // If category not found, redirect with error message
 if (!$row) {
-    header("Location: kategori.php?tab=$tab&message=" . urlencode("$currentLabel tidak ditemukan."));
+    header("Location: category.php?tab=$tab&message=" . urlencode("$currentLabel tidak ditemukan."));
     exit;
 }
 
@@ -91,7 +91,7 @@ oci_close($conn);
 <body>
     <div class="container mt-5">
         <h2>Update <?php echo $currentLabel; ?></h2>
-        <form method="POST" action="update_category.php?id=<?php echo htmlentities($id); ?>&tab=<?php echo $tab; ?>">
+        <form method="POST" action="update-category.php?id=<?php echo htmlentities($id); ?>&tab=<?php echo $tab; ?>">
             <div class="mb-3">
                 <label for="namaKategori" class="form-label">Nama <?php echo $currentLabel; ?></label>
                 <input type="text" class="form-control" id="namaKategori" name="namaKategori" value="<?php echo htmlentities($row['NAMA']); ?>" required>
