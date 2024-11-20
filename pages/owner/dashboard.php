@@ -7,10 +7,6 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
 include '../owner/header.php';
 
 $pageTitle = 'Owner Dashboard';
-
-echo '<pre>';
-var_dump($_SESSION['user']); // Display all session variables
-echo '</pre>';
 ?>
 <!DOCTYPE html>
 <html lang="en">

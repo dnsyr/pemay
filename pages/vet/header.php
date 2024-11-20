@@ -8,7 +8,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
 
 <head>
   <meta charset="UTF-8">
-  <title><?php echo isset($pageTitle) ? $pageTitle : 'Owner'; ?></title>
+  <title><?php echo isset($pageTitle) ? $pageTitle : 'Vet'; ?></title>
   <link rel="shortcut icon" href="/pemay/public/img/icon.png" type="image/x-icon">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -19,7 +19,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
 <body>
   <nav class="navbar navbar-expand-lg navbar-light navbar-container">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/pemay/pages/owner/dashboard.php">
+      <a class="navbar-brand" href="/pemay/pages/vet/dashboard.php">
         <img src="/pemay/public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
         <span class="navbar-title">Pemay</span>
       </a>
@@ -32,19 +32,15 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
         <ul class="navbar-nav">
           <!-- Dashboard Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
+            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/vet/dashboard.php">Dashboard</a>
           </li>
           <!-- Pet Hotel Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
+            <a class="nav-link <?php echo ($currentPage === 'pet-hotel') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
           </li>
-          <!-- Users Menu Item -->
+          <!-- Medicine Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'users') ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Users</a>
-          </li>
-          <!-- Product Menu Item -->
-          <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'product') ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a>
+            <a class="nav-link <?php echo ($currentPage === 'medicine') ? 'active' : ''; ?>" href="/pemay/pages/medicine/medicine.php">Medicines</a>
           </li>
           <!-- Category Menu Item -->
           <li class="nav-item">

@@ -13,15 +13,17 @@ if ($_SESSION['posisi'] === 'owner') {
     exit();
 }
 
+$message = "";
+
 // Default tab
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
 
 // Ambil data berdasarkan jenis kategori
 $tables = [
-    'produk' => ['table' => 'KategoriProduk', 'label' => 'Kategori Produk'],
-    'obat' => ['table' => 'KategoriObat', 'label' => 'Kategori Obat'],
-    'salon' => ['table' => 'JenisLayananSalon', 'label' => 'Jenis Layanan Salon'],
-    'medis' => ['table' => 'JenisLayananMedis', 'label' => 'Jenis Layanan Medis'],
+    'produk' => ['table' => 'KategoriProduk', 'label' => 'Product'],
+    'obat' => ['table' => 'KategoriObat', 'label' => 'Medicine'],
+    'salon' => ['table' => 'JenisLayananSalon', 'label' => 'Salon Service'],
+    'medis' => ['table' => 'JenisLayananMedis', 'label' => 'Medical Service'],
 ];
 
 if (!array_key_exists($tab, $tables)) {
@@ -34,7 +36,7 @@ $currentLabel = $tables[$tab]['label'];
 // Proses Tambah Kategori
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     $namaKategori = trim($_POST['namaKategori']);
-    $biaya = isset($_POST['biaya']) ? (int) $_POST['biaya'] : null;
+    $biaya = isset($_POST['biaya']) ? (int) $_POST['biaya'] : 30000;
 
     $sql = "INSERT INTO $currentTable (Nama" . ($tab === 'salon' || $tab === 'medis' ? ', Biaya' : '') . ") 
             VALUES (:nama" . ($tab === 'salon' || $tab === 'medis' ? ', :biaya' : '') . ")";
@@ -85,8 +87,8 @@ oci_close($conn);
 
 <body>
     <div class="page-container">
-        <h2>CRUD Kategori</h2>
-        <?php if (isset($message)): ?>
+        <h2>Manage Categories</h2>
+        <?php if ($message != ""): ?>
             <div class="alert alert-info">
                 <?php echo htmlentities($message); ?>
             </div>
@@ -108,12 +110,12 @@ oci_close($conn);
             <form method="POST" action="?tab=<?php echo $tab; ?>">
                 <input type="hidden" name="action" value="add">
                 <div class="mb-3">
-                    <label for="namaKategori" class="form-label">Nama <?php echo $currentLabel; ?></label>
+                    <label for="namaKategori" class="form-label"><?php echo $currentLabel; ?> Name</label>
                     <input type="text" class="form-control" id="namaKategori" name="namaKategori" required>
                 </div>
                 <?php if ($tab === 'salon' || $tab === 'medis'): ?>
                     <div class="mb-3">
-                        <label for="biaya" class="form-label">Biaya</label>
+                        <label for="biaya" class="form-label">Price</label>
                         <input type="number" class="form-control" id="biaya" name="biaya" required>
                     </div>
                 <?php endif; ?>
@@ -124,18 +126,16 @@ oci_close($conn);
             <table class="table mt-3">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Nama</th>
+                        <th><?php echo $currentLabel; ?> Name</th>
                         <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                            <th>Biaya</th>
+                            <th>Price</th>
                         <?php endif; ?>
-                        <th>Aksi</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($categories as $category): ?>
                         <tr>
-                            <td><?php echo htmlentities($category['ID']); ?></td>
                             <td><?php echo htmlentities($category['NAMA']); ?></td>
                             <?php if ($tab === 'salon' || $tab === 'medis'): ?>
                                 <td><?php echo htmlentities($category['BIAYA']); ?></td>
