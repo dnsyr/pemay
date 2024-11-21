@@ -17,40 +17,31 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light navbar-container">
+<nav class="navbar navbar-expand-lg navbar-light navbar-container">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/pemay/pages/vet/dashboard.php">
-        <img src="/pemay/public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
+      <a class="navbar-brand" href="#">
+        <img src="../../public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
         <span class="navbar-title">Pemay</span>
       </a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
-          <!-- Dashboard Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/vet/dashboard.php">Dashboard</a>
+            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="../vet/dashboard.php">Dashboard</a>
           </li>
-          <!-- Pet Hotel Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'pet-hotel') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
+            <a class="nav-link <?php echo ($currentPage === 'medical-services') ? 'active' : ''; ?>" href="../vet/medical-services.php">Medical Services</a>
           </li>
-          <!-- Medicine Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'medicine') ? 'active' : ''; ?>" href="/pemay/pages/medicine/medicine.php">Medicines</a>
-          </li>
-          <!-- Category Menu Item -->
-          <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'category') ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
+            <a class="nav-link <?php echo ($currentPage === 'category') ? 'active' : ''; ?>" href="../category/category.php">Manage Categories</a>
           </li>
         </ul>
       </div>
 
-      <!-- Logout Button -->
-      <form action="/pemay/auth/logout.php" method="post" class="d-flex">
+      <form action="../../auth/logout.php" method="post">
         <button class="btn btn-link text-dark text-decoration-none" type="submit">Logout</button>
       </form>
     </div>

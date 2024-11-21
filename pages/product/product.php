@@ -105,7 +105,7 @@ if (isset($_GET['delete_id'])) {
     oci_bind_by_name($stid, ":id", $delete_id);
 
     if (oci_execute($stid)) {
-        echo "<script>alert('Stock item deleted successfully!'); window.location.href='stock.php';</script>";
+        echo "<script>alert('Stock item deleted successfully!'); window.location.href='product.php';</script>";
     } else {
         echo "<script>alert('Failed to delete stock item.');</script>";
     }
@@ -170,7 +170,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                             <a href="update-product.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
 
                             <!-- Delete Button -->
-                            <a href="stock.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
+                            <a href="product.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
