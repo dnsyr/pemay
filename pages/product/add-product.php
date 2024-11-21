@@ -10,7 +10,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
     die("Access denied. Please log in as an owner.");
 }
 
-$pegawaiId = intval($_SESSION['employee_id']);
+$pegawaiId = intval($_SESSION['pegawai_id']);
 
 // Fetch available categories
 $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
