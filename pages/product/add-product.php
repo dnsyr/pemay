@@ -74,7 +74,7 @@ oci_close($conn);
             <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
                 <select class="form-select" id="kategori" name="kategori" required>
-                    <option value="">-- Select Category --</option>
+                    <option value="" disabled selected>-- Select Category --</option>
                     <?php foreach ($categories as $category): ?>
                         <option value="<?php echo $category['ID']; ?>">
                             <?php echo htmlentities($category['NAMA']); ?>

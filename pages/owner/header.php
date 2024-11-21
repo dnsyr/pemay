@@ -44,7 +44,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
           </li>
           <!-- Product Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'product') ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a>
+            <a class="nav-link <?php echo ($currentPage === 'product' || 'add-product') ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a>
           </li>
           <!-- Category Menu Item -->
           <li class="nav-item">

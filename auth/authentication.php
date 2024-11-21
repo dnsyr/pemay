@@ -26,6 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $_SESSION['posisi'] = $user['POSISI'];
     $_SESSION['user_logged_in'] = true;
     $_SESSION['employee_id'] = $user['ID'];
+    $_SESSION['message'] = "";
 
     // Redirect based on role
     if ($user['POSISI'] == 'owner') {

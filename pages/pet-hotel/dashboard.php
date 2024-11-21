@@ -31,7 +31,7 @@ $tab = isset($_GET['tab']) ? $_GET['tab'] : 'reservation';
 
 // Define table mapping for tabs
 $tables = [
-  'reservation' => ['table' => 'LayananHotel', 'label' => 'Hotel Service'],
+  'reservation' => ['table' => 'LayananHotel', 'label' => 'Reservation'],
   'cage' => ['table' => 'Kandang', 'label' => 'Cage']
 ];
 
@@ -48,7 +48,7 @@ $message = "";
 // Initialize Database class
 $db = new Database();
 
-// Handle Create Reservation
+// Handle Create Reservation & Cage
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   try {
     $db->beginTransaction(); // Begin the transaction
@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $checkIn;
       $checkOut;
       $price;
-      $booked = 'Booked';
 
       $sqlAddReservation = "INSERT INTO $currentTable (Hewan_ID, Kandang, CheckIn, CheckOut, TotalBiaya, Status, Pegawai_ID) VALUES (:reservatorID, :kandang, :checkIn, :checkOut, :price, :booked, :pegawaiID)";
 
@@ -69,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $db->bind(':checkIn', $checkIn);
       $db->bind(':checkOut', $checkOut);
       $db->bind(':price', $price);
-      $db->bind(':booked', $booked);
+      $db->bind(':booked', 'Booked');
       $db->bind(':pegawaiID', $pegawaiID);
 
       if ($db->execute()) {
@@ -80,12 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($_POST['action'] === 'addCage') {
       // Handle Create Cage
       $ukuran = trim($_POST['ukuran']);
-      $status = trim($_POST['status']);
 
       $sqlAddCage = "INSERT INTO $currentTable (Ukuran, Status) VALUES (:ukuran, :status)";
       $db->query($sqlAddCage);
       $db->bind(':ukuran', $ukuran);
-      $db->bind(':status', $status);
+      $db->bind(':status', 'Empty');
 
       if ($db->execute()) {
         $message = "$currentLabel berhasil ditambahkan.";
@@ -96,6 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // Commit the transaction after successful execution
     $db->commit();
+
+
+    sleep(1); // delay second
+    header("Location: /pemay/pages/pet-hotel/dashboard.php?tab=cage");
+    exit();
   } catch (PDOException $e) {
     // Rollback if there is an error
     $db->rollBack();
@@ -122,6 +125,10 @@ if (isset($_GET['delete_id'])) {
       $message = "Gagal menghapus $currentLabel.";
     }
     $db->commit();
+
+    sleep(2); // delay second
+    header("Location: /pemay/pages/pet-hotel/dashboard.php?tab=cage");
+    exit();
   } catch (PDOException $e) {
     // Rollback if there is an error
     $db->rollBack();
@@ -130,7 +137,10 @@ if (isset($_GET['delete_id'])) {
 }
 
 // Fetch Data
-$sqlQuery = $tab === 'reservation' ? "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY ID" : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
+// $sqlQuery = $tab === 'reservation' ? "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY ID JOIN HEWAN WHERE HEWAN_ID = HEWAN_ID" : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
+
+$sqlQuery = $tab === 'reservation' ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA FROM $currentTable lh JOIN HEWAN h ON lh.HEWAN_ID = h.ID WHERE lh.onDelete = 0 ORDER BY lh.ID" : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
+
 $db->query($sqlQuery);
 $results = $db->resultSet();
 ?>
@@ -187,10 +197,6 @@ $results = $db->resultSet();
                   <label for="checkOut" class="form-label">Check Out</label>
                   <input type="datetime-local" class="form-control" id="checkOut" name="checkOut" required>
                 </div>
-                <!-- <div class="mb-3 w-25">
-                  <label for="status" class="form-label">Status</label>
-                  <input type="text" class="form-control" id="status" name="status" required>
-                </div> -->
                 <div class="mb-3 w-25">
                   <label for="biaya" class="form-label">Price</label>
                   <input type="number" class="form-control" id="biaya" name="biaya" required>
@@ -203,11 +209,16 @@ $results = $db->resultSet();
               <input type="hidden" name="action" value="addCage">
               <div class="mb-3">
                 <label for="ukuran" class="form-label"><?php echo $currentLabel; ?> Size</label>
-                <input type="text" class="form-control" id="ukuran" name="ukuran" required>
-              </div>
-              <div class="mb-3">
-                <label for="status" class="form-label">Status</label>
-                <input type="text" class="form-control" id="status" name="status" required>
+                <select class="form-select" name="ukuran" id="ukuran" required>
+                  <option value="" disabled selected>-- Choose Size --</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                  <option value="XXXL">XXXL</option>
+                </select>
               </div>
             <?php endif; ?>
 
@@ -244,12 +255,12 @@ $results = $db->resultSet();
               <tr>
                 <!-- Reservation Data -->
                 <?php if ($tab === 'reservation'): ?>
-                  <td><?php echo htmlentities($result['HEWAN_ID.NAMA']); ?></td>
-                  <td><?php echo htmlentities($result['KANDANG_ID']); ?></td>
+                  <td><?php echo htmlentities($result['HEWAN_NAMA']); ?></td>
+                  <td><?php echo htmlentities($result['KANDANG_NOMOR']); ?></td>
                   <td><?php echo htmlentities($result['CHECKIN']); ?></td>
                   <td><?php echo htmlentities($result['CHECKOUT']); ?></td>
                   <td><?php echo htmlentities($result['STATUS']); ?></td>
-                  <td><?php echo htmlentities($result['PRICE']); ?></td>
+                  <td><?php echo htmlentities($result['TOTALBIAYA']); ?></td>
                 <?php elseif ($tab === 'cage'): ?>
                   <td><?php echo htmlentities($result['NOMOR']); ?></td>
                   <td><?php echo htmlentities($result['UKURAN']); ?></td>
@@ -258,11 +269,20 @@ $results = $db->resultSet();
 
                 <!-- Action Buttons -->
                 <td>
-                  <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $tab === 'reservation' ? $result['ID'] : $result['NOMOR']; ?>"
-                    class="btn btn-danger btn-sm"
-                    onclick="return confirm('Are you sure you want to delete this item?');">
-                    Delete
-                  </a>
+                  <?php if ($result['STATUS'] !== 'Empty'): ?>
+                    <button
+                      class="btn btn-danger btn-sm"
+                      onclick="alert('Cannot remove cage while used');">
+                      Delete
+                    </button>
+                  <?php elseif ($result['STATUS'] === 'Empty'): ?>
+                    <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $tab === 'reservation' ? $result['ID'] : $result['NOMOR']; ?>"
+                      class="btn btn-danger btn-sm"
+                      onclick="return confirm('Are you sure you want to delete this item?');">
+                      Delete
+                    </a>
+                  <?php endif; ?>
+
                 </td>
               </tr>
             <?php endforeach; ?>

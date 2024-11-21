@@ -129,7 +129,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </div>
             <div class="col-md-4">
                 <select class="form-select" name="category">
-                    <option value="">-- Filter by Category --</option>
+                    <option value="" selected disabled>-- Filter by Category --</option>
                     <?php foreach ($categoriesList as $category): ?>
                         <option value="<?php echo $category['ID']; ?>" <?php echo $selectedCategory == $category['ID'] ? 'selected' : ''; ?>>
                             <?php echo htmlentities($category['NAMA']); ?>
@@ -146,7 +146,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Item Name</th>
                     <th>Quantity</th>
                     <th>Price</th>
@@ -157,14 +156,13 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <tbody>
                 <?php foreach ($stocks as $stock): ?>
                     <tr>
-                        <td><?php echo htmlentities($stock['ID']); ?></td>
                         <td><?php echo htmlentities($stock['NAMA']); ?></td>
                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
                         <td><?php echo htmlentities($stock['KATEGORINAMA']); ?></td>
                         <td>
                             <!-- Update Button -->
-                            <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
+                            <!-- <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a> -->
 
                             <!-- Delete Button -->
                             <a href="stock.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
