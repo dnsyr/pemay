@@ -24,7 +24,8 @@ CREATE TABLE Pegawai (
   Password VARCHAR2(255) NOT NULL,
   Posisi VARCHAR2(15) NOT NULL,
   Email VARCHAR2(50) NOT NULL UNIQUE,
-  NomorTelpon VARCHAR2(20) NOT NULL UNIQUE
+  NomorTelpon VARCHAR2(20) NOT NULL UNIQUE,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_pegawai BEFORE
 INSERT ON Pegawai FOR EACH ROW BEGIN
@@ -35,7 +36,8 @@ END;
 CREATE TABLE Kandang (
   Nomor NUMBER PRIMARY KEY,
   Ukuran VARCHAR2(10) NOT NULL,
-  Status VARCHAR2(10) NOT NULL
+  Status VARCHAR2(10) NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_kandang BEFORE
 INSERT ON Kandang FOR EACH ROW BEGIN
@@ -46,9 +48,10 @@ END;
 CREATE TABLE Laporan (
   ID NUMBER PRIMARY KEY,
   Jenis VARCHAR2(15) NOT NULL,
-  Tanggal DATE NOT NULL,
+  Tanggal TIMESTAMP NOT NULL,
   Judul VARCHAR2(50) NOT NULL,
   Isi VARCHAR2(255) NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   Pegawai_ID NUMBER NOT NULL,
   FOREIGN KEY (Pegawai_ID) REFERENCES Pegawai(ID)
 );
@@ -62,7 +65,8 @@ CREATE TABLE PemilikHewan (
   ID NUMBER PRIMARY KEY,
   Nama VARCHAR2(50) NOT NULL,
   Email VARCHAR2(50) NOT NULL UNIQUE,
-  NomorTelpon VARCHAR2(20) NOT NULL UNIQUE
+  NomorTelpon VARCHAR2(20) NOT NULL UNIQUE,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_pemilikhewan BEFORE
 INSERT ON PemilikHewan FOR EACH ROW BEGIN
@@ -72,7 +76,8 @@ END;
 / -- Tabel KategoriProduk
 CREATE TABLE KategoriProduk (
   ID NUMBER PRIMARY KEY,
-  Nama VARCHAR2(50) NOT NULL UNIQUE
+  Nama VARCHAR2(50) NOT NULL UNIQUE,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_kategoriproduk BEFORE
 INSERT ON KategoriProduk FOR EACH ROW BEGIN
@@ -82,7 +87,8 @@ END;
 / -- Tabel KategoriObat
 CREATE TABLE KategoriObat (
   ID NUMBER PRIMARY KEY,
-  Nama VARCHAR2(50) NOT NULL UNIQUE
+  Nama VARCHAR2(50) NOT NULL UNIQUE,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_kategoriobat BEFORE
 INSERT ON KategoriObat FOR EACH ROW BEGIN
@@ -93,7 +99,8 @@ END;
 CREATE TABLE JenisLayananSalon (
   ID NUMBER PRIMARY KEY,
   Nama VARCHAR2(50) NOT NULL UNIQUE,
-  Biaya NUMBER NOT NULL
+  Biaya NUMBER NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_jenislayanansalon BEFORE
 INSERT ON JenisLayananSalon FOR EACH ROW BEGIN
@@ -104,7 +111,8 @@ END;
 CREATE TABLE JenisLayananMedis (
   ID NUMBER PRIMARY KEY,
   Nama VARCHAR2(50) NOT NULL UNIQUE,
-  Biaya NUMBER NOT NULL
+  Biaya NUMBER NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0
 );
 CREATE TRIGGER trg_jenislayananmedis BEFORE
 INSERT ON JenisLayananMedis FOR EACH ROW BEGIN
@@ -119,9 +127,10 @@ CREATE TABLE Hewan (
   Spesies VARCHAR2(10) NOT NULL,
   Gender VARCHAR2(10) NOT NULL,
   Berat NUMBER NOT NULL,
-  TanggalLahir DATE NOT NULL,
+  TanggalLahir TIMESTAMP,
   Tinggi NUMBER NOT NULL,
   Lebar NUMBER NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   PemilikHewan_ID NUMBER NOT NULL,
   FOREIGN KEY (PemilikHewan_ID) REFERENCES PemilikHewan(ID)
 );
@@ -136,6 +145,7 @@ CREATE TABLE Produk (
   Nama VARCHAR2(50) NOT NULL UNIQUE,
   Jumlah NUMBER NOT NULL,
   Harga NUMBER NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   Pegawai_ID NUMBER NOT NULL,
   KategoriProduk_ID NUMBER NOT NULL,
   FOREIGN KEY (Pegawai_ID) REFERENCES Pegawai(ID),
@@ -149,10 +159,11 @@ END;
 / -- Tabel LayananHotel
 CREATE TABLE LayananHotel (
   ID NUMBER PRIMARY KEY,
-  CheckIn DATE NOT NULL,
-  CheckOut DATE NOT NULL,
+  CheckIn TIMESTAMP NOT NULL,
+  CheckOut TIMESTAMP NOT NULL,
   TotalBiaya NUMBER NOT NULL,
   Status VARCHAR2(15) NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   Hewan_ID NUMBER NOT NULL,
   Pegawai_ID NUMBER NOT NULL,
   Kandang_Nomor NUMBER NOT NULL,
@@ -168,11 +179,12 @@ END;
 / -- Tabel LayananSalon
 CREATE TABLE LayananSalon (
   ID NUMBER PRIMARY KEY,
-  Tanggal DATE NOT NULL,
+  Tanggal TIMESTAMP NOT NULL,
   TotalBiaya NUMBER NOT NULL,
   JenisLayanan ArrayJenisLayananSalon,
   -- Array untuk menyimpan banyak ID dari JenisLayananSalon
   Status VARCHAR2(15) NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   Hewan_ID NUMBER NOT NULL,
   Pegawai_ID NUMBER NOT NULL,
   FOREIGN KEY (Hewan_ID) REFERENCES Hewan(ID),
@@ -186,12 +198,13 @@ END;
 / -- Tabel LayananMedis
 CREATE TABLE LayananMedis (
   ID NUMBER PRIMARY KEY,
-  Tanggal DATE NOT NULL,
+  Tanggal TIMESTAMP NOT NULL,
   TotalBiaya NUMBER NOT NULL,
   Description VARCHAR2(255) NOT NULL,
   Status VARCHAR2(15) NOT NULL,
   JenisLayanan ArrayJenisLayananMedis,
   -- Array untuk menyimpan banyak ID dari JenisLayananMedis
+  onDelete NUMBER(1) DEFAULT 0,
   Pegawai_ID NUMBER NOT NULL,
   Hewan_ID NUMBER NOT NULL,
   FOREIGN KEY (Pegawai_ID) REFERENCES Pegawai(ID),
@@ -210,6 +223,7 @@ CREATE TABLE Obat (
   Frekuensi VARCHAR2(20) NOT NULL,
   Instruksi VARCHAR2(255) NOT NULL,
   Harga NUMBER NOT NULL,
+  onDelete NUMBER(1) DEFAULT 0,
   LayananMedis_ID NUMBER NOT NULL,
   KategoriObat_ID NUMBER NOT NULL,
   FOREIGN KEY (LayananMedis_ID) REFERENCES LayananMedis(ID),

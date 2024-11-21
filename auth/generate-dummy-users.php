@@ -10,7 +10,7 @@ function insertDummyUser($db, $name, $username, $password, $position, $email, $p
   $stmt->execute();
 
   if ($stmt->rowCount() === 0) {
-    $stmt = $db->prepare("INSERT INTO Pegawai (ID, Nama, Username, Password, Posisi, Email, NomorTelpon) VALUES (seq_pegawai.NEXTVAL, :nama, :username, :password, :posisi, :email, :nomor_telpon)");
+    $stmt = $db->prepare("INSERT INTO Pegawai (Nama, Username, Password, Posisi, Email, NomorTelpon) VALUES (:nama, :username, :password, :posisi, :email, :nomor_telpon)");
     $stmt->bindParam(':nama', $name);
     $stmt->bindParam(':username', $username);
     $stmt->bindParam(':password', $hashedPassword);
@@ -25,7 +25,7 @@ try {
   // Adjust with ur username & password Oracle DB
   $db = new PDO("oci:dbname=//localhost/XE", "DVF", "DVF");
 
-  insertDummyUser($db, 'Owner User', 'owner', 'owner', 'owner', 'owner@example.com', '1234567890');
+  insertDummyUser($db, 'Owner User', 'owner', 'owner', 'owner', 'owner@example.com', '1234567890',);
   insertDummyUser($db, 'Staff User', 'staff', 'staff', 'staff', 'staff@example.com', '1234567120');
   insertDummyUser($db, 'Veterinarian User', 'vet', 'vet', 'vet', 'vet@example.com', '1231237890');
 

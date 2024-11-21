@@ -34,7 +34,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
                         <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="./dashboard.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($currentPage === 'pet-hotel') ? 'active' : ''; ?>" href="./pet-hotel.php">Pet Hotel</a>
+                        <a class="nav-link <?php echo ($currentPage === 'pet-hotel') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($currentPage === 'product') ? 'active' : ''; ?>" href="../product/product.php">Manage Products</a>
