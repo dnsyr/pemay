@@ -2,46 +2,63 @@
 session_start();
 include '../config/connection.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $username = $_POST['username'];
-  $password = $_POST['password'];
-  $posisi = $_POST['posisi'];
+// Ambil data dari form login
+$username = $_POST['username'];
+$password = $_POST['password'];
 
-  // Prepare SQL to retrieve user info
-  $sql = "SELECT id, password, posisi FROM Pegawai WHERE username = :username AND posisi = :posisi";
-  $stid = oci_parse($conn, $sql);
-
-  // Bind parameters
-  oci_bind_by_name($stid, ":username", $username);
-  oci_bind_by_name($stid, ":posisi", $posisi);
-
-  // Execute the query
-  oci_execute($stid);
-
-  // Fetch user data
-  $user = oci_fetch_assoc($stid);
-  if ($user && password_verify($password, $user['PASSWORD'])) {
-    // Set session variables for authenticated user
-    $_SESSION['username'] = $username;
-    $_SESSION['posisi'] = $user['POSISI'];
-    $_SESSION['user_logged_in'] = true;
-    $_SESSION['employee_id'] = $user['ID'];
-
-    // Redirect based on role
-    if ($user['POSISI'] == 'owner') {
-      header("Location: ../pages/owner/dashboard.php");
-    } elseif ($user['POSISI'] == 'vet') {
-      header("Location: ../pages/vet/dashboard.php");
-    } elseif ($user['POSISI'] == 'staff') {
-      header("Location: ../pages/staff/dashboard.php");
-    }
-
-    exit();
-  } else {
-    echo "Invalid username, password, or role.";
-  }
-
-  // Free resources and close the connection
-  oci_free_statement($stid);
-  oci_close($conn);
+// Validasi input form
+if (empty($username) || empty($password)) {
+    die("Harap lengkapi semua data.");
 }
+
+// Query ke database untuk mencocokkan data login
+$query = "SELECT * FROM pegawai WHERE username = :username";
+$stmt = oci_parse($conn, $query);
+
+// Bind variabel untuk menghindari SQL Injection
+oci_bind_by_name($stmt, ":username", $username);
+
+// Eksekusi query
+oci_execute($stmt);
+
+// Periksa hasil query
+$user = oci_fetch_assoc($stmt);
+
+if ($user) {
+    // Debugging: Tampilkan data user yang ditemukan
+    // echo '<pre>'; print_r($user); echo '</pre>';
+
+    // Verifikasi password (asumsi password terenkripsi)
+    if (password_verify($password, $user['PASSWORD'])) { // PASSWORD = nama kolom di tabel Anda
+        // Set session
+        $_SESSION['user_logged_in'] = true;
+        $_SESSION['username'] = $user['USERNAME'];  // Sesuaikan nama kolom
+        $_SESSION['posisi'] = $user['POSISI'];      // Sesuaikan nama kolom
+        $_SESSION['pegawai_id'] = $user['ID'];      // Sesuaikan nama kolom
+
+        // Redirect ke dashboard sesuai posisi
+        switch ($user['POSISI']) {
+            case 'owner':
+                header("Location: ../pages/owner/dashboard.php");
+                break;
+            case 'vet':
+                header("Location: ../pages/vet/dashboard.php");
+                break;
+            case 'staff':
+                header("Location: ../pages/staff/dashboard.php");
+                break;
+            default:
+                die("Role tidak dikenali.");
+        }
+        exit();
+    } else {
+        die("Password salah.");
+    }
+} else {
+    die("User  tidak ditemukan.");
+}
+
+// Bebaskan sumber daya statement
+oci_free_statement($stmt);
+oci_close($conn);
+?>

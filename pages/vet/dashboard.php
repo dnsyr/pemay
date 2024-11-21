@@ -36,7 +36,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
             <a class="nav-link active" aria-current="page" href="dashboard.php">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="medical_history.php">Medical History</a>
+            <a class="nav-link" href="medical-services.php">Layanan Medis</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>

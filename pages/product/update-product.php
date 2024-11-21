@@ -2,107 +2,97 @@
 session_start();
 include '../../config/connection.php';
 include '../owner/header.php';
-
-$pageTitle = 'Update Product';
-
-// Ensure the user is logged in
-if (!isset($_SESSION['employee_id'])) {
-    header("Location: ../../login.php");
+// Pastikan pengguna telah login
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true ) {
+    header("Location: ../../auth/login.php");
     exit();
 }
 
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-
-    // Fetch product data from Produk table
-    $sql = "SELECT * FROM Produk WHERE ID = :id";
-    $stid = oci_parse($conn, $sql);
-    oci_bind_by_name($stid, ":id", $id);
-    oci_execute($stid);
-    $item = oci_fetch_assoc($stid);
-    oci_free_statement($stid);
-
-    if (!$item) {
-        echo "<script>alert('Product not found!'); window.location.href='stock.php';</script>";
-        exit();
-    }
-
-    // Fetch categories for the dropdown
-    $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
-    $categoryStid = oci_parse($conn, $categoryQuery);
-    oci_execute($categoryStid);
-
-    $categories = [];
-    while ($row = oci_fetch_assoc($categoryStid)) {
-        $categories[] = $row;
-    }
-    oci_free_statement($categoryStid);
-} else {
-    header("Location: stock.php");
-    exit();
+// Ambil ID produk dari URL
+$productId = $_GET['id'] ?? null;
+if (!$productId) {
+    die("Product ID not specified.");
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
-    $namaItem = $_POST['nama_item'];
-    $jumlah = $_POST['jumlah'];
-    $harga = $_POST['harga'];
-    $kategori = $_POST['kategori'];
-    $pegawaiId = intval($_SESSION['employee_id']);
+// Ambil data produk dari database
+$sql = "SELECT * FROM Produk WHERE ID = :id";
+$stid = oci_parse($conn, $sql);
+oci_bind_by_name($stid, ":id", $productId);
+oci_execute($stid);
+$product = oci_fetch_assoc($stid);
+oci_free_statement($stid);
 
-    // Ensure that input values are valid
-    if ($jumlah <= 0 || $harga <= 0) {
-        echo "<script>alert('Quantity and Price must be positive values!');</script>";
+if (!$product) {
+    die("Product not found.");
+}
+
+// Proses update jika ada data yang dikirim
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil data dari form
+    $name = $_POST['nama_item'];
+    $quantity = $_POST['jumlah'];
+    $price = $_POST['harga'];
+    $category = $_POST['kategori'];
+
+    // Update produk di database
+    $updateSql = "UPDATE Produk SET NAMA = :name, JUMLAH = :quantity, HARGA = :price, KategoriProduk_ID = :category WHERE ID = :id";
+    $updateStid = oci_parse($conn, $updateSql);
+    oci_bind_by_name($updateStid, ":name", $name);
+    oci_bind_by_name($updateStid, ":quantity", $quantity);
+    oci_bind_by_name($updateStid, ":price", $price);
+    oci_bind_by_name($updateStid, ":category", $category);
+    oci_bind_by_name($updateStid, ":id", $productId);
+
+    if (oci_execute($updateStid)) {
+        echo "<script>alert('Product updated successfully!'); window.location.href='product.php';</script>";
     } else {
-        $sql = "UPDATE Produk 
-                SET Nama = :namaItem, Jumlah = :jumlah, Harga = :harga, KategoriProduk_ID = :kategori, Pegawai_ID = :pegawaiId 
-                WHERE ID = :id";
-        $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":namaItem", $namaItem);
-        oci_bind_by_name($stid, ":jumlah", $jumlah);
-        oci_bind_by_name($stid, ":harga", $harga);
-        oci_bind_by_name($stid, ":kategori", $kategori);
-        oci_bind_by_name($stid, ":pegawaiId", $pegawaiId);
-        oci_bind_by_name($stid, ":id", $id);
-
-        if (oci_execute($stid)) {
-            echo "<script>alert('Stock item updated successfully!'); window.location.href='stock.php';</script>";
-        } else {
-            echo "<script>alert('Failed to update stock item.');</script>";
-        }
-        oci_free_statement($stid);
+        echo "<script>alert('Failed to update product.');</script>";
     }
+    oci_free_statement($updateStid);
 }
+// Fetch categories for the dropdown
+$categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
+$categoryStid = oci_parse($conn, $categoryQuery);
+oci_execute($categoryStid);
 
+$categoriesList = [];
+while ($categoryRow = oci_fetch_assoc($categoryStid)) {
+    $categoriesList[] = $categoryRow;
+}
+oci_free_statement($categoryStid);
 oci_close($conn);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Product</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
 <body>
-
-
     <div class="container mt-4">
         <h2>Update Product Item</h2>
-        <form action="update_stock.php?id=<?php echo $id; ?>" method="post">
+        <form action="update-product.php?id=<?php echo $productId; ?>" method="post">
             <div class="mb-3">
                 <label for="nama_item" class="form-label">Item Name</label>
-                <input type="text" class="form-control" id="nama_item" name="nama_item" value="<?php echo htmlentities($item['NAMA']); ?>" required>
+                <input type="text" class="form-control" id="nama_item" name="nama_item" value="<?php echo htmlentities($product['NAMA']); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="jumlah" class="form-label">Quantity</label>
-                <input type="number" class="form-control" id="jumlah" name="jumlah" value="<?php echo htmlentities($item['JUMLAH']); ?>" required>
+                <input type="number" class="form-control" id="jumlah" name="jumlah" value="<?php echo htmlentities($product['JUMLAH']); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="harga" class="form-label">Price</label>
-                <input type="number" class="form-control" id="harga" name="harga" value="<?php echo htmlentities($item['HARGA']); ?>" required>
+                <input type="number" class="form-control" id="harga" name="harga" value="<?php echo htmlentities($product['HARGA']); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
                 <select class="form-select" id="kategori" name="kategori" required>
                     <option value="">-- Select Category --</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>" <?php echo $item['KATEGORIPRODUK_ID'] == $category['ID'] ? 'selected' : ''; ?>>
+                    <?php foreach ($categoriesList as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" <?php echo $product['KATEGORIPRODUK_ID'] == $category['ID'] ? 'selected' : ''; ?>>
                             <?php echo htmlentities($category['NAMA']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -110,10 +100,12 @@ oci_close($conn);
             </div>
             <div class="mb-3">
                 <button type="submit" name="update" class="btn btn-warning">Update Stock Item</button>
-                <a href="stock.php" class="btn btn-secondary">Cancel</a>
+                <a href="product.php" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/ 4.5.2/js/bootstrap.min.js"></script>
 </body>
-
 </html>
