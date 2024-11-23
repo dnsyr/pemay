@@ -6,12 +6,11 @@ include '../owner/header.php';
 $pageTitle = 'Add Product Item';
 
 // Check if the user is logged in and the session is active
-if (!isset($_SESSION['employee_id'])) {
-    header("Location: /pemay/auth/login.php");
-    exit();
+if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
+    die("Access denied. Please log in as an owner.");
 }
 
-$pegawaiId = intval($_SESSION['employee_id']);
+$pegawaiId = intval($_SESSION['pegawai_id']);
 
 // Fetch available categories
 $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
@@ -31,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
 
-    // Insert new stock item into the Produk table, automatically using Pegawai_ID from the session
+    // Insert new product item into the Produk table, automatically using Pegawai_ID from the session
     $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID) 
             VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
     $stid = oci_parse($conn, $sql);
@@ -43,9 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     oci_bind_by_name($stid, ":kategori", $kategori);
 
     if (oci_execute($stid)) {
-        echo "<script>alert('Stock item added successfully!'); window.location.href='stock.php';</script>";
+        echo "<script>alert('product item added successfully!'); window.location.href='product.php';</script>";
     } else {
-        echo "<script>alert('Failed to add stock item.');</script>";
+        echo "<script>alert('Failed to add product item.');</script>";
     }
     oci_free_statement($stid);
 }
@@ -58,7 +57,7 @@ oci_close($conn);
 <body>
     <div class="container mt-4">
         <h2>Add Product Item</h2>
-        <form action="add_stock.php" method="post">
+        <form action="add-product.php" method="post">
             <div class="mb-3">
                 <label for="nama_item" class="form-label">Item Name</label>
                 <input type="text" class="form-control" id="nama_item" name="nama_item" required>
@@ -83,7 +82,7 @@ oci_close($conn);
                 </select>
             </div>
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Add Stock Item</button>
+                <button type="submit" class="btn btn-primary">Add product Item</button>
                 <a href="product.php" class="btn btn-secondary">Cancel</a>
             </div>
         </form>

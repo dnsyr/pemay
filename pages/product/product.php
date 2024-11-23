@@ -1,7 +1,10 @@
 <?php
 session_start();
 include '../../config/connection.php';
-
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
+    header("Location: ../../auth/login.php");
+    exit();
+}
 $pageTitle = 'Manage Product';
 
 // Only include the header based on the user role
