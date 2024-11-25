@@ -78,7 +78,7 @@ oci_close($conn);
           </div>
           <div class="form-group col-md-4">
             <label for="posisi">Role</label>
-            <select class="form-control" name="posisi" required>
+            <select class="form-select" name="posisi" required>
               <option value="owner" <?php echo ($user['POSISI'] == 'owner') ? 'selected' : ''; ?>>Owner</option>
               <option value="vet" <?php echo ($user['POSISI'] == 'vet') ? 'selected' : ''; ?>>Vet</option>
               <option value="staff" <?php echo ($user['POSISI'] == 'staff') ? 'selected' : ''; ?>>Staff</option>

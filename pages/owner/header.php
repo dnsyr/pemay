@@ -1,6 +1,20 @@
 <?php
-// This file can be included in the staff dashboard pages
-$currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name without extension
+$currentUri = strtok($_SERVER['REQUEST_URI'], '?');
+
+// List of uri
+$dashboardUri = "/pemay/pages/owner/dashboard.php";
+$petHotelUri = "/pemay/pages/pet-hotel/dashboard.php";
+$usersUri = [
+  "/pemay/pages/owner/users.php",
+  "/pemay/pages/owner/add-user.php",
+  "/pemay/pages/owner/update-user.php"
+];
+$productUris = [
+  "/pemay/pages/product/product.php",
+  "/pemay/pages/product/add-product.php",
+  "/pemay/pages/product/update-product.php"
+];
+$categoryUri = "/pemay/pages/category/category.php";
 ?>
 
 <!DOCTYPE html>
@@ -10,8 +24,17 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
   <meta charset="UTF-8">
   <title><?php echo isset($pageTitle) ? $pageTitle : 'Owner'; ?></title>
   <link rel="shortcut icon" href="/pemay/public/img/icon.png" type="image/x-icon">
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome Icon CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="/pemay/public/css/index.css">
   <link rel="stylesheet" href="/pemay/public/css/components.css">
 </head>
@@ -32,23 +55,23 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
         <ul class="navbar-nav">
           <!-- Dashboard Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
+            <a class="nav-link <?php echo ($currentUri === $dashboardUri) ? 'active' : ''; ?>" href="/pemay/pages/owner/dashboard.php">Dashboard</a>
           </li>
           <!-- Pet Hotel Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
+            <a class="nav-link <?php echo ($currentUri === $petHotelUri) ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
           </li>
           <!-- Users Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'users') ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Users</a>
+            <a class="nav-link <?php echo (in_array($currentUri, $usersUri)) ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Users</a>
           </li>
           <!-- Product Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'product' || 'add-product') ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a>
+            <a class="nav-link <?php echo (in_array($currentUri, $productUris)) ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a>
           </li>
           <!-- Category Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentPage === 'category') ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
+            <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
           </li>
         </ul>
       </div>
@@ -65,6 +88,9 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
+  <!-- Select2 JS -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </body>
 
 </html>

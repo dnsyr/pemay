@@ -16,14 +16,14 @@ $query = "SELECT * FROM pegawai WHERE username = :username";
 $stmt = oci_parse($conn, $query);
 
 // Bind parameters
-oci_bind_by_name($stid, ":username", $username);
-oci_bind_by_name($stid, ":posisi", $posisi);
+oci_bind_by_name($stmt, ":username", $username);
+oci_bind_by_name($stmt, ":posisi", $posisi);
 
 // Execute the query
-oci_execute($stid);
+oci_execute($stmt);
 
 // Fetch user data
-$user = oci_fetch_assoc($stid);
+$user = oci_fetch_assoc($stmt);
 if ($user) {
     if ($user && password_verify($password, $user['PASSWORD'])) {
         // Set session variables for authenticated user

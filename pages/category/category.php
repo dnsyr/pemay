@@ -2,21 +2,23 @@
 session_start();
 include '../../config/connection.php';
 
-// Include the header based on user role
-if ($_SESSION['posisi'] === 'owner') {
-    include '../owner/header.php';  // Owner's header
-} elseif ($_SESSION['posisi'] === 'staff') {
-    include '../staff/header.php';  // Staff's header
-} else {
-    // Redirect to login page if the user is not logged in or has an invalid role
-    header("Location: ../../auth/login.php");
-    exit();
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
 }
 
 $message = "";
 
 // Default tab
-$tab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
+$tab = $_GET['tab'] ?? 'produk';
 
 // Ambil data berdasarkan jenis kategori
 $tables = [

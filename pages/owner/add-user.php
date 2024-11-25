@@ -78,7 +78,7 @@ oci_close($conn);
           </div>
           <div class="form-group col-md-4">
             <label for="posisi">Role</label>
-            <select class="form-control" name="posisi" required>
+            <select class="form-select" name="posisi" required>
               <option value="owner">Owner</option>
               <option value="vet">Vet</option>
               <option value="staff">Staff</option>

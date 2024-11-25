@@ -1,6 +1,19 @@
 <?php
 include '../../config/connection.php';
-include '../owner/header.php';
+
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $namaKategori = trim($_POST['namaKategori']);
 
@@ -26,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <body>
     <div class="container mt-5">
         <h2>Tambah Kategori</h2>
