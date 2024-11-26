@@ -244,12 +244,12 @@ $results = $db->resultSet();
               <tr>
                 <!-- Reservation Data -->
                 <?php if ($tab === 'reservation'): ?>
-                  <td><?php echo htmlentities($result['HEWAN_ID.NAMA']); ?></td>
-                  <td><?php echo htmlentities($result['KANDANG_ID']); ?></td>
+                  <td><?php echo htmlentities($result['HEWAN_NAMA']); ?></td>
+                  <td><?php echo htmlentities($result['KANDANG_NOMOR']); ?></td>
                   <td><?php echo htmlentities($result['CHECKIN']); ?></td>
                   <td><?php echo htmlentities($result['CHECKOUT']); ?></td>
                   <td><?php echo htmlentities($result['STATUS']); ?></td>
-                  <td><?php echo htmlentities($result['PRICE']); ?></td>
+                  <td><?php echo htmlentities($result['TOTALBIAYA']); ?></td>
                 <?php elseif ($tab === 'cage'): ?>
                   <td><?php echo htmlentities($result['NOMOR']); ?></td>
                   <td><?php echo htmlentities($result['UKURAN']); ?></td>

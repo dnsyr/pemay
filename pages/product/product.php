@@ -149,7 +149,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Item Name</th>
                     <th>Quantity</th>
                     <th>Price</th>
@@ -160,7 +159,6 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <tbody>
                 <?php foreach ($stocks as $stock): ?>
                     <tr>
-                        <td><?php echo htmlentities($stock['ID']); ?></td>
                         <td><?php echo htmlentities($stock['NAMA']); ?></td>
                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>

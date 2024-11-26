@@ -142,7 +142,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <?php endforeach; ?>
     </div>
 </div>
-
             <button type="submit" class="btn btn-primary">Tambah Layanan Medis</button>
         </form>
     </div>

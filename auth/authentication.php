@@ -26,7 +26,7 @@ $user = oci_fetch_assoc($stmt);
 
 if ($user) {
     // Debugging: Tampilkan data user yang ditemukan
-    // echo '<pre>'; print_r($user); echo '</pre>';
+    echo '<pre>'; print_r($user); echo '</pre>';
 
     // Verifikasi password (asumsi password terenkripsi)
     if (password_verify($password, $user['PASSWORD'])) { // PASSWORD = nama kolom di tabel Anda

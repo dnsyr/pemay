@@ -31,16 +31,16 @@ $currentPage = basename($_SERVER['PHP_SELF'], ".php"); // Get current page name 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="./dashboard.php">Dashboard</a>
+                        <a class="nav-link <?php echo ($currentPage === 'dashboard') ? 'active' : ''; ?>" href="/pemay/pages/staff/dashboard.php">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($currentPage === 'pet-hotel') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
+                        <a class="nav-link <?php echo ($currentPage === 'pet-hotel/dashboard') ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($currentPage === 'product') ? 'active' : ''; ?>" href="../product/product.php">Manage Products</a>
+                        <a class="nav-link <?php echo ($currentPage === 'product') ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Manage Products</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($currentPage === 'category') ? 'active' : ''; ?>" href="../category/category.php">Manage Categories</a>
+                        <a class="nav-link <?php echo ($currentPage === 'category') ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Manage Categories</a>
                     </li>
                 </ul>
             </div>
