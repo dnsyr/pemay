@@ -4,7 +4,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
-include '../owner/header.php';
+include './header.php';
 
 $pageTitle = 'Owner Dashboard';
 

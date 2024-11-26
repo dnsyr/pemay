@@ -1,9 +1,21 @@
 <?php
 include '../../config/connection.php';
-include '../owner/header.php';
 
-$id = isset($_GET['id']) ? $_GET['id'] : null;
-$tab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
+}
+
+$id = $_GET['id'] ?? null;
+$tab = $_GET['tab'] ?? 'produk';
 
 // If there's no ID, redirect to the category list page
 if (!$id) {

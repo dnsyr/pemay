@@ -1,21 +1,24 @@
 <?php
 session_start();
 include '../../config/connection.php';
+
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
     header("Location: ../../auth/login.php");
     exit();
 }
 $pageTitle = 'Manage Product';
 
-// Only include the header based on the user role
-if ($_SESSION['posisi'] === 'owner') {
-    include '../owner/header.php';  // Owner's header
-} elseif ($_SESSION['posisi'] === 'staff') {
-    include '../staff/header.php';  // Staff's header
-} else {
-    // Redirect to login page if the user is not logged in or has an invalid role
-    header("Location: ../../auth/login.php");
-    exit();
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
 }
 
 // Pagination setup
@@ -132,7 +135,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </div>
             <div class="col-md-4">
                 <select class="form-select" name="category">
-                    <option value="">-- Filter by Category --</option>
+                    <option value="" selected disabled>-- Filter by Category --</option>
                     <?php foreach ($categoriesList as $category): ?>
                         <option value="<?php echo $category['ID']; ?>" <?php echo $selectedCategory == $category['ID'] ? 'selected' : ''; ?>>
                             <?php echo htmlentities($category['NAMA']); ?>
@@ -158,14 +161,14 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </thead>
             <tbody>
                 <?php foreach ($stocks as $stock): ?>
-                    <tr>
+                    <tr class="<?php echo $stock['JUMLAH'] <= 10 ? 'table-warning' : ''; ?>">
                         <td><?php echo htmlentities($stock['NAMA']); ?></td>
                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
                         <td><?php echo htmlentities($stock['KATEGORINAMA']); ?></td>
                         <td>
                             <!-- Update Button -->
-                            <a href="update-product.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
+                            <!-- <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a> -->
 
                             <!-- Delete Button -->
                             <a href="product.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>

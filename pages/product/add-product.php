@@ -1,7 +1,19 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
+}
 
 $pageTitle = 'Add Product Item';
 
@@ -10,7 +22,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
     die("Access denied. Please log in as an owner.");
 }
 
-$pegawaiId = intval($_SESSION['pegawai_id']);
+$pegawaiId = intval($_SESSION['employee_id']);
 
 // Fetch available categories
 $categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
@@ -73,7 +85,7 @@ oci_close($conn);
             <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
                 <select class="form-select" id="kategori" name="kategori" required>
-                    <option value="">-- Select Category --</option>
+                    <option value="" disabled selected>-- Select Category --</option>
                     <?php foreach ($categories as $category): ?>
                         <option value="<?php echo $category['ID']; ?>">
                             <?php echo htmlentities($category['NAMA']); ?>

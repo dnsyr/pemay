@@ -1,12 +1,27 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+
+// Include role-specific headers
+switch ($_SESSION['posisi']) {
+    case 'owner':
+        include '../owner/header.php';
+        break;
+    case 'vet':
+        include '../vet/header.php';
+        break;
+    case 'staff':
+        include '../staff/header.php';
+        break;
+}
+
 // Pastikan pengguna telah login
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true ) {
+if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
     header("Location: ../../auth/login.php");
     exit();
 }
+
+$pageTitle = 'Update Product Item';
 
 // Ambil ID produk dari URL
 $productId = $_GET['id'] ?? null;
@@ -65,12 +80,7 @@ oci_close($conn);
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Product</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
+
 <body>
     <div class="container mt-4">
         <h2>Update Product Item</h2>
@@ -108,4 +118,5 @@ oci_close($conn);
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/ 4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>

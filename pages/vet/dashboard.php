@@ -4,22 +4,13 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
-include '../../config/connection.php';
-include '../vet/header.php';
+
+include './header.php'; // Include the header file for navigation
+
+$pageTitle = 'Vet Dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <title>Vet Dashboard</title>
-  <link rel="shortcut icon" href="../../public/img/icon.png" type="image/x-icon">
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-  <link rel="stylesheet" href="../../public/css/index.css">
-</head>
 
 <body>
   

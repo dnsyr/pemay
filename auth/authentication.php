@@ -15,26 +15,23 @@ if (empty($username) || empty($password)) {
 $query = "SELECT * FROM pegawai WHERE username = :username";
 $stmt = oci_parse($conn, $query);
 
-// Bind variabel untuk menghindari SQL Injection
+// Bind parameters
 oci_bind_by_name($stmt, ":username", $username);
+oci_bind_by_name($stmt, ":posisi", $posisi);
 
-// Eksekusi query
+// Execute the query
 oci_execute($stmt);
 
-// Periksa hasil query
+// Fetch user data
 $user = oci_fetch_assoc($stmt);
-
 if ($user) {
-    // Debugging: Tampilkan data user yang ditemukan
-    echo '<pre>'; print_r($user); echo '</pre>';
-
-    // Verifikasi password (asumsi password terenkripsi)
-    if (password_verify($password, $user['PASSWORD'])) { // PASSWORD = nama kolom di tabel Anda
-        // Set session
+    if ($user && password_verify($password, $user['PASSWORD'])) {
+        // Set session variables for authenticated user
+        $_SESSION['username'] = $username;
+        $_SESSION['posisi'] = $user['POSISI'];
         $_SESSION['user_logged_in'] = true;
-        $_SESSION['username'] = $user['USERNAME'];  // Sesuaikan nama kolom
-        $_SESSION['posisi'] = $user['POSISI'];      // Sesuaikan nama kolom
-        $_SESSION['pegawai_id'] = $user['ID'];      // Sesuaikan nama kolom
+        $_SESSION['employee_id'] = $user['ID'];
+        $_SESSION['message'] = "";
 
         // Redirect ke dashboard sesuai posisi
         switch ($user['POSISI']) {
@@ -61,4 +58,3 @@ if ($user) {
 // Bebaskan sumber daya statement
 oci_free_statement($stmt);
 oci_close($conn);
-?>
