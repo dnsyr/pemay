@@ -89,4 +89,9 @@ class Database
     {
         $this->pdo = null;
     }
+
+    public function timestampFormat($dateInput)
+    {
+        return str_replace('T', ' ', $dateInput) . ':00';
+    }
 }

@@ -12,3 +12,7 @@ if (!$conn) {
   // } else {
   //   echo "Successfully connect to Oracle!";
 }
+
+$setFormatSQL = "ALTER SESSION SET NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS'";
+$stid = oci_parse($conn, $setFormatSQL);
+oci_execute($stid);

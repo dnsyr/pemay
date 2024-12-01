@@ -6,6 +6,14 @@ include '../config/connection.php';
 $username = $_POST['username'];
 $password = $_POST['password'];
 
+$inputCaptcha = $_POST['captcha'] ?? '';
+if ($inputCaptcha !== $_SESSION['captcha']) {
+    die("CAPTCHA verification failed.");
+}
+
+// Proceed with your login logic
+// echo "CAPTCHA verified. Proceeding with login.";
+
 // Validasi input form
 if (empty($username) || empty($password)) {
     die("Harap lengkapi semua data.");

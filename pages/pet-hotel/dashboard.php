@@ -49,7 +49,7 @@ function formatTimestamp($timestamp)
 {
   try {
     // Create a DateTime object from the input timestamp
-    $dateTime = DateTime::createFromFormat('d-M-y h.i.s.u A', $timestamp);
+    $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
 
     // Check if parsing was successful
     if ($dateTime) {
@@ -74,50 +74,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $db->beginTransaction(); // Begin the transaction
 
     if ($_POST['action'] === 'addReservation') {
-      $reservatorID = isset($_POST['reservatorID']) ? (int)$_POST['reservatorID'] : 1;
-      $kandang = isset($_POST['kandang']) ? (int)$_POST['kandang'] : 1;
-      $checkIn;
-      $checkOut;
-      $price;
-
-      $sqlAddReservation = "INSERT INTO $currentTable (Hewan_ID, Kandang, CheckIn, CheckOut, TotalBiaya, Status, Pegawai_ID) VALUES (:reservatorID, :kandang, :checkIn, :checkOut, :price, :booked, :pegawaiID)";
-
-      $db->query($sqlAddReservation);
-      $db->bind(':reservatorID', $reservatorID);
-      $db->bind(':kandang', $kandang);
-      $db->bind(':checkIn', $checkIn);
-      $db->bind(':checkOut', $checkOut);
-      $db->bind(':price', $price);
-      $db->bind(':booked', 'Booked');
-      $db->bind(':pegawaiID', $pegawaiID);
-
-      if ($db->execute()) {
-        $message = "$currentLabel berhasil ditambahkan.";
-      } else {
-        $message = "Gagal menambahkan $currentLabel.";
-      }
+      include('../../handlers/pet-hotel-reservation.php');
     } elseif ($_POST['action'] === 'addCage') {
-      // Handle Create Cage
-      $ukuran = trim($_POST['ukuran']);
-
-      $sqlAddCage = "INSERT INTO $currentTable (Ukuran, Status) VALUES (:ukuran, :status)";
-      $db->query($sqlAddCage);
-      $db->bind(':ukuran', $ukuran);
-      $db->bind(':status', 'Empty');
-
-      if ($db->execute()) {
-        $message = "$currentLabel berhasil ditambahkan.";
-      } else {
-        $message = "Gagal menambahkan $currentLabel.";
-      }
+      include('../../handlers/add-cage.php');
     }
 
     // Commit the transaction after successful execution
     $db->commit();
 
-
     sleep(1); // delay second
-    header("Location: /pemay/pages/pet-hotel/dashboard.php?tab=cage");
+    if ($_POST['action'] === 'addReservation') {
+      header("Location: /pemay/pages/pet-hotel/dashboard.php?tab=reservation");
+    } else {
+      header("Location: /pemay/pages/pet-hotel/dashboard.php?tab=cage");
+    }
     exit();
   } catch (PDOException $e) {
     // Rollback if there is an error
@@ -157,14 +127,75 @@ if (isset($_GET['delete_id'])) {
 }
 
 // Fetch Data
-$sqlQuery = $tab === 'reservation' ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA FROM $currentTable lh JOIN HEWAN h ON lh.HEWAN_ID = h.ID WHERE lh.onDelete = 0 ORDER BY lh.CheckOut" : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
+$sqlQuery = $tab === 'reservation'
+  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA FROM $currentTable lh 
+       JOIN HEWAN h ON lh.HEWAN_ID = h.ID 
+       WHERE lh.onDelete = 0 
+       ORDER BY lh.CheckOut"
+  : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
 
+// Execute the first query
 $db->query($sqlQuery);
-$results = $db->resultSet();
+$results = $db->resultSet(); // Fetch all results for the first query
+
+// Query 2: Fetch pet and owner names
+$petAndOwnerNameQuery = "SELECT h.ID AS ID, h.NAMA AS NAMA, ph.NAMA AS PEMILIK 
+                         FROM HEWAN h
+                         JOIN PEMILIKHEWAN ph ON h.PEMILIKHEWAN_ID = ph.ID
+                         ORDER BY ph.NAMA";
+
+// Execute the second query
+$db->query($petAndOwnerNameQuery);
+$petAndOwnerNames = $db->resultSet(); // Fetch all results for pet and owner names
+
+$cageRoomsQuery =
+  "SELECT NOMOR, UKURAN FROM KANDANG WHERE ONDELETE = 0
+  ORDER BY
+  CASE UKURAN
+  WHEN 'XS' THEN 1
+  WHEN 'S' THEN 2
+  WHEN 'M' THEN 3
+  WHEN 'L' THEN 4
+  WHEN 'XL' THEN 5
+  WHEN 'XXL' THEN 6
+  WHEN 'XXXL' THEN 7
+  ELSE 8
+  END, 
+  NOMOR";
+
+$db->query($cageRoomsQuery);
+$cageRooms = $db->resultSet();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
+<head>
+  <style>
+    #select2-ukuran-results {
+      display: flex;
+      gap: 12px;
+    }
+
+    #select2-reservatorID-results {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    #select2-reservatorID-results>li {
+      min-width: 25%;
+      max-width: 25%;
+    }
+
+    .w-10 {
+      width: 10%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="/pemay/public/js/handleFormReservationHotel.js"></script>
+</head>
 
 <body>
   <div class="page-container">
@@ -191,33 +222,48 @@ $results = $db->resultSet();
       <div class="d-flex flex-column gap-3">
         <form method="POST" action="?tab=<?php echo $tab; ?>">
           <!-- Form Reservation -->
-          <?php if ($tab === 'reservation'): ?>
-            <input type="hidden" name="action" value="addReservation">
+          <div>
+            <?php if ($tab === 'reservation'): ?>
+              <input type="hidden" name="action" value="addReservation">
 
-            <div>
               <div class="d-flex gap-5">
                 <div class="mb-3 w-100">
                   <label for="reservatorID" class="form-label">Reservator Name</label>
-                  <input type="text" class="form-control" id="reservatorID" name="reservatorID" required>
+                  <select name="reservatorID" id="reservatorID" class="form-select" required>
+                    <option value="" disabled selected>-- Choose Pet and Owner --</option>
+                    <?php foreach ($petAndOwnerNames as $petAndOwnerName): ?>
+                      <option value="<?php echo $petAndOwnerName['ID'];  ?>">
+                        Pet: <?php echo htmlentities($petAndOwnerName['NAMA']); ?> | Owner: <?php echo htmlentities($petAndOwnerName['PEMILIK']); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
                 </div>
               </div>
 
               <div class="d-flex gap-4">
-                <div class="mb-3 w-25">
-                  <label for="kandang" class="form-label">Cage Room</label>
-                  <input type="number" class="form-control" id="kandang" name="kandang" required>
-                </div>
-                <div class="mb-3 w-25">
+                <div class="mb-3 w-25 flatpickr">
                   <label for="checkIn" class="form-label">Check In</label>
-                  <input type="datetime-local" class="form-control" id="checkIn" name="checkIn" required>
+                  <input type="text" class="form-control" id="checkIn" placeholder="Select Date Time" name="checkIn" required disabled>
                 </div>
-                <div class="mb-3 w-25">
+                <div class="mb-3 w-25 flatpickr">
                   <label for="checkOut" class="form-label">Check Out</label>
-                  <input type="datetime-local" class="form-control" id="checkOut" name="checkOut" required>
+                  <input type="text" class="form-control" id="checkOut" placeholder="Select Date Time" name="checkOut" required disabled>
                 </div>
                 <div class="mb-3 w-25">
-                  <label for="biaya" class="form-label">Price</label>
-                  <input type="number" class="form-control" id="biaya" name="biaya" required>
+                  <label for="kandang" class="form-label" id="cageLabel" style="display: none;">Cage Room</label>
+                  <select name="kandang" id="kandang" class="form-select" required>
+                    <option value="" disabled selected>-- Choose Cage Room --</option>
+                    <?php foreach ($cageRooms as $cageRoom): ?>
+                      <option value="<?php echo $cageRoom['NOMOR']; ?>" data-size="<?php echo $cageRoom['UKURAN']; ?>">
+                        No: <?php echo htmlentities($cageRoom['NOMOR']); ?> | Size: <?php echo htmlentities($cageRoom['UKURAN']); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <div class="mb-3 w-25">
+                  <button class="btn btn-secondary mb-2 w-100" id="checkPriceBtn" type="button" style="display: none;">Check Price</button>
+                  <input type="hidden" id="price" name="price">
+                  <input type="text" class="form-control" id="biaya" name="biaya" placeholder="Price: Rp0" disabled required style="display: none;">
                 </div>
               </div>
             <?php endif; ?>
@@ -225,20 +271,6 @@ $results = $db->resultSet();
             <!-- Form Cage -->
             <?php if ($tab === 'cage'): ?>
               <input type="hidden" name="action" value="addCage">
-              <!-- <div class="mb-3">
-                <label for="ukuran" class="form-label"><?php echo $currentLabel; ?> Size</label>
-                <select class="form-select" name="ukuran" id="ukuran" required>
-                  <option value="" disabled selected>-- Choose Size --</option>
-                  <option value="XS">XS</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
-                </select>
-              </div> -->
-
               <div class="mb-3">
                 <label for="ukuran" class="form-label"><?php echo $currentLabel; ?> Size</label>
                 <select name="ukuran" id="ukuran" class="form-select" required>
@@ -253,8 +285,9 @@ $results = $db->resultSet();
                 </select>
               </div>
             <?php endif; ?>
+          </div>
 
-            <button type="submit" name="add" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></button>
+          <button type="submit" name="add" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></button>
         </form>
       </div>
 
@@ -286,7 +319,16 @@ $results = $db->resultSet();
             <?php foreach ($results as $result): ?>
               <!-- Reservation Data -->
               <?php if ($tab === 'reservation'): ?>
-                <tr>
+                <tr class="<?php if ($result['STATUS'] == 'Completed') {
+                              echo 'table-success';
+                            } elseif ($result['STATUS'] == 'Scheduled') {
+                              echo 'table-secondary';
+                            } elseif ($result['STATUS'] == 'In Progress') {
+                              echo 'table-info';
+                            } elseif ($result['STATUS'] == 'Canceled') {
+                              echo 'table-danger';
+                            }
+                            ?>">
                   <td><?php echo htmlentities($result['HEWAN_NAMA']); ?></td>
                   <td><?php echo htmlentities($result['KANDANG_NOMOR']); ?></td>
                   <td><?php echo htmlentities(formatTimestamp($result['CHECKIN'])); ?></td>
@@ -313,7 +355,7 @@ $results = $db->resultSet();
                             } elseif ($result['STATUS'] == 'Booked') {
                               echo 'table-secondary';
                             } elseif ($result['STATUS'] == 'Filled') {
-                              echo 'table-primary';
+                              echo 'table-info';
                             } elseif ($result['STATUS'] == 'Emergency') {
                               echo 'table-danger';
                             }
@@ -345,16 +387,6 @@ $results = $db->resultSet();
         </table>
       </div>
     </div>
-
-    <!-- Searchable Dropdown -->
-    <script>
-      $(document).ready(function() {
-        $('#ukuran').select2({
-          placeholder: 'Select an option',
-          allowClear: true
-        });
-      });
-    </script>
 </body>
 
 </html>
