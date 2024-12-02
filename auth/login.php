@@ -89,11 +89,6 @@ if (isset($_SESSION['posisi'])) {
           </div>
         </div>
 
-        <div class="col-md-6">
-          <input type="text" name="captcha" class="form-control" placeholder="Enter CAPTCHA" required>
-          <img src="generate-captcha.php" class="w-50 mt-3" alt="CAPTCHA">
-        </div>
-
         <div class="col-12 text-end">
           <button class="btn btn-login" type="submit">Login</button>
         </div>
