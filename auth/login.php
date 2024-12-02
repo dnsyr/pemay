@@ -26,8 +26,6 @@ if (isset($_SESSION['posisi'])) {
   <link rel="stylesheet" href="../public/css/index.css">
   <link rel="stylesheet" href="../public/css/components.css">
 
-  <script src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
-
   <script>
     const isLoggedIn = <?php echo json_encode($is_logged_in); ?>;
     const role = <?php echo json_encode($role); ?>;
@@ -39,15 +37,6 @@ if (isset($_SESSION['posisi'])) {
       } else if (role === 'staff') {
         window.location.href = '/pemay/pages/staff/dashboard.php'
       }
-    }
-
-    function onClick(e) {
-      e.preventDefault();
-      grecaptcha.enterprise.ready(async () => {
-        const token = await grecaptcha.enterprise.execute('6LeZOowqAAAAAL8Dctdl9TVz2Jugla_i4d_r0ho8', {
-          action: 'LOGIN'
-        });
-      });
     }
   </script>
 </head>
