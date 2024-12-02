@@ -12,3 +12,4 @@ $textColor = imagecolorallocate($image, 0, 0, 0);
 imagestring($image, 5, 10, 10, $captchaText, $textColor);
 imagepng($image);
 imagedestroy($image);
+?>
