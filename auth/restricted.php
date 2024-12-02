@@ -1,5 +1,11 @@
 <?php
 session_start();
+if (isset($_SESSION['user_logged_in'])) {
+  unset($_SESSION['user_logged_in']);
+  unset($_SESSION['username']);
+  unset($_SESSION['posisi']);
+  unset($_SESSION['employee_id']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

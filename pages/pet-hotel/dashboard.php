@@ -24,7 +24,7 @@ switch ($_SESSION['posisi']) {
     break;
 }
 
-$pegawaiID = intval($_SESSION['pegawai_id']);
+$pegawaiID = intval($_SESSION['employee_id']);
 
 // Default tab
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'reservation';

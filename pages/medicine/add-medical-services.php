@@ -6,7 +6,9 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 }
 
 include '../../config/connection.php';
-include 'header.php';
+include '../vet/header.php';
+
+$pegawaiId = intval($_SESSION['employee_id']); // Ambil ID pegawai dari session
 
 // Ambil data jenis layanan medis untuk ditampilkan sebagai checkbox
 $sql = "SELECT * FROM JenisLayananMedis";
@@ -38,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $totalBiaya = $_POST['total_biaya'];
     $description = $_POST['description'];
     $status = $_POST['status'];
-    $pegawai_id = $_SESSION['id'];
     $hewan_id = $_POST['hewan_id'];
     $jenisLayananArray = $_POST['jenis_layanan'];
 
@@ -53,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
     oci_bind_by_name($stmt, ':description', $description);
     oci_bind_by_name($stmt, ':status', $status);
-    oci_bind_by_name($stmt, ':pegawai_id', $pegawai_id);
+    oci_bind_by_name($stmt, ':pegawai_id', $pegawaiId);
     oci_bind_by_name($stmt, ':hewan_id', $hewan_id);
 
     if (oci_execute($stmt)) {
@@ -113,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <div class="mb-3">
                 <label for="status" class="form-label">Status</label>
                 <select class="form-select" id="status" name="status" required>
-                    <option value="emergency">Emergency</option>
-                    <option value="completed">Selesai</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Selesai">Selesai</option>
                 </select>
             </div>
             <div class="mb-3">
@@ -122,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <select class="form-select" id="hewan_id" name="hewan_id" required>
                     <?php foreach ($hewanList as $hewan): ?>
                         <option value="<?= $hewan['ID']; ?>">
-                            <?= htmlentities($hewan['NamaHewan'] . ' (' . $hewan['Spesies'] . ') - ' . $hewan['NamaPemilik']); ?>
-                        </option>
+    <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
+</option>
                     <?php endforeach; ?>
                 </select>
             </div>
