@@ -7,6 +7,14 @@ $username = $_POST['username'];
 $password = $_POST['password'];
 $selectedRole = $_POST['posisi'];
 
+$inputCaptcha = $_POST['captcha'] ?? '';
+if ($inputCaptcha !== $_SESSION['captcha']) {
+    die("CAPTCHA verification failed.");
+}
+
+// Proceed with your login logic
+// echo "CAPTCHA verified. Proceeding with login.";
+
 // Validasi input form
 if (empty($username) || empty($password) || empty($selectedRole)) {
     die("Harap lengkapi semua data.");

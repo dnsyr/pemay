@@ -63,13 +63,13 @@ values ('S', 'Empty');
 Insert into KANDANG (UKURAN, STATUS)
 values ('L', 'Empty');
 Insert into KANDANG (UKURAN, STATUS)
-values ('S', 'Booked');
+values ('S', 'Scheduled');
 Insert into KANDANG (UKURAN, STATUS)
 values ('M', 'Fllled');
 Insert into KANDANG (UKURAN, STATUS)
 values ('L', 'Empty');
 Insert into KANDANG (UKURAN, STATUS)
-values ('S', 'Booked');
+values ('S', 'Scheduled');
 Insert into KANDANG (UKURAN, STATUS)
 values ('L', 'Fllled');
 Insert into KANDANG (UKURAN, STATUS)
@@ -127,7 +127,7 @@ values (
     'Kucing',
     'Male',
     4.5,
-    to_date('10-MAY-20', 'DD-MON-RR'),
+    TO_TIMESTAMP('2024-07-30 15:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     25,
     15,
     1
@@ -149,7 +149,7 @@ values (
     'Anjing',
     'Female',
     18,
-    to_date('23-NOV-19', 'DD-MON-RR'),
+    TO_TIMESTAMP('2024-05-30 15:20:00', 'YYYY-MM-DD HH24:MI:SS'),
     50,
     20,
     2
@@ -171,7 +171,7 @@ values (
     'Kucing',
     'Male',
     5,
-    to_date('15-MAR-21', 'DD-MON-RR'),
+    TO_TIMESTAMP('2024-06-23 10:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     30,
     18,
     3
@@ -193,7 +193,7 @@ values (
     'Anjing',
     'Female',
     10,
-    to_date('20-JAN-22', 'DD-MON-RR'),
+    TO_TIMESTAMP('2023-04-26 12:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     40,
     25,
     4
@@ -215,32 +215,92 @@ values (
     'Kucing',
     'Male',
     4.8,
-    to_date('05-JUL-21', 'DD-MON-RR'),
+    TO_TIMESTAMP('2023-11-22 12:29:00', 'YYYY-MM-DD HH24:MI:SS'),
     28,
     16,
     5
   );
 REM INSERTING into PRODUK
 SET DEFINE OFF;
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Dog Food Pedigree', 60, 220000, 4, 1);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Cat Toy Ball', 50, 30000, 4, 4);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Anjing Muzzle', 20, 50000, 4, 5);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Multivitamin Hewan', 30, 120000, 4, 3);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Cat Litter Sand', 40, 70000, 4, 2);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Royal Canin Adult', 50, 250000, 4, 1);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Whiskas Junior', 30, 200000, 4, 1);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Shampoo Anjing', 20, 80000, 4, 2);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Vitamin C Hewan', 40, 100000, 4, 3);
-Insert into PRODUK (NAMA, JUMLAH, HARGA, PEGAWAI_ID, KATEGORIPRODUK_ID)
+Insert into PRODUK (
+    NAMA,
+    JUMLAH,
+    HARGA,
+    PEGAWAI_ID,
+    KATEGORIPRODUK_ID
+  )
 values ('Kalung Anjing', 25, 150000, 4, 5);
 REM INSERTING into LAYANANSALON
 SET DEFINE OFF;
@@ -253,13 +313,10 @@ Insert into LAYANANSALON (
     PEGAWAI_ID
   )
 values (
-    to_timestamp(
-      '20-NOV-24 10.00.00.000000000 AM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-11-26 10:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     150000,
     ARRAYJENISLAYANANSALON(1, 3),
-    'Selesai',
+    'Completed',
     1,
     4
   );
@@ -272,13 +329,10 @@ Insert into LAYANANSALON (
     PEGAWAI_ID
   )
 values (
-    to_timestamp(
-      '21-NOV-24 02.30.00.000000000 PM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-11-22 15:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     200000,
     ARRAYJENISLAYANANSALON(2, 1),
-    'Proses',
+    'Remaining',
     2,
     4
   );
@@ -291,13 +345,10 @@ Insert into LAYANANSALON (
     PEGAWAI_ID
   )
 values (
-    to_timestamp(
-      '22-NOV-24 09.15.00.000000000 AM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-11-23 08:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     180000,
     ARRAYJENISLAYANANSALON(2),
-    'Selesai',
+    'Finished',
     3,
     4
   );
@@ -310,13 +361,10 @@ Insert into LAYANANSALON (
     PEGAWAI_ID
   )
 values (
-    to_timestamp(
-      '23-NOV-24 11.00.00.000000000 AM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-11-27 15:00:00', 'YYYY-MM-DD HH24:MI:SS'),
     120000,
     ARRAYJENISLAYANANSALON(3),
-    'Batal',
+    'Cancelled',
     5,
     4
   );
@@ -329,13 +377,10 @@ Insert into LAYANANSALON (
     PEGAWAI_ID
   )
 values (
-    to_timestamp(
-      '24-NOV-24 03.45.00.000000000 PM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-11-25 18:00:00', 'YYYY-MM-DD HH24:MI:SS'),
     250000,
     ARRAYJENISLAYANANSALON(4, 1),
-    'Selesai',
+    'Completed',
     4,
     4
   );
@@ -351,13 +396,10 @@ Insert into LAYANANMEDIS (
     HEWAN_ID
   )
 values (
-    to_timestamp(
-      '20-NOV-24 10.00.00.000000000 AM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-10-16 15:00:00', 'YYYY-MM-DD HH24:MI:SS'),
     300000,
     'Pemeriksaan lengkap',
-    'Selesai',
+    'Completed',
     ARRAYJENISLAYANANMEDIS(1, 4),
     4,
     1
@@ -372,13 +414,10 @@ Insert into LAYANANMEDIS (
     HEWAN_ID
   )
 values (
-    to_timestamp(
-      '21-NOV-24 03.30.00.000000000 PM',
-      'DD-MON-RR HH.MI.SSXFF AM'
-    ),
+    TO_TIMESTAMP('2024-10-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
     450000,
     'Vaksinasi dan sterilisasi',
-    'Proses',
+    'In Progress',
     ARRAYJENISLAYANANMEDIS(2, 3),
     4,
     2
@@ -399,7 +438,7 @@ values (
     ),
     200000,
     'Pengobatan luka ringan',
-    'Selesai',
+    'Completed',
     ARRAYJENISLAYANANMEDIS(5),
     4,
     3
@@ -420,7 +459,7 @@ values (
     ),
     150000,
     'Pemeriksaan kulit',
-    'Batal',
+    'Cancelled',
     ARRAYJENISLAYANANMEDIS(4),
     4,
     4
@@ -441,7 +480,7 @@ values (
     ),
     500000,
     'Pemeriksaan umum dan vaksinasi',
-    'Selesai',
+    'Completed',
     ARRAYJENISLAYANANMEDIS(1, 2),
     4,
     5
@@ -541,7 +580,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     500000,
-    'Selesai',
+    'Completed',
     1,
     4,
     1
@@ -565,7 +604,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     750000,
-    'Proses',
+    'In Progress',
     2,
     4,
     2
@@ -589,7 +628,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     1000000,
-    'Selesai',
+    'Completed',
     3,
     4,
     3
@@ -613,7 +652,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     300000,
-    'Batal',
+    'Cancelled',
     4,
     4,
     5
@@ -637,7 +676,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     600000,
-    'Selesai',
+    'Completed',
     5,
     4,
     8
