@@ -1,4 +1,5 @@
 <?php
+session_start();
 require '../config/connection.php';
 
 function insertDummyUser($db, $name, $username, $password, $position, $email, $phone)
@@ -29,7 +30,9 @@ try {
   insertDummyUser($db, 'Staff User', 'staff', 'staff', 'staff', 'staff@example.com', '1234567120');
   insertDummyUser($db, 'Veterinarian User', 'vet', 'vet', 'vet', 'vet@example.com', '1231237890');
 
-  echo "Dummy users created successfully!";
+  $_SESSION['success_message'] = 'Dummy users created successfully!';
+  // echo "Dummy users created successfully!";
 } catch (PDOException $e) {
-  echo "Error: " . $e->getMessage();
+  $_SESSION['error_message'] = "Error: " . $e->getMessage();
+  // echo "Error: " . $e->getMessage();
 }

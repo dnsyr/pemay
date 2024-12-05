@@ -6,17 +6,19 @@ include '../config/connection.php';
 $username = $_POST['username'];
 $password = $_POST['password'];
 
+$_SESSION['success_message'] = '';
+$_SESSION['error_message'] = '';
+
 $inputCaptcha = $_POST['captcha'] ?? '';
 if ($inputCaptcha !== $_SESSION['captcha']) {
-    die("CAPTCHA verification failed.");
+    $_SESSION['error_message'] = 'CAPTCHA Invalid!';
+    // die("CAPTCHA verification failed.");
 }
-
-// Proceed with your login logic
-// echo "CAPTCHA verified. Proceeding with login.";
 
 // Validasi input form
 if (empty($username) || empty($password)) {
-    die("Harap lengkapi semua data.");
+    $_SESSION['error_message'] = 'Input all data!';
+    // die("Harap lengkapi semua data.");
 }
 
 // Query ke database untuk mencocokkan data login
@@ -39,7 +41,6 @@ if ($user) {
         $_SESSION['posisi'] = $user['POSISI'];
         $_SESSION['user_logged_in'] = true;
         $_SESSION['employee_id'] = $user['ID'];
-        $_SESSION['message'] = "";
 
         // Redirect ke dashboard sesuai posisi
         switch ($user['POSISI']) {
@@ -57,10 +58,12 @@ if ($user) {
         }
         exit();
     } else {
-        die("Password salah.");
+        $_SESSION['error_message'] = "Password Invalid!";
+        // die("Password Invalid!");
     }
 } else {
-    die("User  tidak ditemukan.");
+    $_SESSION['error_message'] = "User Not Found!";
+    // die("User Not Found!");
 }
 
 // Bebaskan sumber daya statement
