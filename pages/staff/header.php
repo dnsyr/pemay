@@ -3,9 +3,16 @@ $currentUri = strtok($_SERVER['REQUEST_URI'], '?');
 
 // List of uri
 $dashboardUri = "/pemay/pages/staff/dashboard.php";
-$petHotelUri = "/pemay/pages/pet-hotel/dashboard.php";
+$petHotelUri = "/pemay/pages/salon/dashboard.php";
 $productUri = "/pemay/pages/product/product.php";
 $categoryUri = "/pemay/pages/category/category.php";
+$categoryUri = "/pemay/pages/salon/salon-services.php";
+$petSalonUri =
+[
+    "/pemay/pages/salon/salon-services.php",
+    "/pemay/pages/salon/add-salon-services.php",
+    "/pemay/pages/salon/update-salon-services.php"
+];
 ?>
 
 <!DOCTYPE html>
@@ -55,6 +62,9 @@ $categoryUri = "/pemay/pages/category/category.php";
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/salon/salon-services.php">Salon</a>
                     </li>
                 </ul>
             </div>
