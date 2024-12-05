@@ -56,6 +56,10 @@ $categoryUri = "/pemay/pages/category/category.php";
                     <li class="nav-item">
                         <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
                     </li>
+                    <!-- Salon Menu Item -->
+          <li class="nav-item">
+            <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/salon/salon-services.php">Salon</a>
+          </li>
                 </ul>
             </div>
 

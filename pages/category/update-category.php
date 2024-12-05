@@ -1,4 +1,5 @@
 <?php
+session_start();
 include '../../config/connection.php';
 
 // Include role-specific headers

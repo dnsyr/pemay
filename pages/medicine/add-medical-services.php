@@ -36,7 +36,7 @@ oci_free_statement($stmt);
 
 // Proses tambah layanan medis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $tanggal = $_POST['tanggal'];
+    $tanggal = $_POST['tanggal']; // This will be in the format 'YYYY-MM-DDTHH:MM'
     $totalBiaya = $_POST['total_biaya'];
     $description = $_POST['description'];
     $status = $_POST['status'];
@@ -46,8 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // Konversi array menjadi string untuk VARRAY
     $jenisLayananString = "ArrayJenisLayananMedis(" . implode(',', $jenisLayananArray) . ")";
 
+    // Update the SQL to include hours and minutes
     $sql = "INSERT INTO LayananMedis (Tanggal, TotalBiaya, Description, Status, JenisLayanan, Pegawai_ID, Hewan_ID) 
-            VALUES (TO_DATE(:tanggal, 'YYYY-MM-DD'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
+            VALUES (TO_DATE(:tanggal, 'YYYY-MM-DD\"T\"HH24:MI'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
     
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':tanggal', $tanggal);
@@ -100,9 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <form method="POST">
             <input type="hidden" name="action" value="add">
             <div class="mb-3">
-                <label for="tanggal" class="form-label">Tanggal</label>
-                <input type="date" class="form-control" id="tanggal" name="tanggal" required>
-            </div>
+    <label for="tanggal" class="form-label">Tanggal</label>
+    <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d'); ?>" required>
+</div>
             <div class="mb-3">
                 <label for="total_biaya" class="form-label">Total Biaya</label>
                 <input type="number" class="form-control" id="total_biaya" name="total_biaya" readonly>
