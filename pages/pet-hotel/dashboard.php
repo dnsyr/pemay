@@ -74,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $db->beginTransaction(); // Begin the transaction
 
     if ($_POST['action'] === 'addReservation') {
-      include('../../handlers/pet-hotel-reservation.php');
+      include '../../handlers/pet-hotel-reservation.php';
     } elseif ($_POST['action'] === 'addCage') {
-      include('../../handlers/add-cage.php');
+      include '../../handlers/add-cage.php';
     }
 
     // Commit the transaction after successful execution
@@ -128,8 +128,9 @@ if (isset($_GET['delete_id'])) {
 
 // Fetch Data
 $sqlQuery = $tab === 'reservation'
-  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA FROM $currentTable lh 
+  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA, p.NAMA AS PEGAWAI_NAMA FROM $currentTable lh 
        JOIN HEWAN h ON lh.HEWAN_ID = h.ID 
+       JOIN Pegawai p ON lh.Pegawai_ID = p.ID
        WHERE lh.onDelete = 0 
        ORDER BY lh.CheckOut"
   : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
@@ -304,6 +305,7 @@ $cageRooms = $db->resultSet();
                 <th>Check Out</th>
                 <th>Status</th>
                 <th>Price</th>
+                <th>Cashier</th>
               <?php endif; ?>
 
               <!-- Cage -->
@@ -334,14 +336,14 @@ $cageRooms = $db->resultSet();
                   <td><?php echo htmlentities(formatTimestamp($result['CHECKIN'])); ?></td>
                   <td><?php echo htmlentities(formatTimestamp($result['CHECKOUT'])); ?></td>
                   <td><?php echo htmlentities($result['STATUS']); ?></td>
-                  <td><?php echo htmlentities($result['TOTALBIAYA']); ?></td>
+                  <td>Rp.<?php echo htmlentities($result['TOTALBIAYA']); ?></td>
+                  <td><?php echo htmlentities($result['PEGAWAI_NAMA']); ?></td>
                   <!-- Action Button -->
                   <td>
-                    <button
-                      class="btn btn-warning btn-sm"
-                      onclick="alert('Edit');">
-                      Edit
-                    </button>
+                    <a href="update-reservation.php?id=<?php echo $result['ID']; ?>"
+                      class="btn btn-warning btn-sm">
+                      Update
+                    </a>
                     <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $result['ID']; ?>"
                       class="btn btn-danger btn-sm"
                       onclick="return confirm('Are you sure you want to delete this item?');">

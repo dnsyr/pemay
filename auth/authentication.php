@@ -7,17 +7,20 @@ $username = $_POST['username'];
 $password = $_POST['password'];
 $selectedRole = $_POST['posisi'];
 
-// $inputCaptcha = $_POST['captcha'] ?? '';
-// if ($inputCaptcha !== $_SESSION['captcha']) {
-//     die("CAPTCHA verification failed.");
-// }
+$_SESSION['success_message'] = '';
+$_SESSION['error_message'] = '';
 
-// Proceed with your login logic
-// echo "CAPTCHA verified. Proceeding with login.";
+$inputCaptcha = $_POST['captcha'] ?? '';
+if ($inputCaptcha !== $_SESSION['captcha']) {
+    $_SESSION['error_message'] = 'CAPTCHA Invalid!';
+    // die("CAPTCHA verification failed.");
+}
+
 
 // Validasi input form
-if (empty($username) || empty($password) || empty($selectedRole)) {
-    die("Harap lengkapi semua data.");
+if (empty($username) || empty($password)) {
+    $_SESSION['error_message'] = 'Input all data!';
+    // die("Harap lengkapi semua data.");
 }
 
 // Query ke database untuk mencocokkan data login
@@ -39,34 +42,30 @@ if ($user) {
         $_SESSION['posisi'] = $user['POSISI'];
         $_SESSION['user_logged_in'] = true;
         $_SESSION['employee_id'] = $user['ID'];
-        $_SESSION['message'] = "";
 
-// Check if the selected role matches the role from the database
-if ($selectedRole === $user['POSISI']) {
-    // Redirect ke dashboard sesuai posisi
-    switch ($user['POSISI']) {
-        case 'owner':
-            header("Location: ../pages/owner/dashboard.php");
-            break;
-        case 'vet':
-            header("Location: ../pages/vet/dashboard.php");
-            break;
-        case 'staff':
-            header("Location: ../pages/staff/dashboard.php");
-            break;
-        default:
-            die("Role tidak dikenali.");
+        // Redirect ke dashboard sesuai posisi
+        switch ($user['POSISI']) {
+            case 'owner':
+                header("Location: ../pages/owner/dashboard.php");
+                break;
+            case 'vet':
+                header("Location: ../pages/vet/dashboard.php");
+                break;
+            case 'staff':
+                header("Location: ../pages/staff/dashboard.php");
+                break;
+            default:
+                die("Role tidak dikenali.");
+        }
+        exit();
+    } else {
+        $_SESSION['error_message'] = "Password Invalid!";
+        // die("Password Invalid!");
     }
 } else {
-    // Redirect to restricted.php if roles do not match
-    header("Location: ../auth/restricted.php");
-    exit();
-}
-} else {
-die("Password salah.");
-}
-} else {
-die("User  tidak ditemukan.");
+    $_SESSION['error_message'] = "User Not Found!";
+    // die("User Not Found!");
+
 }
 
 // Bebaskan sumber daya statement

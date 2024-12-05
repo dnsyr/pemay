@@ -40,15 +40,6 @@ if (isset($_SESSION['posisi'])) {
         window.location.href = '/pemay/pages/staff/dashboard.php'
       }
     }
-
-    function onClick(e) {
-      e.preventDefault();
-      grecaptcha.enterprise.ready(async () => {
-        const token = await grecaptcha.enterprise.execute('6LeZOowqAAAAAL8Dctdl9TVz2Jugla_i4d_r0ho8', {
-          action: 'LOGIN'
-        });
-      });
-    }
   </script>
 </head>
 
