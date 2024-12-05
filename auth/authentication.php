@@ -5,6 +5,7 @@ include '../config/connection.php';
 // Ambil data dari form login
 $username = $_POST['username'];
 $password = $_POST['password'];
+$selectedRole = $_POST['posisi'];
 
 $_SESSION['success_message'] = '';
 $_SESSION['error_message'] = '';
@@ -14,6 +15,7 @@ if ($inputCaptcha !== $_SESSION['captcha']) {
     $_SESSION['error_message'] = 'CAPTCHA Invalid!';
     // die("CAPTCHA verification failed.");
 }
+
 
 // Validasi input form
 if (empty($username) || empty($password)) {
@@ -27,7 +29,6 @@ $stmt = oci_parse($conn, $query);
 
 // Bind parameters
 oci_bind_by_name($stmt, ":username", $username);
-oci_bind_by_name($stmt, ":posisi", $posisi);
 
 // Execute the query
 oci_execute($stmt);
@@ -64,8 +65,10 @@ if ($user) {
 } else {
     $_SESSION['error_message'] = "User Not Found!";
     // die("User Not Found!");
+
 }
 
 // Bebaskan sumber daya statement
 oci_free_statement($stmt);
 oci_close($conn);
+?>

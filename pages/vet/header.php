@@ -4,7 +4,7 @@ $currentUri = strtok($_SERVER['REQUEST_URI'], '?');
 // List of uri
 $dashboardUri = "/pemay/pages/vet/dashboard.php";
 $petHotelUri = "/pemay/pages/pet-hotel/dashboard.php";
-$medicineUri = "/pemay/pages/medicine/medicine.php";
+$medicineUri = "/pemay/pages/medicine/medical-services.php";
 $productUri = "/pemay/pages/product/product.php";
 $categoryUri = "/pemay/pages/category/category.php";
 ?>
@@ -32,30 +32,28 @@ $categoryUri = "/pemay/pages/category/category.php";
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light navbar-container">
+<nav class="navbar navbar-expand-lg navbar-light navbar-container">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/pemay/pages/vet/dashboard.php">
-        <img src="/pemay/public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
+      <a class="navbar-brand" href="#">
+        <img src="../../public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top">
         <span class="navbar-title">Pemay</span>
       </a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <!-- Dashboard Menu Item -->
           <li class="nav-item">
             <a class="nav-link <?php echo ($currentUri === $dashboardUri) ? 'active' : ''; ?>" href="/pemay/pages/vet/dashboard.php">Dashboard</a>
           </li>
-          <!-- Pet Hotel Menu Item -->
           <li class="nav-item">
             <a class="nav-link <?php echo ($currentUri === $petHotelUri) ? 'active' : ''; ?>" href="/pemay/pages/pet-hotel/dashboard.php">Pet Hotel</a>
           </li>
           <!-- Medicine Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentUri === $medicineUri) ? 'active' : ''; ?>" href="/pemay/pages/medicine/medicine.php">Medicines</a>
+            <a class="nav-link <?php echo ($currentUri === $medicineUri) ? 'active' : ''; ?>" href="/pemay/pages/medicine/medical-services.php">Medicines</a>
           </li>
           <!-- Product Menu Item -->
           <li class="nav-item">
@@ -64,12 +62,14 @@ $categoryUri = "/pemay/pages/category/category.php";
           <!-- Category Menu Item -->
           <li class="nav-item">
             <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
+          </li><!-- obat Menu Item -->
+          <li class="nav-item">
+            <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/obat/obat.php">Obat</a>
           </li>
         </ul>
       </div>
 
-      <!-- Logout Button -->
-      <form action="/pemay/auth/logout.php" method="post" class="d-flex">
+      <form action="../../auth/logout.php" method="post">
         <button class="btn btn-link text-dark text-decoration-none" type="submit">Logout</button>
       </form>
     </div>
