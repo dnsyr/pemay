@@ -24,16 +24,27 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
 
 $pegawaiId = intval($_SESSION['employee_id']);
 
-// Fetch available categories
-$categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
-$categoryStid = oci_parse($conn, $categoryQuery);
-oci_execute($categoryStid);
+// Fetch available categories for Produk
+$categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
+$categoryProdukStid = oci_parse($conn, $categoryProdukQuery);
+oci_execute($categoryProdukStid);
 
-$categories = [];
-while ($row = oci_fetch_assoc($categoryStid)) {
-    $categories[] = $row;
+$categoriesProduk = [];
+while ($row = oci_fetch_assoc($categoryProdukStid)) {
+    $categoriesProduk[] = $row;
 }
-oci_free_statement($categoryStid);
+oci_free_statement($categoryProdukStid);
+
+// Fetch available categories for Obat
+$categoryObatQuery = "SELECT * FROM KategoriObat ORDER BY Nama";
+$categoryObatStid = oci_parse($conn, $categoryObatQuery);
+oci_execute($categoryObatStid);
+
+$categoriesObat = [];
+while ($row = oci_fetch_assoc($categoryObatStid)) {
+    $categoriesObat[] = $row;
+}
+oci_free_statement($categoryObatStid);
 
 // Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -41,20 +52,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $jumlah = $_POST['jumlah'];
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
+    $tipeKategori = $_POST['tipe_kategori']; // produk atau obat
 
-    // Insert new product item into the Produk table, automatically using Pegawai_ID from the session
-    $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID) 
+    // Insert new product item into the correct table
+    $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+    $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, {$table}_ID) 
             VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
     $stid = oci_parse($conn, $sql);
 
     oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
     oci_bind_by_name($stid, ":harga", $harga);
-    oci_bind_by_name($stid, ":pegawai_id", $pegawaiId);  // Automatically using session Pegawai_ID
+    oci_bind_by_name($stid, ":pegawai_id", $pegawaiId);
     oci_bind_by_name($stid, ":kategori", $kategori);
 
     if (oci_execute($stid)) {
-        echo "<script>alert('product item added successfully!'); window.location.href='product.php';</script>";
+        echo "<script>alert('Product item added successfully!'); window.location.href='product.php';</script>";
     } else {
         echo "<script>alert('Failed to add product item.');</script>";
     }
@@ -83,23 +96,52 @@ oci_close($conn);
                 <input type="number" class="form-control" id="harga" name="harga" required>
             </div>
             <div class="mb-3">
+                <label for="tipe_kategori" class="form-label">Category Type</label><br>
+                <input type="radio" id="produk" name="tipe_kategori" value="produk" checked onclick="updateCategory()">
+                <label for="produk">Produk</label>
+                <input type="radio" id="obat" name="tipe_kategori" value="obat" onclick="updateCategory()">
+                <label for="obat">Obat</label>
+            </div>
+            <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
                 <select class="form-select" id="kategori" name="kategori" required>
                     <option value="" disabled selected>-- Select Category --</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>">
+                    <?php foreach ($categoriesProduk as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" class="produk">
+                            <?php echo htmlentities($category['NAMA']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <?php foreach ($categoriesObat as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;">
                             <?php echo htmlentities($category['NAMA']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Add product Item</button>
+                <button type="submit" class="btn btn-primary">Add Product Item</button>
                 <a href="product.php" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
 
+    <script>
+        function updateCategory() {
+            const kategori = document.getElementById('kategori');
+            const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+
+            for (let option of kategori.options) {
+                if (option.classList.contains(tipeKategori)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+
+            // Reset selection when changing type
+            kategori.value = '';
+        }
+    </script>
 </body>
 
 </html>

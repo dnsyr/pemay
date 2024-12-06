@@ -3,7 +3,7 @@ session_start();
 
 include '../config/connection.php';
 
-$role;
+$role = "";
 $is_logged_in = isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true;
 
 if (isset($_SESSION['posisi'])) {
