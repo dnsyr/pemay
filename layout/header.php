@@ -17,16 +17,16 @@ $petHotelUri =
 // pet salon uri
 $petSalonUri =
   [
-    "/pemay/pages/pet-hotel/dashboard.php",
-    "/pemay/pages/pet-hotel/update-cage.php",
-    "/pemay/pages/pet-hotel/update-reservation.php"
+    "/pemay/pages/salon/salon-services.php",
+    "/pemay/pages/salon/add-salon-services.php",
+    "/pemay/pages/salon/update-salon-services.php"
   ];
 // pet hotel uri
 $petMedicalUri =
   [
-    "/pemay/pages/pet-hotel/dashboard.php",
-    "/pemay/pages/pet-hotel/update-cage.php",
-    "/pemay/pages/pet-hotel/update-reservation.php"
+    "/pemay/pages/medicine/medical-services.php",
+    "/pemay/pages/medicine/add-medical-services.php",
+    "/pemay/pages/medicine/update-medical-services.php"
   ];
 
 // manage users uri
@@ -151,12 +151,12 @@ $isPetServicesActive = (
 
               <!-- Pet Salon Menu Item -->
               <li>
-                <a class="dropdown-item <?php echo (in_array($currentUri, $petHotelUri)) ? 'active' : ''; ?>" href="/pemay/pages/pet-salon/dashboard.php">Pet Salon</a>
+                <a class="dropdown-item <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/salon/salon-services.php">Pet Salon</a>
               </li>
 
               <!-- Pet Medical Menu Item -->
               <li>
-                <a class="dropdown-item <?php echo (in_array($currentUri, $petHotelUri)) ? 'active' : ''; ?>" href="/pemay/pages/pet-medical/dashboard.php">Pet Medical</a>
+                <a class="dropdown-item <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/medicine/medical-services.php">Pet Medical</a>
               </li>
             </ul>
           </li>
