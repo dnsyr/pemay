@@ -27,6 +27,7 @@ $stmt = oci_parse($conn, $query);
 
 // Bind parameters
 oci_bind_by_name($stmt, ":username", $username);
+oci_bind_by_name($stmt, ":posisi", $posisi);
 
 // Execute the query
 oci_execute($stmt);

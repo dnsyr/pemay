@@ -66,7 +66,7 @@ if (!isset($_SESSION['captcha'])) {
         <div class="col-md-6">
           <select class="form-select" name="posisi" required>
             <option selected disabled value="">Role</option>
-            <option value=" owner">Owner</option>
+            <option value="owner">Owner</option>
             <option value="vet">Vet</option>
             <option value="staff">Staff</option>
           </select>
