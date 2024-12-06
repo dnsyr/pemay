@@ -5,8 +5,8 @@ class Database
     private $host = 'localhost';
     private $port = '1521';
     private $sid = 'xe';
-    private $username = 'C##pemay';
-    private $password = 'pemay';
+    private $username = 'C##PETSHOP';
+    private $password = 'petshop';
 
     private $pdo;
     private $stmt;

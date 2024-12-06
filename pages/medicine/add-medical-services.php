@@ -61,6 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (oci_execute($stmt)) {
         $message = "Layanan medis berhasil ditambahkan.";
     } else {
+        $error = oci_error($stmt);
+        echo "<script>alert('Gagal menambahkan layanan medis: " . htmlentities($error['message']) . "');</script>";
         $message = "Gagal menambahkan layanan medis.";
     }
     oci_free_statement($stmt);
