@@ -10,18 +10,7 @@ if (!isset($_SESSION['posisi']) || !in_array($_SESSION['posisi'], ['owner', 'vet
   exit();
 }
 
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-  case 'owner':
-    include '../owner/header.php';
-    break;
-  case 'vet':
-    include '../vet/header.php';
-    break;
-  case 'staff':
-    include '../staff/header.php';
-    break;
-}
+include '../../layout/header.php';
 
 $pegawaiID = intval($_SESSION['employee_id']);
 
@@ -158,12 +147,14 @@ $cageRooms = $db->resultSet(); // Fetch all results for cage rooms
 <body>
   <div class="page-container">
     <h2>Pet Hotel</h2>
-    <?php if (isset($_SESSION['success_message'])): ?>
+
+    <!-- Alert -->
+    <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
       <div class="alert alert-info">
         <?php echo htmlentities($_SESSION['success_message']);
         unset($_SESSION['success_message']); ?>
       </div>
-    <?php elseif (isset($_SESSION['error_message'])): ?>
+    <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
       <div class="alert alert-danger">
         <?php echo htmlentities($_SESSION['error_message']);
         unset($_SESSION['error_message']); ?>

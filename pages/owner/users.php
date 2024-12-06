@@ -1,7 +1,7 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+include '../../layout/header.php';
 
 $pageTitle = 'Manage Users';
 
@@ -44,6 +44,19 @@ oci_close($conn);
   <div class="page-container">
     <div class="d-flex justify-content-between">
       <h2>Manage Users</h2>
+
+      <!-- Alert -->
+      <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
+        <div class="alert alert-info">
+          <?php echo htmlentities($_SESSION['success_message']);
+          unset($_SESSION['success_message']); ?>
+        </div>
+      <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
+        <div class="alert alert-danger">
+          <?php echo htmlentities($_SESSION['error_message']);
+          unset($_SESSION['error_message']); ?>
+        </div>
+      <?php endif; ?>
 
       <a href="add-user.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
     </div>

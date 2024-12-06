@@ -3,31 +3,30 @@ session_start();
 include '../config/connection.php';
 
 // Ambil data dari form login
-$username = $_POST['username'];
-$password = $_POST['password'];
-
-$_SESSION['success_message'] = '';
-$_SESSION['error_message'] = '';
-
+$username = $_POST['username'] ?? '';
+$password = $_POST['password'] ?? '';
+$posisi = $_POST['posisi'] ?? '';
 $inputCaptcha = $_POST['captcha'] ?? '';
+
+// Reset messages
+$_SESSION['success_message'] = "";
+$_SESSION['error_message'] = "";
+
+// CAPTCHA Validation
 if ($inputCaptcha !== $_SESSION['captcha']) {
-    $_SESSION['error_message'] = 'CAPTCHA Invalid!';
-    // die("CAPTCHA verification failed.");
+    $_SESSION['error_message'] = "CAPTCHA Invalid!";
+    $captchaText = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'), 0, 6);
+    $_SESSION['captcha'] = $captchaText;  // Regenerate CAPTCHA after failure
+    header("Location: login.php");
+    exit();
 }
 
-// Validasi input form
-if (empty($username) || empty($password)) {
-    $_SESSION['error_message'] = 'Input all data!';
-    // die("Harap lengkapi semua data.");
-}
-
-// Query ke database untuk mencocokkan data login
-$query = "SELECT * FROM pegawai WHERE username = :username";
+// Query to check the username
+$query = "SELECT * FROM pegawai WHERE username = :username AND posisi = :posisi";
 $stmt = oci_parse($conn, $query);
 
 // Bind parameters
 oci_bind_by_name($stmt, ":username", $username);
-oci_bind_by_name($stmt, ":posisi", $posisi);
 
 // Execute the query
 oci_execute($stmt);
@@ -35,14 +34,14 @@ oci_execute($stmt);
 // Fetch user data
 $user = oci_fetch_assoc($stmt);
 if ($user) {
-    if ($user && password_verify($password, $user['PASSWORD'])) {
+    if (password_verify($password, $user['PASSWORD'])) {
         // Set session variables for authenticated user
         $_SESSION['username'] = $username;
         $_SESSION['posisi'] = $user['POSISI'];
         $_SESSION['user_logged_in'] = true;
         $_SESSION['employee_id'] = $user['ID'];
 
-        // Redirect ke dashboard sesuai posisi
+        // Redirect to the appropriate dashboard based on the role
         switch ($user['POSISI']) {
             case 'owner':
                 header("Location: ../pages/owner/dashboard.php");
@@ -56,16 +55,22 @@ if ($user) {
             default:
                 die("Role tidak dikenali.");
         }
-        exit();
+
+        $_SESSION['success_message'] = "Login Successfully!";
     } else {
-        $_SESSION['error_message'] = "Password Invalid!";
-        // die("Password Invalid!");
+        $_SESSION['error_message'] = "Invalid Credentials!";
+        $captchaText = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'), 0, 6);
+        $_SESSION['captcha'] = $captchaText;  // Regenerate CAPTCHA after wrong password
+        header("Location: login.php");
     }
 } else {
     $_SESSION['error_message'] = "User Not Found!";
-    // die("User Not Found!");
+    $captchaText = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'), 0, 6);
+    $_SESSION['captcha'] = $captchaText;  // Regenerate CAPTCHA if user not found
+    header("Location: login.php");
 }
 
-// Bebaskan sumber daya statement
+unset($_SESSION['captcha']); // Optionally unset CAPTCHA after login attempt
+// Free statement resources
 oci_free_statement($stmt);
 oci_close($conn);

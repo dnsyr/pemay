@@ -1,7 +1,7 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
+include '../../layout/header.php';
 
 $pageTitle = 'Update User';
 
