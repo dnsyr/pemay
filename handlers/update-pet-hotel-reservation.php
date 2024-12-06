@@ -16,6 +16,7 @@ $db->bind(':id', $reservationID);
 
 if ($db->execute()) {
   $db->commit();
-  $_SESSION['success_message'] = 'Reservation updated successfully!';
+  $_SESSION['success_message'] = "Reservation updated successfully!";
   header("Location: dashboard.php?tab=reservation");
+  exit();
 }

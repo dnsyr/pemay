@@ -1,19 +1,7 @@
 <?php
 session_start();
 include '../../config/connection.php';
-
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
-}
+include '../../layout/header.php';
 
 $message = "";
 
@@ -125,32 +113,32 @@ while ($row = oci_fetch_assoc($stid)) {
 
             <!-- Category List -->
             <table class="table mt-3">
-    <thead>
-        <tr>
-            <th><?php echo $currentLabel; ?> Name</th>
-            <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                <th>Price</th>
-            <?php endif; ?>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php foreach ($categories as $category): ?>
-            <tr>
-                <td><?php echo htmlentities($category['NAMA']); ?></td>
-                <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                    <td>Rp <?php echo number_format($category['BIAYA'], 0, ',', '.'); ?></td>
-                <?php endif; ?>
-                <td>
-                    <!-- Edit Button -->
-                    <a href="update-category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
-                    <!-- Delete Button -->
-                    <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus?')">Hapus</a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
+                <thead>
+                    <tr>
+                        <th><?php echo $currentLabel; ?> Name</th>
+                        <?php if ($tab === 'salon' || $tab === 'medis'): ?>
+                            <th>Price</th>
+                        <?php endif; ?>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($categories as $category): ?>
+                        <tr>
+                            <td><?php echo htmlentities($category['NAMA']); ?></td>
+                            <?php if ($tab === 'salon' || $tab === 'medis'): ?>
+                                <td>Rp <?php echo number_format($category['BIAYA'], 0, ',', '.'); ?></td>
+                            <?php endif; ?>
+                            <td>
+                                <!-- Edit Button -->
+                                <a href="update-category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <!-- Delete Button -->
+                                <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus?')">Hapus</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
 
         </div>
     </div>

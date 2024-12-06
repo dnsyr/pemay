@@ -44,9 +44,12 @@ $productUris = [
 ];
 
 // manage category uri
-$categoryUri = ["/pemay/pages/category/category.php"];
+$categoryUri = [
+  "/pemay/pages/category/category.php",
+  "/pemay/pages/category/update-category.php"
+];
 
-// manage custome uri
+// manage customer uri
 $customerUri = ["/pemay/pages/category/category.php"];
 
 // reports uri
@@ -128,7 +131,7 @@ $isPetServicesActive = (
                 <li><a class="dropdown-item <?php echo (in_array($currentUri, $productUris)) ? 'active' : ''; ?>" href="/pemay/pages/product/product.php">Products</a></li>
 
                 <!-- Categories Menu Item -->
-                <li><a class="dropdown-item <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a></li>
+                <li><a class="dropdown-item <?php echo (in_array($currentUri, $categoryUri)) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a></li>
 
                 <!-- Customers Menu Item -->
                 <li><a class="dropdown-item <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Customers</a></li>

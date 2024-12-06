@@ -14,7 +14,7 @@ $_SESSION['error_message'] = "";
 
 // CAPTCHA Validation
 if ($inputCaptcha !== $_SESSION['captcha']) {
-    $_SESSION['error_message'] = "CAPTCHA Invalid!";
+    $_SESSION['error_message'] = "Invalid CAPTCHA!";
     $captchaText = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'), 0, 6);
     $_SESSION['captcha'] = $captchaText;  // Regenerate CAPTCHA after failure
     header("Location: login.php");

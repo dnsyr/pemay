@@ -2,26 +2,14 @@
 session_start();
 include '../../config/connection.php';
 
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
-}
+$pageTitle = 'Update Product Item';
+include '../../layout/header.php';
 
 // Pastikan pengguna telah login
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
     header("Location: ../../auth/login.php");
     exit();
 }
-
-$pageTitle = 'Update Product Item';
 
 // Ambil ID produk dari URL
 $productId = $_GET['id'] ?? null;

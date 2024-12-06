@@ -8,174 +8,91 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 include '../../config/connection.php';
 include '../vet/header.php';
 
-// Ambil data jenis layanan medis untuk ditampilkan sebagai checkbox
-$sql = "SELECT * FROM JenisLayananMedis WHERE onDelete = 0 ORDER BY ID";
-$stmt = oci_parse($conn, $sql);
-oci_execute($stmt);
-
-$jenisLayananMedis = [];
-while ($row = oci_fetch_assoc($stmt)) {
-    $jenisLayananMedis[] = $row;
-}
-oci_free_statement($stmt);
-
-// Ambil data hewan untuk dropdown
-$sql = "SELECT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
-        FROM Hewan h
-        JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID";
-$stmt = oci_parse($conn, $sql);
-oci_execute($stmt);
-
-$hewanList = [];
-while ($row = oci_fetch_assoc($stmt)) {
-    $hewanList[] = $row;
-}
-oci_free_statement($stmt);
-
-// Ambil data layanan medis yang akan diupdate
+// Ambil Data Layanan Medis Berdasarkan ID
 if (isset($_GET['id'])) {
-    $layananId = intval($_GET['id']);
-    $sql = "SELECT lm.*, 
-    (SELECT LISTAGG(column_value, ',') WITHIN GROUP (ORDER BY column_value) 
-     FROM TABLE(lm.JenisLayanan)) AS JenisLayananIDs 
-FROM LayananMedis lm 
-WHERE lm.ID = :layananId";
+    $id = intval($_GET['id']);
+    if ($id > 0) {
+        $sql = "SELECT lm.ID, lm.Tanggal, lm.TotalBiaya, lm.Description, lm.Status, 
+                       h.Nama AS NamaHewan, h.Spesies, 
+                       ph.Nama AS NamaPemilik, ph.NomorTelpon
+                FROM LayananMedis lm
+                JOIN Hewan h ON lm.Hewan_ID = h.ID
+                JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
+                WHERE lm.ID = :id AND lm.onDelete = 0";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ":id", $id);
 
-    $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':layananId', $layananId);
-    oci_execute($stmt);
-    $layananData = oci_fetch_assoc($stmt);
-    oci_free_statement($stmt);
-}
+        if (!oci_execute($stmt)) {
+            $error = oci_error($stmt);
+            die("Terjadi kesalahan saat mengambil data: " . htmlentities($error['message']));
+        }
 
-// Proses update layanan medis
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    $layananId = $_POST['layanan_id'];
-    $tanggal = $_POST['tanggal'];
-    $totalBiaya = $_POST['total_biaya'];
-    $description = $_POST['description'];
-    $status = $_POST['status'];
-    $hewan_id = $_POST['hewan_id'];
-    $jenisLayananArray = $_POST['jenis_layanan'];
-
-    // Konversi array menjadi string untuk VARRAY
-    $jenisLayananString = "ARRAYJENISLAYANANMEDIS(" . implode(',', $jenisLayananArray) . ")";
-
-    $sql = "UPDATE LayananMedis SET 
-                Tanggal = TO_DATE(:tanggal, 'YYYY-MM-DD'), 
-                TotalBiaya = :totalBiaya, 
-                Description = :description, 
-                Status = :status, 
-                JenisLayanan = $jenisLayananString, 
-                Hewan_ID = :hewan_id 
-            WHERE ID = :layanan_id";
-    
-    $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':tanggal', $tanggal);
-    oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
-    oci_bind_by_name($stmt, ':description', $description);
-    oci_bind_by_name($stmt, ':status', $status);
-    oci_bind_by_name($stmt, ':hewan_id', $hewan_id);
-    oci_bind_by_name($stmt, ':layanan_id', $layananId);
-
-    if (oci_execute($stmt)) {
-        $message = "Layanan medis berhasil diperbarui.";
-        header("Location: success.php?message=" . urlencode($message));
-        exit();
+        $layanan = oci_fetch_assoc($stmt);
+        oci_free_statement($stmt);
     } else {
-        $errorMessage = "Gagal memperbarui layanan medis.";
+        echo "<script>alert('ID tidak valid!'); window.location.href='medical-services.php';</script>";
+        exit();
     }
-    oci_free_statement($stmt);
+} else {
+    echo "<script>alert('ID tidak ditemukan!'); window.location.href='medical-services.php';</script>";
+    exit();
 }
 
-// Jika layananData ada, ambil JenisLayananIDs untuk digunakan dalam checkbox
-$selectedJenisLayanan = [];
-if (isset($layananData['JENISLAYANANIDS'])) {
-    $selectedJenisLayanan = explode(',', $layananData['JENISLAYANANIDS']);
-}
+// Update Status Layanan Medis
+if (isset($_POST['update_status'])) {
+    $status = $_POST['status'];
+    $sqlUpdate = "UPDATE LayananMedis SET Status = :status WHERE ID = :id";
+    $stmtUpdate = oci_parse($conn, $sqlUpdate);
+    oci_bind_by_name($stmtUpdate, ":status", $status);
+    oci_bind_by_name($stmtUpdate, ":id", $id);
 
+    if (oci_execute($stmtUpdate)) {
+        echo "<script>alert('Status layanan medis berhasil diperbarui!'); window.location.href='medical-services.php';</script>";
+    } else {
+        $error = oci_error($stmtUpdate);
+        echo "<script>alert('Gagal memperbarui status layanan medis: " . htmlentities($error['message']) . "');</script>";
+    }
+    oci_free_statement($stmtUpdate);
+    oci_close($conn);
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Update Layanan Medis</title>
-    <link rel="stylesheet" href="../../public/css/index.css">
-    <script>
-        function updateTotal() {
-            let total = 0;
-            const checkboxes = document.querySelectorAll('input[name="jenis_layanan[]"]:checked');
-            checkboxes.forEach((checkbox) => {
-                total += parseFloat(checkbox.getAttribute('data-biaya'));
-            });
-            document.getElementById('total_biaya').value = total;
-        }
-    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body>
-    <div class="container">
-        <h2>Update Layanan Medis</h2>
-        <?php if (isset($errorMessage)): ?>
-            <div class="error"><?php echo $errorMessage; ?></div>
-        <?php endif; ?>
-        <form method="POST" action="">
-            <input type="hidden" name="layanan_id" value="<?php echo $layananId; ?>">
-            
+    <div class="container mt-5">
+        <h1>Update Layanan Medis</h1>
+        <form action="update-medical-services.php?id=<?= $layanan['ID']; ?>" method="POST">
             <div class="mb-3">
-                <label for="tanggal" class="form-label">Tanggal:</label>
-                <input type="date" name="tanggal" id="tanggal" value="<?php echo date('Y-m-d', strtotime($layananData['TANGGAL'])); ?>" required class="form-control">
+                <label for="tanggal" class="form-label">Tanggal</label>
+                <input type="text" class="form-control" id="tanggal" value="<?= htmlentities($layanan['TANGGAL']); ?>" readonly>
             </div>
-
             <div class="mb-3">
-                <label for="hewan_id" class="form-label">Hewan:</label>
-                <select name="hewan_id" id="hewan_id" required class="form-select">
-                    <?php foreach ($hewanList as $hewan): ?>
-                        <option value="<?php echo $hewan['ID']; ?>" <?php echo ($hewan['ID'] == $layananData['HEWAN_ID']) ? 'selected' : ''; ?>>
-                            <?php echo $hewan['NAMAPEMILIK'] . ' - ' . $hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ')'; ?>
-                        </option>
-                    <?php endforeach; ?>
+                <label for="total_biaya" class="form-label">Total Biaya</label>
+                <input type="text" class="form-control" id="total_biaya" value="Rp <?= number_format($layanan['TOTALBIAYA'], 0, ',', '.'); ?>" readonly>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Deskripsi</label>
+                <textarea class="form-control" id="description" rows="3" readonly><?= htmlentities($layanan['DESCRIPTION']); ?></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="Emergency" <?= $layanan['STATUS'] == 'emergency' ? 'selected' : ''; ?>>Emergency</option>
+                    <option value="Selesai" <?= $layanan['STATUS'] == 'Selesai' ? 'selected' : ''; ?>>Selesai</option>
                 </select>
             </div>
-
-            <div class="mb-3">
-                <label for="jenis_layanan" class="form-label">Jenis Layanan:</label>
-                <div>
-                    <?php foreach ($jenisLayananMedis as $layanan): ?>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="jenis_layanan[]" 
-                                   id="layanan_<?php echo $layanan['ID']; ?>" value="<?php echo $layanan['ID']; ?>" 
-                                   data-biaya="<?php echo $layanan['BIAYA']; ?>" 
-                                   <?php echo (in_array($layanan['ID'], $selectedJenisLayanan)) ? 'checked' : ''; ?> 
-                                   onclick="updateTotal()">
-                            <label class="form-check-label" for="layanan_<?php echo $layanan['ID']; ?>">
-                                <?php echo $layanan['NAMA']; ?> - Biaya: Rp <?php echo number_format($layanan['BIAYA'], 0, ',', '.'); ?>
-                            </label>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="total_biaya" class="form-label">Total Biaya:</label>
-                <input type="number" class="form-control" id="total_biaya" name="total_biaya" value="<?php echo number_format($layananData['TOTALBIAYA'], 0, ',', '.'); ?>" readonly>
-            </div>
-
-            <div class="mb-3">
-                <label for="description" class="form-label">Deskripsi:</label>
-                <textarea class="form-control" id="description" name="description" required><?php echo htmlentities($layananData['DESCRIPTION']); ?></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="status" class="form-label">Status:</label>
-                <select class="form-select" id="status" name="status" required>
-                    <option value="Emergency" <?php echo ($layananData['STATUS'] == 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
-                    <option value="Selesai" <?php echo ($layananData['STATUS'] == 'Selesai') ? 'selected' : ''; ?>>Selesai</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Update Layanan Medis</button>
+            <button type="submit" name="update_status" class="btn btn-primary">Update Status</button>
+            <a href="medical-services.php" class="btn btn-secondary">Kembali</a>
         </form>
     </div>
 </body>
+
 </html>

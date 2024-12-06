@@ -3,13 +3,6 @@ session_start();
 require_once '../../config/database.php';
 
 $pageTitle = 'Pet Hotel';
-
-// Ensure the session position is valid
-if (!isset($_SESSION['posisi']) || !in_array($_SESSION['posisi'], ['owner', 'vet', 'staff'])) {
-  header("Location: ../../auth/restricted.php");
-  exit();
-}
-
 include '../../layout/header.php';
 
 $pegawaiID = intval($_SESSION['employee_id']);

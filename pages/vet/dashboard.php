@@ -5,10 +5,10 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
   exit();
 }
 
-include './header.php'; // Include the header file for navigation
-
 $pageTitle = 'Vet Dashboard';
+include './header.php'; // Include the header file for navigatio
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 

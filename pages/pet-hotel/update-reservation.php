@@ -5,23 +5,10 @@ require_once '../../config/database.php';
 
 if (!isset($_GET['id'])) {
   $_SESSION['error_message'] = 'Invalid Request ID!';
-  // die('Invalid request');
 }
 
 $pageTitle = 'Update Reservation';
-
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-  case 'owner':
-    include '../owner/header.php';
-    break;
-  case 'vet':
-    include '../vet/header.php';
-    break;
-  case 'staff':
-    include '../staff/header.php';
-    break;
-}
+include '../../layout/header.php';
 
 $reservationID = intval($_GET['id']);
 $db = new Database();

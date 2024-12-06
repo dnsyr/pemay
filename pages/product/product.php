@@ -2,23 +2,12 @@
 session_start();
 include '../../config/connection.php';
 
+$pageTitle = 'Manage Product';
+include '../../layout/header.php';
+
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
     header("Location: ../../auth/login.php");
     exit();
-}
-$pageTitle = 'Manage Product';
-
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
 }
 
 // Pagination setup
@@ -168,7 +157,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                         <td><?php echo htmlentities($stock['KATEGORINAMA']); ?></td>
                         <td>
                             <!-- Update Button -->
-                            <!-- <a href="update_stock.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a> -->
+                            <a href="update-product.php?id=<?php echo $stock['ID']; ?>" class="btn btn-warning btn-sm">Update</a>
 
                             <!-- Delete Button -->
                             <a href="product.php?delete_id=<?php echo $stock['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>

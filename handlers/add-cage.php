@@ -11,7 +11,7 @@ $db->bind(':ukuran', $ukuran);
 $db->bind(':status', 'Empty');
 
 if ($db->execute()) {
-  $message = "$currentLabel berhasil ditambahkan.";
+  $_SESSION['success_message'] = "$currentLabel berhasil ditambahkan.";
 } else {
-  $message = "Gagal menambahkan $currentLabel.";
+  $_SESSION['error_message'] = "Gagal menambahkan $currentLabel.";
 }

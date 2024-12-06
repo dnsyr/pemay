@@ -4,9 +4,9 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
-include './header.php'; // Include the header file for navigation
 
 $pageTitle = 'Staff Dashboard';
+include './header.php'; // Include the header file for navigation
 ?>
 
 <!DOCTYPE html>
