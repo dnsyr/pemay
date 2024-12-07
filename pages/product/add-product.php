@@ -2,25 +2,15 @@
 session_start();
 include '../../config/connection.php';
 
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
+// Check if the user is logged in and the session is active
+if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
+    header("Location: ../../auth/restricted.php");
+    // die("Access denied. Please log in as an owner.");
+    exit();
 }
 
 $pageTitle = 'Add Product Item';
-
-// Check if the user is logged in and the session is active
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
-    die("Access denied. Please log in as an owner.");
-}
+include '../../layout/header.php';
 
 $pegawaiId = intval($_SESSION['employee_id']);
 
@@ -28,18 +18,15 @@ $pegawaiId = intval($_SESSION['employee_id']);
 $categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
 $categoryProdukStid = oci_parse($conn, $categoryProdukQuery);
 oci_execute($categoryProdukStid);
-
 $categoriesProduk = [];
 while ($row = oci_fetch_assoc($categoryProdukStid)) {
     $categoriesProduk[] = $row;
 }
 oci_free_statement($categoryProdukStid);
-
 // Fetch available categories for Obat
 $categoryObatQuery = "SELECT * FROM KategoriObat ORDER BY Nama";
 $categoryObatStid = oci_parse($conn, $categoryObatQuery);
 oci_execute($categoryObatStid);
-
 $categoriesObat = [];
 while ($row = oci_fetch_assoc($categoryObatStid)) {
     $categoriesObat[] = $row;
@@ -129,7 +116,6 @@ oci_close($conn);
         function updateCategory() {
             const kategori = document.getElementById('kategori');
             const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
-
             for (let option of kategori.options) {
                 if (option.classList.contains(tipeKategori)) {
                     option.style.display = 'block';
@@ -137,7 +123,6 @@ oci_close($conn);
                     option.style.display = 'none';
                 }
             }
-
             // Reset selection when changing type
             kategori.value = '';
         }

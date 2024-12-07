@@ -1,14 +1,14 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
-
-$pageTitle = 'Update User';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
+
+$pageTitle = 'Update User';
+include '../../layout/header.php';
 
 if (isset($_GET['username'])) {
   $username = $_GET['username'];

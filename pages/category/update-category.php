@@ -1,19 +1,7 @@
 <?php
 session_start();
 include '../../config/connection.php';
-
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
-}
+include '../../layout/header.php';
 
 $id = $_GET['id'] ?? null;
 $tab = $_GET['tab'] ?? 'produk';

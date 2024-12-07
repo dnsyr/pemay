@@ -5,17 +5,29 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
   exit();
 }
 
-include './header.php'; // Include the header file for navigation
-
 $pageTitle = 'Vet Dashboard';
+include './header.php'; // Include the header file for navigatio
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <body>
-  
+
 
   <div class="page-container">
+    <?php if (isset($_SESSION['success_message'])): ?>
+      <div class="alert alert-info">
+        <?php echo htmlentities($_SESSION['success_message']);
+        unset($_SESSION['success_message']); ?>
+      </div>
+    <?php elseif (isset($_SESSION['error_message'])): ?>
+      <div class="alert alert-danger">
+        <?php echo htmlentities($_SESSION['error_message']);
+        unset($_SESSION['error_message']); ?>
+      </div>
+    <?php endif; ?>
+
     <h1>Welcome to the Vet Dashboard, <?php echo $_SESSION['username']; ?>!</h1>
   </div>
 

@@ -3,20 +3,15 @@ if (!isset($db)) {
   throw new Exception("Database connection not established.");
 }
 
-try {
-  $ukuran = trim($_POST['ukuran']);
+$ukuran = trim($_POST['ukuran']);
 
-  $sqlAddCage = "INSERT INTO $currentTable (Ukuran, Status) VALUES (:ukuran, :status)";
-  $db->query($sqlAddCage);
-  $db->bind(':ukuran', $ukuran);
-  $db->bind(':status', 'Empty');
+$sqlAddCage = "INSERT INTO $currentTable (Ukuran, Status) VALUES (:ukuran, :status)";
+$db->query($sqlAddCage);
+$db->bind(':ukuran', $ukuran);
+$db->bind(':status', 'Empty');
 
-  if ($db->execute()) {
-    $message = "$currentLabel berhasil ditambahkan.";
-  } else {
-    $message = "Gagal menambahkan $currentLabel.";
-  }
-} catch (PDOException $e) {
-  // Handle the exception in the parent script
-  throw $e;
+if ($db->execute()) {
+  $_SESSION['success_message'] = "$currentLabel berhasil ditambahkan.";
+} else {
+  $_SESSION['error_message'] = "Gagal menambahkan $currentLabel.";
 }

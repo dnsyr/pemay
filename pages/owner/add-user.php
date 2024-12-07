@@ -1,14 +1,14 @@
 <?php
 session_start();
 include '../../config/connection.php';
-include '../owner/header.php';
-
-$pageTitle = 'Add User';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
+
+$pageTitle = 'Add User';
+include '../../layout/header.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add'])) {
   $nama = $_POST['nama'];
