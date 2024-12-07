@@ -86,11 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         if (oci_execute($stmt)) {
             $message = "Obat berhasil diperbarui.";
+            // Setelah update berhasil, redirect ke halaman update-medical-services.php dengan ID Layanan Medis
+            header("Location: ../medicine/update-medical-services.php?id={$layananMedisId}");
+            exit(); // Pastikan setelah header redirect, skrip tidak diteruskan
         } else {
             $error = oci_error($stmt);
             $message = "Gagal memperbarui obat: " . htmlentities($error['message']);
         }
-        oci_free_statement($stmt);
     }
     oci_close($conn);
 }

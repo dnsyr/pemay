@@ -6,7 +6,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 }
 
 $pageTitle = 'Vet Dashboard';
-include './header.php'; // Include the header file for navigatio
+include '../../layout/header.php';
 ?>
 
 <!DOCTYPE html>
