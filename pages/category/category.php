@@ -8,7 +8,7 @@ $message = "";
 // Default tab
 $tab = $_GET['tab'] ?? 'produk';
 
-// Ambil data berdasarkan jenis kategori
+// Daftar tabel untuk kategori
 $tables = [
     'produk' => ['table' => 'KategoriProduk', 'label' => 'Product'],
     'obat' => ['table' => 'KategoriObat', 'label' => 'Medicine'],
@@ -16,8 +16,9 @@ $tables = [
     'medis' => ['table' => 'JenisLayananMedis', 'label' => 'Medical Service'],
 ];
 
+// Validasi tab
 if (!array_key_exists($tab, $tables)) {
-    $tab = 'produk'; // Default to 'produk' if tab is invalid
+    $tab = 'produk'; // Default ke produk jika tab tidak valid
 }
 
 $currentTable = $tables[$tab]['table'];
@@ -28,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $namaKategori = trim($_POST['namaKategori']);
     $biaya = isset($_POST['biaya']) ? (int) $_POST['biaya'] : 30000;
 
+    // Siapkan query berdasarkan tab yang aktif
     $sql = "INSERT INTO $currentTable (Nama" . ($tab === 'salon' || $tab === 'medis' ? ', Biaya' : '') . ") 
             VALUES (:nama" . ($tab === 'salon' || $tab === 'medis' ? ', :biaya' : '') . ")";
     $stid = oci_parse($conn, $sql);
@@ -59,7 +61,6 @@ if (isset($_GET['delete_id'])) {
     oci_free_statement($stid);
 }
 
-
 // Ambil Data Kategori
 $sql = "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY ID";
 $stid = oci_parse($conn, $sql);
@@ -69,6 +70,8 @@ $categories = [];
 while ($row = oci_fetch_assoc($stid)) {
     $categories[] = $row;
 }
+oci_free_statement($stid);
+
 ?>
 
 <!DOCTYPE html>

@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 include '../../config/connection.php';
 include '../../layout/header.php';
@@ -6,21 +7,18 @@ include '../../layout/header.php';
 $id = $_GET['id'] ?? null;
 $tab = $_GET['tab'] ?? 'produk';
 
-// If there's no ID, redirect to the category list page
 if (!$id) {
     header("Location: category.php?tab=" . $tab);
     exit;
 }
 
-// Determine the category table and label based on the 'tab' parameter
 $tables = [
-    'produk' => ['table' => 'KategoriProduk', 'label' => 'Kategori Produk'],
-    'obat' => ['table' => 'KategoriObat', 'label' => 'Kategori Obat'],
-    'salon' => ['table' => 'JenisLayananSalon', 'label' => 'Jenis Layanan Salon'],
-    'medis' => ['table' => 'JenisLayananMedis', 'label' => 'Jenis Layanan Medis'],
+    'produk' => ['table' => 'KategoriProduk', 'label' => 'Product'],
+    'obat' => ['table' => 'KategoriObat', 'label' => 'Medicine'],
+    'salon' => ['table' => 'JenisLayananSalon', 'label' => 'Salon Service'],
+    'medis' => ['table' => 'JenisLayananMedis', 'label' => 'Medical Service'],
 ];
 
-// Check if the tab exists, else default to 'produk'
 if (!array_key_exists($tab, $tables)) {
     $tab = 'produk';
 }
@@ -28,77 +26,64 @@ if (!array_key_exists($tab, $tables)) {
 $currentTable = $tables[$tab]['table'];
 $currentLabel = $tables[$tab]['label'];
 
-// Process the form when submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+    $namaKategori = trim($_POST['namaKategori']);
+    $biaya = isset($_POST['biaya']) ? (int) $_POST['biaya'] : null;
 
-    if ($action === 'update') {
-        $namaKategori = trim($_POST['namaKategori']);
-
-        // Check if the category is used elsewhere (e.g., in Produk or other relevant tables)
-        $checkSql = "SELECT COUNT(*) AS total FROM Produk WHERE {$currentTable}_ID = :id";
-        $checkStid = oci_parse($conn, $checkSql);
-        oci_bind_by_name($checkStid, ":id", $id);
-        oci_execute($checkStid);
-        $checkRow = oci_fetch_assoc($checkStid);
-        oci_free_statement($checkStid);
-
-        // If category is being used, show an alert
-        if ($checkRow['TOTAL'] > 0) {
-            $message = "$currentLabel tidak dapat diperbarui karena masih digunakan oleh produk.";
-            echo "<script type='text/javascript'>alert('$message'); window.location.href='category.php?tab=$tab';</script>";
-            exit;
-        }
-
-        // Update the category
-        $sql = "UPDATE $currentTable SET Nama = :nama WHERE ID = :id";
-        $stid = oci_parse($conn, $sql);
-        oci_bind_by_name($stid, ":nama", $namaKategori);
-        oci_bind_by_name($stid, ":id", $id);
-
-        if (oci_execute($stid)) {
-            $message = "$currentLabel berhasil diperbarui.";
-        } else {
-            $message = "Gagal memperbarui $currentLabel.";
-        }
-        oci_free_statement($stid);
-
-        // Redirect back with message
-        echo "<script type='text/javascript'>alert('$message'); window.location.href='category.php?tab=$tab';</script>";
-        exit;
+    $sql = "UPDATE $currentTable SET Nama = :nama" . ($tab === 'salon' || $tab === 'medis' ? ', Biaya = :biaya' : '') . " WHERE ID = :id";
+    $stid = oci_parse($conn, $sql);
+    oci_bind_by_name($stid, ":nama", $namaKategori);
+    if ($tab === 'salon' || $tab === 'medis') {
+        oci_bind_by_name($stid, ":biaya", $biaya);
     }
+    oci_bind_by_name($stid, ":id", $id);
+
+    if (oci_execute($stid)) {
+        header("Location: category.php?tab=" . $tab);
+        exit;
+    } else {
+        $message = "Gagal memperbarui $currentLabel.";
+    }
+    oci_free_statement($stid);
 }
 
-// Fetch the category data for the update form
+// Ambil data kategori untuk edit
 $sql = "SELECT * FROM $currentTable WHERE ID = :id";
 $stid = oci_parse($conn, $sql);
 oci_bind_by_name($stid, ":id", $id);
 oci_execute($stid);
-$row = oci_fetch_assoc($stid);
+
+$category = oci_fetch_assoc($stid);
 oci_free_statement($stid);
-
-// If category not found, redirect with error message
-if (!$row) {
-    header("Location: category.php?tab=$tab&message=" . urlencode("$currentLabel tidak ditemukan."));
-    exit;
-}
-
-oci_close($conn);
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 
 <body>
-    <div class="container mt-5">
-        <h2>Update <?php echo $currentLabel; ?></h2>
-        <form method="POST" action="update-category.php?id=<?php echo htmlentities($id); ?>&tab=<?php echo $tab; ?>">
-            <div class="mb-3">
-                <label for="namaKategori" class="form-label">Nama <?php echo $currentLabel; ?></label>
-                <input type="text" class="form-control" id="namaKategori" name="namaKategori" value="<?php echo htmlentities($row['NAMA']); ?>" required>
+    <div class="page-container">
+        <h2>Edit <?php echo $currentLabel; ?></h2>
+
+        <?php if (isset($message)): ?>
+            <div class="alert alert-danger">
+                <?php echo htmlentities($message); ?>
             </div>
-            <button type="submit" name="action" value="update" class="btn btn-primary">Update</button>
-            <a href="category.php?tab=<?php echo $tab; ?>" class="btn btn-secondary">Kembali</a>
+        <?php endif; ?>
+
+        <form method="POST" action="update-category.php?id=<?php echo $id; ?>&tab=<?php echo $tab; ?>">
+            <input type="hidden" name="action" value="update">
+            <div class="mb-3">
+                <label for="namaKategori" class="form-label"><?php echo $currentLabel; ?> Name</label>
+                <input type="text" class="form-control" id="namaKategori" name="namaKategori" value="<?php echo htmlentities($category['NAMA']); ?>" required>
+            </div>
+            <?php if ($tab === 'salon' || $tab === 'medis'): ?>
+                <div class="mb-3">
+                    <label for="biaya" class="form-label">Price</label>
+                    <input type="number" class="form-control" id="biaya" name="biaya" value="<?php echo htmlentities($category['BIAYA']); ?>" required>
+                </div>
+            <?php endif; ?>
+            <button type="submit" class="btn btn-primary">Update</button>
         </form>
     </div>
 </body>

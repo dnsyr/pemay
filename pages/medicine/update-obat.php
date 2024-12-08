@@ -61,17 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $nama = $_POST['nama'] ?? '';
     $frekuensi = $_POST['frekuensi'] ?? '';
     $instruksi = $_POST['instruksi'] ?? '';
-    $harga = $_POST['harga'] ?? 0;
     $layananMedisId = $_POST['layanan-medis-id'] ?? '';
     $kategoriObatId = $_POST['kategori_obat_id'] ?? '';
 
     // Validasi data
-    if (empty($dosis) || empty($nama) || empty($frekuensi) || empty($instruksi) || $harga <= 0 || empty($layananMedisId) || empty($kategoriObatId)) {
+    if (empty($dosis) || empty($nama) || empty($frekuensi) || empty($instruksi) || empty($layananMedisId) || empty($kategoriObatId)) {
         $message = 'Semua field harus diisi dengan benar.';
     } else {
         // Update data obat
         $sql = "UPDATE Obat SET Dosis = :dosis, Nama = :nama, Frekuensi = :frekuensi, Instruksi = :instruksi, 
-                Harga = :harga, LayananMedis_ID = :layanan_medis_id, KategoriObat_ID = :kategori_obat_id
+                 LayananMedis_ID = :layanan_medis_id, KategoriObat_ID = :kategori_obat_id
                 WHERE ID = :id";
 
         $stmt = oci_parse($conn, $sql);
@@ -79,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         oci_bind_by_name($stmt, ':nama', $nama);
         oci_bind_by_name($stmt, ':frekuensi', $frekuensi);
         oci_bind_by_name($stmt, ':instruksi', $instruksi);
-        oci_bind_by_name($stmt, ':harga', $harga);
         oci_bind_by_name($stmt, ':layanan_medis_id', $layananMedisId);
         oci_bind_by_name($stmt, ':kategori_obat_id', $kategoriObatId);
         oci_bind_by_name($stmt, ':id', $obatId);
@@ -137,11 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <div class="mb-3">
                 <label for="instruksi" class="form-label">Instruksi</label>
                 <textarea class="form-control" id="instruksi" name="instruksi" required><?= htmlentities($obat['INSTRUKSI'] ?? ''); ?></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="harga" class="form-label">Harga</label>
-                <input type="number" class="form-control" id="harga" name="harga" value="<?= htmlentities($obat['HARGA'] ?? 0); ?>" required>
             </div>
 
             <div class="mb-3">

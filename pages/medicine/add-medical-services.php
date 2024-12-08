@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
     header("Location: ../../auth/restricted.php");
@@ -22,7 +23,7 @@ while ($row = oci_fetch_assoc($stmt)) {
 oci_free_statement($stmt);
 
 // Ambil data hewan untuk dropdown
-$sql = "SELECT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
+$sql = "SELECT DISTINCT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
         FROM Hewan h
         JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID";
 $stmt = oci_parse($conn, $sql);
@@ -32,11 +33,12 @@ $hewanList = [];
 while ($row = oci_fetch_assoc($stmt)) {
     $hewanList[] = $row;
 }
+
 oci_free_statement($stmt);
 
 // Proses tambah layanan medis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $tanggal = $_POST['tanggal']; // This will be in the format 'YYYY-MM-DDTHH:MM'
+    $tanggal = $_POST['tanggal']; // This will be in the format 'YYYY-MM-DDTHH:MM:SS'
     $totalBiaya = $_POST['total_biaya'];
     $description = $_POST['description'];
     $status = $_POST['status'];
@@ -48,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     // Update the SQL to include hours and minutes
     $sql = "INSERT INTO LayananMedis (Tanggal, TotalBiaya, Description, Status, JenisLayanan, Pegawai_ID, Hewan_ID) 
-            VALUES (TO_DATE(:tanggal, 'YYYY-MM-DD\"T\"HH24:MI'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
+            VALUES (TO_DATE(:tanggal, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
     
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':tanggal', $tanggal);
@@ -69,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     
     oci_free_statement($stmt);
+    ob_end_flush();
     oci_close($conn);
 }
 ?>
@@ -106,12 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <form method="POST">
             <input type="hidden" name="action" value="add">
             <div class="mb-3">
-    <label for="tanggal" class="form-label">Tanggal</label>
-    <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d'); ?>" required>
-</div>
-            <div class="mb-3">
-                <label for="total_biaya" class="form-label">Total Biaya</label>
-                <input type="number" class="form-control" id="total_biaya" name="total_biaya" readonly>
+                <label for="tanggal" class="form-label">Tanggal</label>
+                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i:s'); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Deskripsi</label>
@@ -122,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <select class="form-select" id="status" name="status" required>
                     <option value="Emergency">Emergency</option>
                     <option value="Selesai">Selesai</option>
+                    <option value="Reserved">Reserved</option> <!-- Opsi baru Reserved -->
                 </select>
             </div>
             <div class="mb-3">
@@ -129,26 +129,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <select class="form-select" id="hewan_id" name="hewan_id" required>
                     <?php foreach ($hewanList as $hewan): ?>
                         <option value="<?= $hewan['ID']; ?>">
-    <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
-</option>
+                            <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="mb-3">
-    <label for="jenis_layanan" class="form-label">Jenis Layanan</label>
-    <div>
-        <?php foreach ($jenisLayananMedis as $layanan): ?>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="jenis_layanan[]" 
-                       id="layanan_<?= $layanan['ID']; ?>" value="<?= $layanan['ID']; ?>" 
-                       data-biaya="<?= $layanan['BIAYA']; ?>" onclick="updateTotal()">
-                <label class="form-check-label" for="layanan_<?= $layanan['ID']; ?>">
-                    <?= htmlentities($layanan['NAMA']); ?> - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?>
-                </label>
+                <label for="jenis_layanan" class="form-label">Jenis Layanan</label>
+                <div>
+                    <?php foreach ($jenisLayananMedis as $layanan): ?>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="jenis_layanan[]" 
+                                   id="layanan_<?= $layanan['ID']; ?>" value="<?= $layanan['ID']; ?>" 
+                                   data-biaya="<?= $layanan['BIAYA']; ?>" onclick="updateTotal()">
+                            <label class="form-check-label" for="layanan_<?= $layanan['ID']; ?>">
+                                <?= htmlentities($layanan['NAMA']); ?> - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="mb-3">
+                <label for="total_biaya" class="form-label">Total Biaya</label>
+                <input type="number" class="form-control" id="total_biaya" name="total_biaya" readonly>
             </div>
-        <?php endforeach; ?>
-    </div>
-</div>
+            </div>
             <button type="submit" class="btn btn-primary">Tambah Layanan Medis</button>
         </form>
     </div>
