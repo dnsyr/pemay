@@ -4,7 +4,7 @@ if (!isset($db)) {
 }
 
 $reservatorID = isset($_POST['reservatorID']) ? (int)$_POST['reservatorID'] : 1;
-$kandang = isset($_POST['kandang']) ? (int)$_POST['kandang'] : 1;
+$kandang = $_POST['kandang'] ?? null;
 $checkIn = $_POST['checkIn'] ?? null;
 $checkOut = $_POST['checkOut'] ?? null;
 $price = $_POST['price'] ?? null;
@@ -14,7 +14,7 @@ $booked = 'Scheduled';
 $formattedCheckIn = $db->timestampFormat($checkIn);
 $formattedCheckOut = $db->timestampFormat($checkOut);
 
-$sqlAddReservation = "INSERT INTO $currentTable (Hewan_ID, Kandang_Nomor, CheckIn, CheckOut, TotalBiaya, Status, Pegawai_ID) 
+$sqlAddReservation = "INSERT INTO $currentTable (Hewan_ID, Kandang_ID, CheckIn, CheckOut, TotalBiaya, Status, Pegawai_ID) 
                            VALUES (:reservatorID, :kandang, TO_TIMESTAMP(:formattedCheckIn, 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP(:formattedCheckOut, 'YYYY-MM-DD HH24:MI:SS'), :price, :booked, :pegawaiID)";
 
 $db->query($sqlAddReservation);

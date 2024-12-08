@@ -1,6 +1,5 @@
 <?php
 session_start();
-include '../../config/connection.php';
 require_once '../../config/database.php';
 
 if (!isset($_GET['id'])) {

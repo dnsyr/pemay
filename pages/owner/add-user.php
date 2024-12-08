@@ -1,6 +1,8 @@
 <?php
 session_start();
-include '../../config/connection.php';
+ob_start();
+include '../../config/database.php';
+include '../../handlers/pegawai.php';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
@@ -11,44 +13,12 @@ $pageTitle = 'Add User';
 include '../../layout/header.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add'])) {
-  $nama = $_POST['nama'];
-  $username = $_POST['username'];
+  $db = new Database();
 
-  $checkSql = "SELECT COUNT(*) AS count FROM Pegawai WHERE Username = :username";
-  $checkStid = oci_parse($conn, $checkSql);
-  oci_bind_by_name($checkStid, ":username", $username);
-  oci_execute($checkStid);
-  $checkRow = oci_fetch_assoc($checkStid);
-  oci_free_statement($checkStid);
-
-  if ($checkRow['COUNT'] > 0) {
-    echo "<script>alert('Username already exists!');</script>";
-  } else {
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $posisi = $_POST['posisi'];
-    $email = $_POST['email'];
-    $nomorTelpon = $_POST['nomorTelpon'];
-
-    $sql = "INSERT INTO Pegawai (Nama, Username, Password, Posisi, Email, NomorTelpon) 
-                VALUES (:nama, :username, :password, :posisi, :email, :nomorTelpon)";
-    $stid = oci_parse($conn, $sql);
-    oci_bind_by_name($stid, ":nama", $nama);
-    oci_bind_by_name($stid, ":username", $username);
-    oci_bind_by_name($stid, ":password", $password);
-    oci_bind_by_name($stid, ":posisi", $posisi);
-    oci_bind_by_name($stid, ":email", $email);
-    oci_bind_by_name($stid, ":nomorTelpon", $nomorTelpon);
-
-    if (oci_execute($stid)) {
-      echo "<script>alert('User added successfully!'); window.location.href='users.php';</script>";
-    } else {
-      echo "<script>alert('Failed to add user.');</script>";
-    }
-    oci_free_statement($stid);
-  }
+  createDataEmployee($db);
 }
 
-oci_close($conn);
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>

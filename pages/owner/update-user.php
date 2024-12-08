@@ -1,6 +1,8 @@
 <?php
 session_start();
-include '../../config/connection.php';
+ob_start();
+include '../../config/database.php';
+include '../../handlers/pegawai.php';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
@@ -12,43 +14,20 @@ include '../../layout/header.php';
 
 if (isset($_GET['username'])) {
   $username = $_GET['username'];
-  $sql = "SELECT * FROM Pegawai WHERE Username = :username";
-  $stid = oci_parse($conn, $sql);
-  oci_bind_by_name($stid, ":username", $username);
-  oci_execute($stid);
-  $user = oci_fetch_assoc($stid);
-  oci_free_statement($stid);
+
+  $db = new Database();
+  $dataEmployee = getDataEmployee($db, $username);
+  $dataEmployee = $dataEmployee[0];
 } else {
   header("Location: users.php");
   exit();
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
-  $nama = $_POST['nama'];
-  $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Encrypt password
-  $posisi = $_POST['posisi'];
-  $email = $_POST['email'];
-  $nomorTelpon = $_POST['nomorTelpon'];
-
-  $sql = "UPDATE Pegawai SET Nama = :nama, Password = :password, Posisi = :posisi, 
-            Email = :email, NomorTelpon = :nomorTelpon WHERE Username = :username";
-  $stid = oci_parse($conn, $sql);
-  oci_bind_by_name($stid, ":nama", $nama);
-  oci_bind_by_name($stid, ":password", $password);
-  oci_bind_by_name($stid, ":posisi", $posisi);
-  oci_bind_by_name($stid, ":email", $email);
-  oci_bind_by_name($stid, ":nomorTelpon", $nomorTelpon);
-  oci_bind_by_name($stid, ":username", $username);
-
-  if (oci_execute($stid)) {
-    echo "<script>alert('User updated successfully!'); window.location.href='users.php';</script>";
-  } else {
-    echo "<script>alert('Failed to update user.');</script>";
-  }
-  oci_free_statement($stid);
+  updateDataEmployee($db, $username);
 }
 
-oci_close($conn);
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -63,11 +42,11 @@ oci_close($conn);
         <div class="d-flex gap-5">
           <div class="form-group col-md-4">
             <label for="nama">Name</label>
-            <input type="text" class="form-control" name="nama" value="<?php echo htmlentities($user['NAMA']); ?>" required>
+            <input type="text" class="form-control" name="nama" value="<?php echo htmlentities($dataEmployee['NAMA']); ?>" required>
           </div>
           <div class="form-group col-md-4">
             <label for="username">Username</label>
-            <input type="text" class="form-control" name="username" value="<?php echo htmlentities($user['USERNAME']); ?>" disabled>
+            <input type="text" class="form-control" name="username" value="<?php echo htmlentities($dataEmployee['USERNAME']); ?>" disabled>
           </div>
         </div>
 
@@ -79,9 +58,9 @@ oci_close($conn);
           <div class="form-group col-md-4">
             <label for="posisi">Role</label>
             <select class="form-select" name="posisi" required>
-              <option value="owner" <?php echo ($user['POSISI'] == 'owner') ? 'selected' : ''; ?>>Owner</option>
-              <option value="vet" <?php echo ($user['POSISI'] == 'vet') ? 'selected' : ''; ?>>Vet</option>
-              <option value="staff" <?php echo ($user['POSISI'] == 'staff') ? 'selected' : ''; ?>>Staff</option>
+              <option value="owner" <?php echo ($dataEmployee['POSISI'] == 'owner') ? 'selected' : ''; ?>>Owner</option>
+              <option value="vet" <?php echo ($dataEmployee['POSISI'] == 'vet') ? 'selected' : ''; ?>>Vet</option>
+              <option value="staff" <?php echo ($dataEmployee['POSISI'] == 'staff') ? 'selected' : ''; ?>>Staff</option>
             </select>
           </div>
         </div>
@@ -89,11 +68,11 @@ oci_close($conn);
         <div class="d-flex gap-5">
           <div class="form-group col-md-4">
             <label for="email">Email</label>
-            <input type="email" class="form-control" name="email" value="<?php echo htmlentities($user['EMAIL']); ?>" required>
+            <input type="email" class="form-control" name="email" value="<?php echo htmlentities($dataEmployee['EMAIL']); ?>" required>
           </div>
           <div class="form-group col-md-4">
             <label for="nomorTelpon">Phone Number</label>
-            <input type="text" class="form-control" name="nomorTelpon" value="<?php echo htmlentities($user['NOMORTELPON']); ?>" required>
+            <input type="text" class="form-control" name="nomorTelpon" value="<?php echo htmlentities($dataEmployee['NOMORTELPON']); ?>" required>
           </div>
         </div>
 

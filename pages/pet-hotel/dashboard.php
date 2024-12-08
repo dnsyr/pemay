@@ -24,8 +24,6 @@ if (!array_key_exists($tab, $tables)) {
 $currentTable = $tables[$tab]['table'];
 $currentLabel = $tables[$tab]['label'];
 
-$message = "";
-
 function formatTimestamp($timestamp)
 {
   try {
@@ -64,15 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   } catch (PDOException $e) {
     // Rollback if there is an error
     $db->rollBack();
-    $message = "Error: " . $e->getMessage();
+    $_SESSION['error_message'] = "Error: " . $e->getMessage();
   }
 }
 
 // Fetch Data
 $sqlQuery = $tab === 'reservation'
-  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA, p.NAMA AS PEGAWAI_NAMA FROM $currentTable lh 
+  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA, p.NAMA AS PEGAWAI_NAMA, k.Nomor AS KANDANG_NOMOR FROM $currentTable lh 
        JOIN HEWAN h ON lh.HEWAN_ID = h.ID 
        JOIN Pegawai p ON lh.Pegawai_ID = p.ID
+       JOIN Kandang k ON lh.Kandang_ID = k.ID
        WHERE lh.onDelete = 0 
        ORDER BY lh.CheckOut"
   : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
@@ -89,7 +88,7 @@ $db->query($petAndOwnerNameQuery);
 $petAndOwnerNames = $db->resultSet(); // Fetch all results for pet and owner names
 
 $cageRoomsQuery =
-  "SELECT NOMOR, UKURAN FROM KANDANG WHERE ONDELETE = 0
+  "SELECT ID, NOMOR, UKURAN FROM KANDANG WHERE ONDELETE = 0
   ORDER BY
   CASE UKURAN
   WHEN 'XS' THEN 1
@@ -202,7 +201,7 @@ $cageRooms = $db->resultSet(); // Fetch all results for cage rooms
                   <select name="kandang" id="kandang" class="form-select" required>
                     <option value="" disabled selected>-- Choose Cage Room --</option>
                     <?php foreach ($cageRooms as $cageRoom): ?>
-                      <option value="<?php echo $cageRoom['NOMOR']; ?>" data-size="<?php echo $cageRoom['UKURAN']; ?>">
+                      <option value="<?php echo $cageRoom['ID']; ?>" data-size="<?php echo $cageRoom['UKURAN']; ?>">
                         No: <?php echo htmlentities($cageRoom['NOMOR']); ?> | Size: <?php echo htmlentities($cageRoom['UKURAN']); ?>
                       </option>
                     <?php endforeach; ?>
