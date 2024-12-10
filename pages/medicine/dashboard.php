@@ -23,7 +23,7 @@ $filterNamaPemilik = isset($_GET['nama_pemilik']) ? $_GET['nama_pemilik'] : '';
 // Menangani Data Layanan Medis dengan Filter dan Pagination
 if ($tab === 'medical-services') {
     // Filter query
-    $whereClause = "WHERE lm.onDelete = 0";
+    $whereClause = "WHERE lm.onDelete = 0 AND lm.Status = 'Finished'";
     if ($filterNamaHewan) {
         $whereClause .= " AND h.Nama LIKE :nama_hewan";
     }
@@ -42,9 +42,10 @@ if ($tab === 'medical-services') {
             ORDER BY
                 CASE 
                 WHEN lm.Status = 'Emergency' THEN 1
-                WHEN lm.Status = 'Reserved' THEN 2
-                WHEN lm.Status = 'Selesai' THEN 3
-                ELSE 4
+                WHEN lm.Status = 'Scheduled' THEN 2
+                WHEN lm.Status = 'Finished' THEN 3
+                WHEN lm.Status = 'Canceled' THEN 4
+                ELSE 5
             END,
             lm.Tanggal DESC
         OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
@@ -271,9 +272,9 @@ oci_close($conn);
                                 <?php
             if ($layanan['STATUS'] === 'Emergency') {
                 echo 'table-danger'; // Merah untuk Emergency
-            } elseif ($layanan['STATUS'] === 'Selesai') {
+            } elseif ($layanan['STATUS'] === 'Finished') {
                 echo 'table-success'; // Hijau untuk Selesai
-            } elseif ($layanan['STATUS'] === 'Reserved') {
+            } elseif ($layanan['STATUS'] === 'Scheduled') {
                 echo 'table-secondary'; // Abu-abu untuk Reserved
             }
         ?>

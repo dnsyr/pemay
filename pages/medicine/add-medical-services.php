@@ -1,6 +1,8 @@
 <?php
 ob_start();
 session_start();
+date_default_timezone_set('Asia/Jakarta'); // Set zona waktu ke Jakarta
+
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
     header("Location: ../../auth/restricted.php");
     exit();
@@ -38,39 +40,57 @@ oci_free_statement($stmt);
 
 // Proses tambah layanan medis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $tanggal = $_POST['tanggal']; // This will be in the format 'YYYY-MM-DDTHH:MM:SS'
+    $status = $_POST['status'];
+    
+    // Karena "Canceled" tidak ada di form tambah, langsung gunakan tanggal yang dipilih
+    $tanggal = $_POST['tanggal']; // Format 'YYYY-MM-DDTHH:MM'
+
     $totalBiaya = $_POST['total_biaya'];
     $description = $_POST['description'];
-    $status = $_POST['status'];
     $hewan_id = $_POST['hewan_id'];
-    $jenisLayananArray = $_POST['jenis_layanan'];
+    $jenisLayananArray = isset($_POST['jenis_layanan']) ? $_POST['jenis_layanan'] : [];
 
-    // Konversi array menjadi string untuk VARRAY
-    $jenisLayananString = "ArrayJenisLayananMedis(" . implode(',', $jenisLayananArray) . ")";
-
-    // Update the SQL to include hours and minutes
-    $sql = "INSERT INTO LayananMedis (Tanggal, TotalBiaya, Description, Status, JenisLayanan, Pegawai_ID, Hewan_ID) 
-            VALUES (TO_DATE(:tanggal, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
-    
-    $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':tanggal', $tanggal);
-    oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
-    oci_bind_by_name($stmt, ':description', $description);
-    oci_bind_by_name($stmt, ':status', $status);
-    oci_bind_by_name($stmt, ':pegawai_id', $pegawaiId);
-    oci_bind_by_name($stmt, ':hewan_id', $hewan_id);
-
-    if (oci_execute($stmt)) {
-        $message = "Layanan medis berhasil ditambahkan.";
-        header("Location: dashboard.php"); // Redirect ke halaman dashboard setelah sukses
-        exit();
+    if (empty($jenisLayananArray)) {
+        $error = "Jenis layanan harus dipilih.";
     } else {
-        $error = oci_error($stmt);
-        echo "<script>alert('Gagal menambahkan layanan medis: " . htmlentities($error['message']) . "');</script>";
-        $message = "Gagal menambahkan layanan medis.";
+        // Validasi dan sanitasi input
+        $tanggal = htmlspecialchars($tanggal, ENT_QUOTES);
+        $totalBiaya = floatval($totalBiaya);
+        $description = htmlspecialchars($description, ENT_QUOTES);
+        $hewan_id = intval($hewan_id);
+        $jenisLayananArray = array_map('intval', $jenisLayananArray);
+
+        // Konversi array menjadi string untuk VARRAY
+        $jenisLayananString = "ArrayJenisLayananMedis(" . implode(',', $jenisLayananArray) . ")";
+
+        // Ubah format tanggal dari 'YYYY-MM-DDTHH:MM' menjadi 'YYYY-MM-DD HH24:MI:SS'
+        $tanggalFormatted = str_replace('T', ' ', $tanggal) . ":00";
+
+        // Update the SQL to include hours and minutes
+        $sql = "INSERT INTO LayananMedis (Tanggal, TotalBiaya, Description, Status, JenisLayanan, Pegawai_ID, Hewan_ID) 
+                VALUES (TO_TIMESTAMP(:tanggal, 'YYYY-MM-DD HH24:MI:SS'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
+        
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':tanggal', $tanggalFormatted);
+        oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
+        oci_bind_by_name($stmt, ':description', $description);
+        oci_bind_by_name($stmt, ':status', $status);
+        oci_bind_by_name($stmt, ':pegawai_id', $pegawaiId);
+        oci_bind_by_name($stmt, ':hewan_id', $hewan_id);
+
+        if (oci_execute($stmt)) {
+            $message = "Layanan medis berhasil ditambahkan.";
+            header("Location: dashboard.php"); // Redirect ke halaman dashboard setelah sukses
+            exit();
+        } else {
+            $error = oci_error($stmt);
+            echo "<script>alert('Gagal menambahkan layanan medis: " . htmlentities($error['message']) . "');</script>";
+            $message = "Gagal menambahkan layanan medis.";
+        }
+        
+        oci_free_statement($stmt);
     }
-    
-    oci_free_statement($stmt);
+
     ob_end_flush();
     oci_close($conn);
 }
@@ -96,6 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             });
             document.getElementById('total_biaya').value = total;
         }
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            updateTotal(); // Inisialisasi total biaya saat halaman dimuat
+            document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
+                checkbox.addEventListener('change', updateTotal);
+            });
+        });
     </script>
 </head>
 
@@ -109,20 +136,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <form method="POST">
             <input type="hidden" name="action" value="add">
             <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status" required>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Finished">Finished</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <!-- "Canceled" dihapus dari opsi -->
+                </select>
+            </div>
+            <div class="mb-3">
                 <label for="tanggal" class="form-label">Tanggal</label>
-                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i:s'); ?>" required>
+                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i'); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Deskripsi</label>
                 <textarea class="form-control" id="description" name="description" required></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="status" class="form-label">Status</label>
-                <select class="form-select" id="status" name="status" required>
-                    <option value="Emergency">Emergency</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Reserved">Reserved</option> <!-- Opsi baru Reserved -->
-                </select>
             </div>
             <div class="mb-3">
                 <label for="hewan_id" class="form-label">Hewan</label>
@@ -141,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="jenis_layanan[]" 
                                    id="layanan_<?= $layanan['ID']; ?>" value="<?= $layanan['ID']; ?>" 
-                                   data-biaya="<?= $layanan['BIAYA']; ?>" onclick="updateTotal()">
+                                   data-biaya="<?= $layanan['BIAYA']; ?>">
                             <label class="form-check-label" for="layanan_<?= $layanan['ID']; ?>">
                                 <?= htmlentities($layanan['NAMA']); ?> - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?>
                             </label>
@@ -149,9 +177,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php endforeach; ?>
                 </div>
                 <div class="mb-3">
-                <label for="total_biaya" class="form-label">Total Biaya</label>
-                <input type="number" class="form-control" id="total_biaya" name="total_biaya" readonly>
-            </div>
+                    <label for="total_biaya" class="form-label">Total Biaya</label>
+                    <input type="number" class="form-control" id="total_biaya" name="total_biaya" readonly>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Tambah Layanan Medis</button>
         </form>
