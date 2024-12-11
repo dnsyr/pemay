@@ -10,7 +10,7 @@ include '../staff/header.php';
 
 // Handle Delete Request
 if (isset($_GET['delete_id'])) {
-    $delete_id = intval($_GET['delete_id']);
+    $delete_id = trim($_GET['delete_id']);
     if ($delete_id > 0) {
         $sql = "UPDATE LayananSalon SET onDelete = 1 WHERE ID = :id";
         $stmtDelete = oci_parse($conn, $sql);

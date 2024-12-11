@@ -13,7 +13,7 @@ include '../../layout/header.php';
 
 // Menangani Penghapusan Layanan Medis
 if (isset($_GET['delete_id'])) {
-    $deleteId = intval($_GET['delete_id']);
+    $deleteId = trim($_GET['delete_id']);
 
     // Pastikan ID valid
     if ($deleteId > 0) {

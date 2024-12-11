@@ -10,7 +10,7 @@ if (!isset($_GET['id'])) {
 $pageTitle = 'Update Reservation';
 include '../../layout/header.php';
 
-$reservationID = intval($_GET['id']);
+$reservationID = trim($_GET['id']);
 $db = new Database();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

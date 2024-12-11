@@ -8,8 +8,30 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 include '../../config/connection.php';
 include '../vet/header.php';
 
+// Fungsi untuk menghasilkan UUID (jika diperlukan)
+// Anda bisa menghapus fungsi ini jika tidak diperlukan di sini
+function generate_uuid() {
+    $data = openssl_random_pseudo_bytes(16);
+    assert(strlen($data) == 16);
+
+    // Set version to 0100
+    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+    // Set bits 6-7 to 10
+    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+}
+
+$message = '';
+$obat = [];
+
+// Pastikan koneksi terhubung
+if (!$conn) {
+    die("Koneksi database gagal.");
+}
+
 // Ambil data kategori obat untuk dropdown
-$sql = "SELECT * FROM KategoriObat";
+$sql = "SELECT * FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama";
 $stmt = oci_parse($conn, $sql);
 oci_execute($stmt);
 
@@ -19,27 +41,18 @@ while ($row = oci_fetch_assoc($stmt)) {
 }
 oci_free_statement($stmt);
 
-// Ambil data layanan medis untuk dropdown
-$sqlLayanan = "
-    SELECT lm.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
-    FROM LayananMedis lm
-    JOIN Hewan h ON lm.Hewan_ID = h.ID
-    JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
-";
-$stmtLayanan = oci_parse($conn, $sqlLayanan);
-oci_execute($stmtLayanan);
-
-$layananMedisList = [];
-while ($row = oci_fetch_assoc($stmtLayanan)) {
-    $layananMedisList[] = $row; // Menyimpan hasil query ke dalam array
-}
-oci_free_statement($stmtLayanan);
-
 // Ambil data obat berdasarkan ID
-$obat = [];
 if (isset($_GET['id'])) {
-    $obatId = intval($_GET['id']);
-    $sql = "SELECT * FROM Obat WHERE ID = :id";
+    $obatId = trim($_GET['id']);
+
+    // Validasi format ID (UUID)
+    if (!preg_match('/^[a-f0-9\-]{36}$/i', $obatId)) {
+        echo '<div class="alert alert-danger">Format ID obat tidak valid.</div>';
+        oci_close($conn);
+        exit();
+    }
+
+    $sql = "SELECT * FROM ResepObat WHERE ID = :id AND onDelete = 0";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':id', $obatId);
     oci_execute($stmt);
@@ -52,52 +65,70 @@ if (isset($_GET['id'])) {
         oci_close($conn);
         exit();
     }
+} else {
+    echo '<div class="alert alert-danger">ID obat tidak diberikan.</div>';
+    oci_close($conn);
+    exit();
 }
 
 // Proses update obat
-$message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    $dosis = $_POST['dosis'] ?? '';
-    $nama = $_POST['nama'] ?? '';
-    $frekuensi = $_POST['frekuensi'] ?? '';
-    $instruksi = $_POST['instruksi'] ?? '';
-    $layananMedisId = $_POST['layanan-medis-id'] ?? '';
-    $kategoriObatId = $_POST['kategori_obat_id'] ?? '';
+    // Ambil ID dari hidden field
+    $obatIdPost = isset($_POST['id']) ? trim($_POST['id']) : '';
+    $layananMedisId = isset($_POST['layanan-medis-id']) ? trim($_POST['layanan-medis-id']) : '';
 
-    // Validasi data
-    if (empty($dosis) || empty($nama) || empty($frekuensi) || empty($instruksi) || empty($layananMedisId) || empty($kategoriObatId)) {
-        $message = 'Semua field harus diisi dengan benar.';
+    // Validasi ID dari hidden field
+    if (empty($obatIdPost) || !preg_match('/^[a-f0-9\-]{36}$/i', $obatIdPost)) {
+        $message = 'ID obat tidak valid.';
     } else {
-        // Update data obat
-        $sql = "UPDATE Obat SET Dosis = :dosis, Nama = :nama, Frekuensi = :frekuensi, Instruksi = :instruksi, 
-                 LayananMedis_ID = :layanan_medis_id, KategoriObat_ID = :kategori_obat_id
-                WHERE ID = :id";
+        $dosis = trim($_POST['dosis'] ?? '');
+        $nama = trim($_POST['nama'] ?? '');
+        $frekuensi = trim($_POST['frekuensi'] ?? '');
+        $instruksi = trim($_POST['instruksi'] ?? '');
+        $kategoriObatId = trim($_POST['kategori_obat_id'] ?? '');
 
-        $stmt = oci_parse($conn, $sql);
-        oci_bind_by_name($stmt, ':dosis', $dosis);
-        oci_bind_by_name($stmt, ':nama', $nama);
-        oci_bind_by_name($stmt, ':frekuensi', $frekuensi);
-        oci_bind_by_name($stmt, ':instruksi', $instruksi);
-        oci_bind_by_name($stmt, ':layanan_medis_id', $layananMedisId);
-        oci_bind_by_name($stmt, ':kategori_obat_id', $kategoriObatId);
-        oci_bind_by_name($stmt, ':id', $obatId);
-
-        if (oci_execute($stmt)) {
-            $message = "Obat berhasil diperbarui.";
-            // Setelah update berhasil, redirect ke halaman update-medical-services.php dengan ID Layanan Medis
-            header("Location: ../medicine/update-medical-services.php?id={$layananMedisId}");
-            exit(); // Pastikan setelah header redirect, skrip tidak diteruskan
+        // Validasi data
+        if (empty($dosis) || empty($nama) || empty($frekuensi) || empty($instruksi) || empty($kategoriObatId)) {
+            $message = 'Semua field harus diisi dengan benar.';
         } else {
-            $error = oci_error($stmt);
-            $message = "Gagal memperbarui obat: " . htmlentities($error['message']);
+            // Validasi format UUID untuk kategoriObatId
+            if (!preg_match('/^[a-f0-9\-]{36}$/i', $kategoriObatId)) {
+                $message = 'Format ID Kategori Obat tidak valid.';
+            } else {
+                // Update data obat
+                $sqlUpdate = "UPDATE ResepObat 
+                              SET Dosis = :dosis, 
+                                  Nama = :nama, 
+                                  Frekuensi = :frekuensi, 
+                                  Instruksi = :instruksi, 
+                                  KategoriObat_ID = :kategori_obat_id
+                              WHERE ID = :id";
+
+                $stmtUpdate = oci_parse($conn, $sqlUpdate);
+                oci_bind_by_name($stmtUpdate, ':dosis', $dosis);
+                oci_bind_by_name($stmtUpdate, ':nama', $nama);
+                oci_bind_by_name($stmtUpdate, ':frekuensi', $frekuensi);
+                oci_bind_by_name($stmtUpdate, ':instruksi', $instruksi);
+                oci_bind_by_name($stmtUpdate, ':kategori_obat_id', $kategoriObatId);
+                oci_bind_by_name($stmtUpdate, ':id', $obatIdPost);
+
+                if (oci_execute($stmtUpdate, OCI_COMMIT_ON_SUCCESS)) {
+                    // Redirect ke halaman update-medical-services.php dengan ID Layanan Medis
+                    header("Location: ../medicine/update-medical-services.php?id={$layananMedisId}");
+                    exit(); // Pastikan setelah header redirect, skrip tidak diteruskan
+                } else {
+                    $error = oci_error($stmtUpdate);
+                    $message = "Gagal memperbarui obat: " . htmlentities($error['message']);
+                }
+                oci_free_statement($stmtUpdate);
+            }
         }
     }
     oci_close($conn);
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
@@ -111,11 +142,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <h1>Update Obat</h1>
 
         <?php if ($message): ?>
-            <div class="alert alert-info"><?= htmlentities($message); ?></div>
+            <div class="alert alert-danger"><?= htmlentities($message); ?></div>
         <?php endif; ?>
 
         <form method="POST">
             <input type="hidden" name="action" value="update">
+            <input type="hidden" name="id" value="<?= htmlentities($obat['ID'] ?? ''); ?>">
+            <input type="hidden" name="layanan-medis-id" value="<?= htmlentities($obat['LAYANANMEDIS_ID'] ?? ''); ?>">
 
             <div class="mb-3">
                 <label for="dosis" class="form-label">Dosis</label>
@@ -138,31 +171,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
 
             <div class="mb-3">
-    <label for="layanan-medis-id" class="form-label">Layanan Medis</label>
-    <select class="form-select" id="layanan-medis-id" name="layanan-medis-id" required>
-        <?php foreach ($layananMedisList as $layanan): ?>
-            <option value="<?= htmlentities($layanan['ID']); ?>" <?= (isset($obat['LAYANANMEDIS_ID']) && $obat['LAYANANMEDIS_ID'] == $layanan['ID']) ? 'selected' : ''; ?>>
-                <?= htmlentities($layanan['ID']); ?> -  
-                <?= htmlentities($layanan['NAMAHEWAN']); ?> 
-                (<?= htmlentities($layanan['SPESIES']); ?>) - 
-                <?= htmlentities($layanan['NAMAPEMILIK']); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
-
-<div class="mb-3">
-    <label for="kategori_obat_id" class="form-label">Kategori Obat</label>
-    <select class="form-select" id="kategori_obat_id" name="kategori_obat_id" required>
-        <?php foreach ($kategoriObatList as $kategori): ?>
-            <option value="<?= $kategori['ID']; ?>" <?= (isset($obat['KATEGORIOBAT_ID']) && $obat['KATEGORIOBAT_ID'] == $kategori['ID']) ? 'selected' : ''; ?>>
-                <?= htmlentities($kategori['NAMA']); // Pastikan 'Nama' adalah kunci yang benar ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
+                <label for="kategori_obat_id" class="form-label">Kategori Obat</label>
+                <select class="form-select" id="kategori_obat_id" name="kategori_obat_id" required>
+                    <option value="">-- Pilih Kategori Obat --</option>
+                    <?php foreach ($kategoriObatList as $kategori): ?>
+                        <option value="<?= htmlentities($kategori['ID']); ?>" <?= (isset($obat['KATEGORIOBAT_ID']) && $obat['KATEGORIOBAT_ID'] == $kategori['ID']) ? 'selected' : ''; ?>>
+                            <?= htmlentities($kategori['NAMA']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
             <button type="submit" class="btn btn-primary">Update Obat</button>
+            <a href="../medicine/update-medical-services.php?id=<?= htmlentities($obat['LAYANANMEDIS_ID'] ?? ''); ?>" class="btn btn-secondary">Kembali</a>
         </form>
     </div>
 </body>

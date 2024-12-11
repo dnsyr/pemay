@@ -34,7 +34,7 @@ oci_free_statement($stmt);
 
 // Ambil data layanan salon yang akan diupdate
 if (isset($_GET['id'])) {
-    $layananId = intval($_GET['id']);
+    $layananId = trim($_GET['id']);
     $sql = "SELECT ls.*, 
     (SELECT LISTAGG(column_value, ',') WITHIN GROUP (ORDER BY column_value) 
     FROM TABLE(ls.JenisLayanan)) AS JenisLayananIDs 

@@ -8,7 +8,7 @@ $kandang = isset($_POST['kandang']) ? (int)$_POST['kandang'] : 1;
 $checkIn = $_POST['checkIn'] ?? null;
 $checkOut = $_POST['checkOut'] ?? null;
 $price = $_POST['price'] ?? null;
-$pegawaiID = intval($_SESSION['employee_id']);
+$pegawaiID = trim($_SESSION['employee_id']);
 $booked = 'Scheduled';
 
 $formattedCheckIn = $db->timestampFormat($checkIn);

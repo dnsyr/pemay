@@ -5,7 +5,7 @@ require_once '../../config/database.php';
 $pageTitle = 'Pet Hotel';
 include '../../layout/header.php';
 
-$pegawaiID = intval($_SESSION['employee_id']);
+$pegawaiID = trim($_SESSION['employee_id']);
 
 // Default tab
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'reservation';

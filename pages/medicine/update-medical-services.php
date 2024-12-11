@@ -10,17 +10,37 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 include '../../config/connection.php';
 include '../vet/header.php';
 
+// Fungsi untuk menghasilkan UUID
+function generate_uuid() {
+    $data = openssl_random_pseudo_bytes(16);
+    assert(strlen($data) == 16);
+
+    // Set version to 0100
+    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+    // Set bits 6-7 to 10
+    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+}
+
 $id = null;
 
 // Pastikan ID tersedia baik melalui GET maupun POST
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
+if (isset($_GET['id'])) {
+    $id = trim($_GET['id']);
+} elseif (isset($_POST['id'])) {
+    $id = trim($_POST['id']);
 }
 
-if ($id === null || $id <= 0) {
+// Validasi ID
+if ($id === null || empty($id)) {
     echo "<script>alert('ID tidak valid atau tidak ditemukan!'); window.location.href='dashboard.php';</script>";
+    exit();
+}
+
+// Validasi format ID (UUID)
+if (!preg_match('/^[a-f0-9\-]{36}$/i', $id)) {
+    echo "<script>alert('Format ID tidak valid!'); window.location.href='dashboard.php';</script>";
     exit();
 }
 
@@ -50,7 +70,7 @@ if (!$layanan) {
 
 // Handle Update Status Layanan Medis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $status = $_POST['status'];
+    $status = trim($_POST['status']);
 
     // Validasi status
     $allowed_status = ['Emergency', 'Finished', 'Scheduled', 'Canceled'];
@@ -63,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
         oci_bind_by_name($stmtUpdate, ":id", $id);
 
         if (oci_execute($stmtUpdate, OCI_COMMIT_ON_SUCCESS)) {
-            echo "<script>alert('Status layanan medis berhasil diperbarui!'); window.location.href='dashboard.php';</script>";
+            echo "<script>alert('Status layanan medis berhasil diperbarui!'); window.location.href='dashboard.php?tab=medical-services';</script>";
             exit();
         } else {
             $error = oci_error($stmtUpdate);
@@ -75,9 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 
 // Handle Delete Obat
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['delete_id'])) {
-    $delete_id = intval($_GET['delete_id']);
-    if ($delete_id > 0) {
-        $sqlDelete = "UPDATE Obat SET onDelete = 1 WHERE ID = :id";
+    $delete_id = trim($_GET['delete_id']);
+    
+    // Validasi format delete_id (UUID)
+    if (!preg_match('/^[a-f0-9\-]{36}$/i', $delete_id)) {
+        echo "<script>alert('Format ID obat tidak valid!'); window.location.href='update-medical-services.php?id=$id';</script>";
+        exit();
+    }
+
+    if (!empty($delete_id)) {
+        $sqlDelete = "UPDATE ResepObat SET onDelete = 1 WHERE ID = :id";
         $stmtDelete = oci_parse($conn, $sqlDelete);
         oci_bind_by_name($stmtDelete, ":id", $delete_id);
 
@@ -100,39 +127,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_obat'])) {
     $obatDosis = trim($_POST['obat_dosis']);
     $obatFrekuensi = trim($_POST['obat_frekuensi']);
     $obatInstruksi = trim($_POST['obat_instruksi']);
-    $kategoriObatId = intval($_POST['kategori_obat_id']); 
+    $kategoriObatId = trim($_POST['kategori_obat_id']); 
+
+    // Debugging: tampilkan nilai yang diterima
+    /*
+    echo "<pre>";
+    echo "obat_nama: '$obatNama'\n";
+    echo "obat_dosis: '$obatDosis'\n";
+    echo "obat_frekuensi: '$obatFrekuensi'\n";
+    echo "obat_instruksi: '$obatInstruksi'\n";
+    echo "kategori_obat_id: '$kategoriObatId'\n";
+    echo "</pre>";
+    exit();
+    */
 
     // Validasi input
-    if (empty($obatNama) || empty($obatDosis) || empty($obatFrekuensi) || empty($obatInstruksi) || $kategoriObatId <= 0) {
+    if (empty($obatNama) || empty($obatDosis) || empty($obatFrekuensi) || empty($obatInstruksi) || empty($kategoriObatId)) {
         $messageObat = "Semua bidang obat harus diisi dengan benar.";
     } else {
-        // Set default HARGA (misalnya 0 atau sesuai kebutuhan)
-        $obatHarga = 0;
-
-        $sqlObat = "INSERT INTO Obat (LayananMedis_ID, Nama, Dosis, Frekuensi, Instruksi, KategoriObat_ID, Harga) 
-                    VALUES (:layanan_medis_id, :nama, :dosis, :frekuensi, :instruksi, :kategori_obat_id, :harga)";
-        $stmtObat = oci_parse($conn, $sqlObat);
-        oci_bind_by_name($stmtObat, ':layanan_medis_id', $id);
-        oci_bind_by_name($stmtObat, ':nama', $obatNama);
-        oci_bind_by_name($stmtObat, ':dosis', $obatDosis);
-        oci_bind_by_name($stmtObat, ':frekuensi', $obatFrekuensi);
-        oci_bind_by_name($stmtObat, ':instruksi', $obatInstruksi);
-        oci_bind_by_name($stmtObat, ':kategori_obat_id', $kategoriObatId);
-        oci_bind_by_name($stmtObat, ':harga', $obatHarga); // Bind HARGA ke nilai default
-
-        if (oci_execute($stmtObat, OCI_COMMIT_ON_SUCCESS)) {
-            $messageObat = "Obat berhasil ditambahkan.";
+        // Pastikan kategoriObatId adalah UUID yang valid
+        if (!preg_match('/^[a-f0-9\-]{36}$/i', $kategoriObatId)) {
+            $messageObat = "Format Kategori Obat tidak valid.";
         } else {
-            $error = oci_error($stmtObat);
-            $messageObat = "Gagal menambahkan obat: " . htmlentities($error['message']);
+            // Set default HARGA (misalnya 0 atau sesuai kebutuhan)
+            $obatHarga = 0;
+
+            // Generate ID Obat (UUID)
+            $newObatId = strtoupper(generate_uuid());
+
+            $sqlObat = "INSERT INTO ResepObat (ID, LayananMedis_ID, Nama, Dosis, Frekuensi, Instruksi, KategoriObat_ID, Harga, onDelete) 
+                        VALUES (:id, :layanan_medis_id, :nama, :dosis, :frekuensi, :instruksi, :kategori_obat_id, :harga, 0)";
+            $stmtObat = oci_parse($conn, $sqlObat);
+            oci_bind_by_name($stmtObat, ':id', $newObatId);
+            oci_bind_by_name($stmtObat, ':layanan_medis_id', $id);
+            oci_bind_by_name($stmtObat, ':nama', $obatNama);
+            oci_bind_by_name($stmtObat, ':dosis', $obatDosis);
+            oci_bind_by_name($stmtObat, ':frekuensi', $obatFrekuensi);
+            oci_bind_by_name($stmtObat, ':instruksi', $obatInstruksi);
+            oci_bind_by_name($stmtObat, ':kategori_obat_id', $kategoriObatId);
+            oci_bind_by_name($stmtObat, ':harga', $obatHarga); // Bind HARGA ke nilai default
+
+            if (oci_execute($stmtObat, OCI_COMMIT_ON_SUCCESS)) {
+                $messageObat = "Obat berhasil ditambahkan.";
+            } else {
+                $error = oci_error($stmtObat);
+                $messageObat = "Gagal menambahkan obat: " . htmlentities($error['message']);
+            }
+            oci_free_statement($stmtObat);
         }
-        oci_free_statement($stmtObat);
     }
 }
 
 // Ambil Data Obat yang Terkait Layanan Medis
-$sqlObatList = "SELECT o.*, ko.Nama AS \"KategoriObat\"
-                FROM Obat o
+$sqlObatList = "SELECT o.ID, o.Nama, o.Dosis, o.Frekuensi, o.Instruksi, ko.Nama AS KategoriObat
+                FROM ResepObat o
                 JOIN KategoriObat ko ON o.KategoriObat_ID = ko.ID
                 WHERE o.LayananMedis_ID = :id AND o.onDelete = 0";
 $stmtObatList = oci_parse($conn, $sqlObatList);
@@ -152,7 +200,7 @@ oci_free_statement($stmtObatList);
 $obatAda = count($obatList) > 0;
 
 // Ambil Data Kategori Obat
-$sqlKategori = "SELECT * FROM KategoriObat ORDER BY Nama";
+$sqlKategori = "SELECT ID, Nama FROM KategoriObat ORDER BY Nama";
 $stmtKategori = oci_parse($conn, $sqlKategori);
 
 if (!oci_execute($stmtKategori)) {
@@ -228,6 +276,8 @@ ob_end_flush();
 
         <!-- Formulir untuk Memperbarui Status Layanan Medis -->
         <form action="update-medical-services.php?id=<?= htmlentities($layanan['ID']); ?>" method="POST">
+            <input type="hidden" name="id" value="<?= htmlentities($layanan['ID']); ?>">
+
             <!-- Field Tanggal -->
             <div class="mb-3">
                 <label for="tanggal" class="form-label">Tanggal</label>
@@ -250,10 +300,10 @@ ob_end_flush();
             <div class="mb-3">
                 <label for="status" class="form-label">Status</label>
                 <select class="form-select" id="status" name="status" required>
-                    <option value="Emergency" <?= $layanan['STATUS'] == 'Emergency' ? 'selected' : ''; ?>>Emergency</option>
-                    <option value="Finished" <?= $layanan['STATUS'] == 'Finished' ? 'selected' : ''; ?>>Finished</option>
-                    <option value="Scheduled" <?= $layanan['STATUS'] == 'Scheduled' ? 'selected' : ''; ?>>Scheduled</option>
-                    <option value="Canceled" <?= $layanan['STATUS'] == 'Canceled' ? 'selected' : ''; ?>>Canceled</option>
+                    <option value="Emergency" <?= ($layanan['STATUS'] == 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
+                    <option value="Finished" <?= ($layanan['STATUS'] == 'Finished') ? 'selected' : ''; ?>>Finished</option>
+                    <option value="Scheduled" <?= ($layanan['STATUS'] == 'Scheduled') ? 'selected' : ''; ?>>Scheduled</option>
+                    <option value="Canceled" <?= ($layanan['STATUS'] == 'Canceled') ? 'selected' : ''; ?>>Canceled</option>
                 </select>
             </div>
 
@@ -266,6 +316,8 @@ ob_end_flush();
 
         <!-- Formulir untuk Menambahkan Obat -->
         <form action="update-medical-services.php?id=<?= htmlentities($layanan['ID']); ?>" method="POST">
+            <input type="hidden" name="id" value="<?= htmlentities($layanan['ID']); ?>">
+
             <!-- Pertanyaan Menambahkan Obat -->
             <div class="mb-3">
                 <label class="form-label" for="obat_pertanyaan">Apakah Anda ingin menambahkan obat?</label>
@@ -329,7 +381,7 @@ ob_end_flush();
                             <td><?= htmlentities($obat['DOSIS']); ?></td>
                             <td><?= htmlentities($obat['FREKUENSI']); ?></td>
                             <td><?= htmlentities($obat['INSTRUKSI']); ?></td>
-                            <td><?= htmlentities($obat['KategoriObat']); ?></td>
+                            <td><?= htmlentities($obat['KATEGORIOBAT']); ?></td>
                             <td>
                                 <a href="update-medical-services.php?id=<?= htmlentities($id); ?>&delete_id=<?= htmlentities($obat['ID']); ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?')">Hapus</a>
                                 <a href="update-obat.php?id=<?= htmlentities($obat['ID']); ?>" class="btn btn-warning btn-sm">Update</a>

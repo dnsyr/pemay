@@ -11,10 +11,11 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 include '../../config/connection.php';
 include '../../layout/header.php';
 
-$pegawaiId = intval($_SESSION['employee_id']); // Ambil ID pegawai dari session
+// Pastikan 'employee_id' adalah string UUID
+$pegawaiId = $_SESSION['employee_id'];
 
 // Ambil data jenis layanan medis untuk ditampilkan sebagai checkbox
-$sql = "SELECT * FROM JenisLayananMedis";
+$sql = "SELECT * FROM JenisLayananMedis WHERE onDelete = 0";
 $stmt = oci_parse($conn, $sql);
 oci_execute($stmt);
 
@@ -27,7 +28,8 @@ oci_free_statement($stmt);
 // Ambil data hewan untuk dropdown
 $sql = "SELECT DISTINCT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
         FROM Hewan h
-        JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID";
+        JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
+        WHERE h.onDelete = 0 AND ph.onDelete = 0"; // Pastikan hewan dan pemilik tidak dihapus
 $stmt = oci_parse($conn, $sql);
 oci_execute($stmt);
 
@@ -41,15 +43,13 @@ oci_free_statement($stmt);
 // Proses tambah layanan medis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     $status = $_POST['status'];
-    
-    // Karena "Canceled" tidak ada di form tambah, langsung gunakan tanggal yang dipilih
     $tanggal = $_POST['tanggal']; // Format 'YYYY-MM-DDTHH:MM'
-
     $totalBiaya = $_POST['total_biaya'];
     $description = $_POST['description'];
     $hewan_id = $_POST['hewan_id'];
     $jenisLayananArray = isset($_POST['jenis_layanan']) ? $_POST['jenis_layanan'] : [];
 
+    // Validasi input
     if (empty($jenisLayananArray)) {
         $error = "Jenis layanan harus dipilih.";
     } else {
@@ -57,44 +57,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $tanggal = htmlspecialchars($tanggal, ENT_QUOTES);
         $totalBiaya = floatval($totalBiaya);
         $description = htmlspecialchars($description, ENT_QUOTES);
-        $hewan_id = intval($hewan_id);
-        $jenisLayananArray = array_map('intval', $jenisLayananArray);
+        // $hewan_id tetap sebagai string
+        // $jenisLayananArray tetap sebagai array of strings/UUIDs
 
-        // Konversi array menjadi string untuk VARRAY
-        $jenisLayananString = "ArrayJenisLayananMedis(" . implode(',', $jenisLayananArray) . ")";
+        // Cek validitas data referensi
+        // Cek pegawai_id
+        $checkPegawaiSql = "SELECT COUNT(*) AS count FROM Pegawai WHERE ID = :pegawai_id AND onDelete = 0";
+        $checkPegawaiStmt = oci_parse($conn, $checkPegawaiSql);
+        oci_bind_by_name($checkPegawaiStmt, ':pegawai_id', $pegawaiId);
+        oci_execute($checkPegawaiStmt);
+        $pegawaiCount = oci_fetch_assoc($checkPegawaiStmt)['COUNT'];
+        oci_free_statement($checkPegawaiStmt);
 
-        // Ubah format tanggal dari 'YYYY-MM-DDTHH:MM' menjadi 'YYYY-MM-DD HH24:MI:SS'
-        $tanggalFormatted = str_replace('T', ' ', $tanggal) . ":00";
-
-        // Update the SQL to include hours and minutes
-        $sql = "INSERT INTO LayananMedis (Tanggal, TotalBiaya, Description, Status, JenisLayanan, Pegawai_ID, Hewan_ID) 
-                VALUES (TO_TIMESTAMP(:tanggal, 'YYYY-MM-DD HH24:MI:SS'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id)";
-        
-        $stmt = oci_parse($conn, $sql);
-        oci_bind_by_name($stmt, ':tanggal', $tanggalFormatted);
-        oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
-        oci_bind_by_name($stmt, ':description', $description);
-        oci_bind_by_name($stmt, ':status', $status);
-        oci_bind_by_name($stmt, ':pegawai_id', $pegawaiId);
-        oci_bind_by_name($stmt, ':hewan_id', $hewan_id);
-
-        if (oci_execute($stmt)) {
-            $message = "Layanan medis berhasil ditambahkan.";
-            header("Location: dashboard.php"); // Redirect ke halaman dashboard setelah sukses
-            exit();
-        } else {
-            $error = oci_error($stmt);
-            echo "<script>alert('Gagal menambahkan layanan medis: " . htmlentities($error['message']) . "');</script>";
-            $message = "Gagal menambahkan layanan medis.";
+        if ($pegawaiCount == 0) {
+            $error = "Pegawai yang dipilih tidak valid.";
         }
-        
-        oci_free_statement($stmt);
+
+        // Cek hewan_id
+        $checkHewanSql = "SELECT COUNT(*) AS count FROM Hewan WHERE ID = :hewan_id AND onDelete = 0";
+        $checkHewanStmt = oci_parse($conn, $checkHewanSql);
+        oci_bind_by_name($checkHewanStmt, ':hewan_id', $hewan_id);
+        oci_execute($checkHewanStmt);
+        $hewanCount = oci_fetch_assoc($checkHewanStmt)['COUNT'];
+        oci_free_statement($checkHewanStmt);
+
+        if ($hewanCount == 0) {
+            $error = "Hewan yang dipilih tidak valid.";
+        }
+
+        // Cek setiap jenis_layanan
+        if (!isset($error)) { // Hanya cek jika tidak ada error sebelumnya
+            foreach ($jenisLayananArray as $jenisId) {
+                $checkJenisSql = "SELECT COUNT(*) AS count FROM JenisLayananMedis WHERE ID = :jenis_id AND onDelete = 0";
+                $checkJenisStmt = oci_parse($conn, $checkJenisSql);
+                oci_bind_by_name($checkJenisStmt, ':jenis_id', $jenisId);
+                oci_execute($checkJenisStmt);
+                $jenisCount = oci_fetch_assoc($checkJenisStmt)['COUNT'];
+                oci_free_statement($checkJenisStmt);
+
+                if ($jenisCount == 0) {
+                    $error = "Jenis layanan medis dengan ID $jenisId tidak valid.";
+                    break;
+                }
+            }
+        }
+
+        if (!isset($error)) {
+            // Konversi array menjadi string untuk VARRAY (VARRAY of VARCHAR2)
+            $jenisLayananString = "ArrayJenisLayananMedis(" . implode(',', array_map(function($id) {
+                return "'" . addslashes($id) . "'";
+            }, $jenisLayananArray)) . ")";
+
+            // Ubah format tanggal dari 'YYYY-MM-DDTHH:MM' menjadi 'YYYY-MM-DD HH24:MI:SS'
+            $tanggalFormatted = str_replace('T', ' ', $tanggal) . ":00";
+
+            // Bangun pernyataan SQL untuk prosedur
+            $sql = "BEGIN CreateLayananMedis(:tanggal, :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id); END;";
+            
+            $stmt = oci_parse($conn, $sql);
+            oci_bind_by_name($stmt, ':tanggal', $tanggalFormatted);
+            oci_bind_by_name($stmt, ':totalBiaya', $totalBiaya);
+            oci_bind_by_name($stmt, ':description', $description);
+            oci_bind_by_name($stmt, ':status', $status);
+            oci_bind_by_name($stmt, ':pegawai_id', $pegawaiId); // Tetap sebagai string
+            oci_bind_by_name($stmt, ':hewan_id', $hewan_id); // Tetap sebagai string
+
+            if (oci_execute($stmt, OCI_COMMIT_ON_SUCCESS)) { // Menambahkan OCI_COMMIT_ON_SUCCESS untuk otomatis commit
+                $message = "Layanan medis berhasil ditambahkan.";
+                header("Location: dashboard.php"); // Redirect ke halaman dashboard setelah sukses
+                exit();
+            } else {
+                $ociError = oci_error($stmt);
+                // Log error ke file log server
+                error_log("Gagal menambahkan layanan medis: " . $ociError['message']);
+                // Tampilkan pesan error yang ramah pengguna
+                echo "<script>alert('Gagal menambahkan layanan medis: " . htmlentities($ociError['message']) . "');</script>";
+                $error = $ociError['message'];
+            }
+
+            oci_free_statement($stmt);
+        }
     }
 
     ob_end_flush();
     oci_close($conn);
 }
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -130,8 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="container mt-5">
         <h1>Tambah Layanan Medis</h1>
         <?php if (isset($message)): ?>
-            <div class="alert alert-info"><?= htmlentities($message); ?></div>
-        <?php endif; ?>
+    <div class="alert alert-info"><?= htmlentities($message); ?></div>
+<?php endif; ?>
+
+<?php if (isset($error)): ?>
+    <div class="alert alert-danger"><?= htmlentities($error); ?></div>
+<?php endif; ?>
+
 
         <form method="POST">
             <input type="hidden" name="action" value="add">
@@ -156,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <label for="hewan_id" class="form-label">Hewan</label>
                 <select class="form-select" id="hewan_id" name="hewan_id" required>
                     <?php foreach ($hewanList as $hewan): ?>
-                        <option value="<?= $hewan['ID']; ?>">
+                        <option value="<?= htmlentities($hewan['ID']); ?>">
                             <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -168,9 +223,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php foreach ($jenisLayananMedis as $layanan): ?>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="jenis_layanan[]" 
-                                   id="layanan_<?= $layanan['ID']; ?>" value="<?= $layanan['ID']; ?>" 
-                                   data-biaya="<?= $layanan['BIAYA']; ?>">
-                            <label class="form-check-label" for="layanan_<?= $layanan['ID']; ?>">
+                                   id="layanan_<?= htmlentities($layanan['ID']); ?>" value="<?= htmlentities($layanan['ID']); ?>" 
+                                   data-biaya="<?= htmlentities($layanan['BIAYA']); ?>">
+                            <label class="form-check-label" for="layanan_<?= htmlentities($layanan['ID']); ?>">
                                 <?= htmlentities($layanan['NAMA']); ?> - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?>
                             </label>
                         </div>

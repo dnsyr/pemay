@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $kategoriObatId = $_POST['kategori_obat_id'];
 
     // Insert data obat
-    $sql = "INSERT INTO Obat (Dosis, Nama, Frekuensi, Instruksi, LayananMedis_ID, KategoriObat_ID) 
+    $sql = "INSERT INTO ResepObat (Dosis, Nama, Frekuensi, Instruksi, LayananMedis_ID, KategoriObat_ID) 
             VALUES (:dosis, :nama, :frekuensi, :instruksi, :layanan_medis_id, :kategori_obat_id)";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':dosis', $dosis);

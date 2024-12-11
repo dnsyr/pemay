@@ -14,7 +14,7 @@ include '../../config/connection.php';
 
 // Check if 'id' is provided in the URL
 if (isset($_GET['id'])) {
-    $id = intval($_GET['id']); // Sanitize input to integer
+    $id = trim($_GET['id']);
     if ($id > 0) {
         // Fetch Medical Service Details
         $sql = "SELECT lm.ID, lm.Tanggal, lm.TotalBiaya, lm.Description, lm.Status, 
@@ -43,7 +43,7 @@ if (isset($_GET['id'])) {
     
         // Fetch Associated Medications (Obat)
         $sqlObatList = "SELECT o.*, ko.Nama AS KategoriObat
-                        FROM Obat o
+                        FROM ResepObat o
                         JOIN KategoriObat ko ON o.KategoriObat_ID = ko.ID
                         WHERE o.LayananMedis_ID = :id AND o.onDelete = 0";
         $stmtObatList = oci_parse($conn, $sqlObatList);

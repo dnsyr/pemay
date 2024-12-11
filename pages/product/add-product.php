@@ -12,7 +12,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
 $pageTitle = 'Add Product Item';
 include '../../layout/header.php';
 
-$pegawaiId = intval($_SESSION['employee_id']);
+$pegawaiId = trim($_SESSION['employee_id']);
 
 // Fetch available categories for Produk
 $categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
