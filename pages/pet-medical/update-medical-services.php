@@ -383,6 +383,13 @@ echo $status;
             });
             document.getElementById('total_biaya').value = total;
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tanggalInput = document.getElementById('tanggal');
+            const now = new Date();
+            const mindate= now.toISOString().slice(0, 16);
+            tanggalInput.setAttribute('min', mindate);
+        });
     </script>
 </head>
 
@@ -412,13 +419,13 @@ echo $status;
             <!-- Field Tanggal -->
             <div class="mb-3">
                 <label for="tanggal" class="form-label">Tanggal</label>
-                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= htmlentities(date('Y-m-d\TH:i', strtotime($layanan['TANGGAL']))); ?>" required>
+                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i'); ?>" required min="<?= date('Y-m-d\TH:i'); ?>">
             </div>
 
-            <!-- Field Deskripsi (readonly) -->
+            <!-- Field Deskripsi -->
             <div class="mb-3">
                 <label for="description" class="form-label">Deskripsi</label>
-                <textarea class="form-control" id="description" rows="3" readonly><?= htmlentities($layanan['DESCRIPTION']); ?></textarea>
+                <textarea class="form-control" id="description" rows="3"><?= htmlentities($layanan['DESCRIPTION']); ?></textarea>
             </div>
 
             <!-- Field Status -->

@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
             <div class="mb-3">
                 <label for="tanggal" class="form-label">Tanggal</label>
-                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i'); ?>" required>
+                <input type="datetime-local" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d\TH:i'); ?>" required min="<?= date('Y-m-d\TH:i'); ?>">
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Deskripsi</label>
@@ -237,27 +237,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 </body>
 <script>
+    // Menambahkan event listener saat status berubah
     document.getElementById('status').addEventListener('change', function() {
-            const status = this.value;
-            const jenisLayananSection = document.getElementById('jenisLayananSection');
-            const totalBiayaSection = document.getElementById('totalBiayaSection');
-            if (status === 'Scheduled') {
-                jenisLayananSection.style.display = 'none';
-                totalBiayaSection.style.display = 'none';
-            } else {
-                jenisLayananSection.style.display = 'block';
-                totalBiayaSection.style.display = 'block';
-            }
-        });
+        const status = this.value;
+        const jenisLayananSection = document.getElementById('jenisLayananSection');
+        const totalBiayaSection = document.getElementById('totalBiayaSection');
+        if (status === 'Scheduled') {
+            jenisLayananSection.style.display = 'block';
+            totalBiayaSection.style.display = 'none'; // Hide total biaya section untuk Scheduled
+        } else {
+            jenisLayananSection.style.display = 'block';
+            totalBiayaSection.style.display = 'block';
+        }
+    });
 
-        document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
-            checkbox.addEventListener('change', function() {
-                let total = 0;
-                document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
-                    total += parseFloat(checkedBox.getAttribute('data-biaya'));
-                });
-                document.getElementById('total_biaya').value = total;
+    // Update total biaya ketika ada perubahan di jenis layanan
+    document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
+        checkbox.addEventListener('change', function() {
+            let total = 0;
+            document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
+                total += parseFloat(checkedBox.getAttribute('data-biaya'));
             });
+            document.getElementById('total_biaya').value = total;
         });
-    </script>
+    });
+
+    // Validasi sebelum submit form
+    document.querySelector('form').addEventListener('submit', function(event) {
+        const status = document.getElementById('status').value;
+        const jenisLayanan = document.querySelectorAll('input[name="jenis_layanan[]"]:checked').length;
+
+        if (status !== 'Scheduled' && jenisLayanan === 0) {
+            event.preventDefault();
+            alert('Silakan pilih jenis layanan medis.');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tanggalInput = document.getElementById('tanggal');
+        const now = new Date();
+        const mindate = now.toISOString().slice(0, 16);
+        tanggalInput.setAttribute('min', mindate);
+    });
+</script>
+
 </html>

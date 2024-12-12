@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                 if (oci_execute($stmtUpdate, OCI_COMMIT_ON_SUCCESS)) {
                     // Redirect ke halaman update-medical-services.php dengan ID Layanan Medis
-                    header("Location: ../medicine/update-medical-services.php?id={$layananMedisId}");
+                    header("Location: ../pet-medical/update-medical-services.php?id={$layananMedisId}");
                     exit(); // Pastikan setelah header redirect, skrip tidak diteruskan
                 } else {
                     $error = oci_error($stmtUpdate);
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
 
             <button type="submit" class="btn btn-primary">Update Obat</button>
-            <a href="../medicine/update-medical-services.php?id=<?= htmlentities($obat['LAYANANMEDIS_ID'] ?? ''); ?>" class="btn btn-secondary">Kembali</a>
+            <a href="../pet-medical/update-medical-services.php?id=<?= htmlentities($obat['LAYANANMEDIS_ID'] ?? ''); ?>" class="btn btn-secondary">Kembali</a>
         </form>
     </div>
 </body>
