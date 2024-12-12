@@ -29,6 +29,26 @@ if (!$product) {
     die("Product not found.");
 }
 
+// Fetch available categories for Produk
+$categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
+$categoryProdukStid = oci_parse($conn, $categoryProdukQuery);
+oci_execute($categoryProdukStid);
+$categoriesProduk = [];
+while ($row = oci_fetch_assoc($categoryProdukStid)) {
+    $categoriesProduk[] = $row;
+}
+oci_free_statement($categoryProdukStid);
+
+// Fetch available categories for Obat
+$categoryObatQuery = "SELECT * FROM KategoriObat ORDER BY Nama";
+$categoryObatStid = oci_parse($conn, $categoryObatQuery);
+oci_execute($categoryObatStid);
+$categoriesObat = [];
+while ($row = oci_fetch_assoc($categoryObatStid)) {
+    $categoriesObat[] = $row;
+}
+oci_free_statement($categoryObatStid);
+
 // Proses update jika ada data yang dikirim
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Ambil data dari form
@@ -36,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity = $_POST['jumlah'];
     $price = $_POST['harga'];
     $category = $_POST['kategori'];
+    $tipeKategori = $_POST['tipe_kategori']; // produk atau obat
 
     // Update produk di database
-    $updateSql = "UPDATE Produk SET NAMA = :name, JUMLAH = :quantity, HARGA = :price, KategoriProduk_ID = :category WHERE ID = :id";
+    $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+    $updateSql = "UPDATE Produk SET NAMA = :name, JUMLAH = :quantity, HARGA = :price, {$table}_ID = :category WHERE ID = :id";
     $updateStid = oci_parse($conn, $updateSql);
     oci_bind_by_name($updateStid, ":name", $name);
     oci_bind_by_name($updateStid, ":quantity", $quantity);
@@ -53,16 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     oci_free_statement($updateStid);
 }
-// Fetch categories for the dropdown
-$categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
-$categoryStid = oci_parse($conn, $categoryQuery);
-oci_execute($categoryStid);
 
-$categoriesList = [];
-while ($categoryRow = oci_fetch_assoc($categoryStid)) {
-    $categoriesList[] = $categoryRow;
-}
-oci_free_statement($categoryStid);
 oci_close($conn);
 ?>
 
@@ -86,11 +99,23 @@ oci_close($conn);
                 <input type="number" class="form-control" id="harga" name="harga" value="<?php echo htmlentities($product['HARGA']); ?>" required>
             </div>
             <div class="mb-3">
+                <label for="tipe_kategori" class="form-label">Category Type</label><br>
+                <input type="radio" id="produk" name="tipe_kategori" value="produk" <?php echo $product['KATEGORIPRODUK_ID'] ? 'checked' : ''; ?> onclick="updateCategory()">
+                <label for="produk">Produk</label>
+                <input type="radio" id="obat" name="tipe_kategori" value="obat" <?php echo $product['KATEGORIOBAT_ID'] ? 'checked' : ''; ?> onclick="updateCategory()">
+                <label for="obat">Obat</label>
+            </div>
+            <div class="mb-3">
                 <label for="kategori" class="form-label">Category</label>
                 <select class="form-select" id="kategori" name="kategori" required>
-                    <option value="">-- Select Category --</option>
-                    <?php foreach ($categoriesList as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>" <?php echo $product['KATEGORIPRODUK_ID'] == $category['ID'] ? 'selected' : ''; ?>>
+                    <option value="" disabled>-- Select Category --</option>
+                    <?php foreach ($categoriesProduk as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" class="produk" style="display: none;" <?php echo $product['KATEGORIPRODUK_ID'] == $category['ID'] ? 'selected' : ''; ?>>
+                            <?php echo htmlentities($category['NAMA']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <?php foreach ($categoriesObat as $category): ?>
+                        <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;" <?php echo $product['KATEGORIOBAT_ID'] == $category['ID'] ? 'selected' : ''; ?>>
                             <?php echo htmlentities($category['NAMA']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -102,9 +127,25 @@ oci_close($conn);
             </div>
         </form>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/ 4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function updateCategory() {
+            const kategori = document.getElementById('kategori');
+            const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+            for (let option of kategori.options) {
+                if (option.classList.contains(tipeKategori)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+            // Reset selection when changing type
+            kategori.value = '';
+        }
+
+        // Initialize category visibility on page load
+        window.onload = updateCategory;
+    </script>
 </body>
 
 </html>

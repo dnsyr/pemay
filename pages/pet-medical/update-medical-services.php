@@ -519,7 +519,7 @@ echo $status;
 
         <!-- Menampilkan Daftar Obat jika ada -->
         <?php if ($obatAda): ?>
-            <a href="print_resep.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary mb-3" target="_blank">Print Resep</a>
+            <a href="print.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary mb-3" target="_blank">Print Resep</a>
             <h2 class="mt-5">Daftar Obat yang Ditambahkan</h2>
             <table class="table table-bordered">
                 <thead>

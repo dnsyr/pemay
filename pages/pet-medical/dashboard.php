@@ -171,11 +171,13 @@ if ($tab === 'obat') {
         $whereClauseObat .= " AND lm.Status = 'Finished'";
     }
 
+    // Include lm.Status in SELECT to determine if the record is editable
     $sqlObat = "SELECT ro.ID, ro.Nama, ro.Dosis, ro.Frekuensi, ro.Instruksi, 
                        lm.Tanggal AS TANGGALLAYANAN, 
                        ko.Nama AS KATEGORIOBAT, 
                        h.Nama AS NAMAHEWAN, 
-                       ph.Nama AS NAMAPEMILIK
+                       ph.Nama AS NAMAPEMILIK,
+                       lm.Status AS STATUS
                 FROM ResepObat ro
                 JOIN LayananMedis lm ON ro.LayananMedis_ID = lm.ID
                 JOIN Hewan h ON lm.Hewan_ID = h.ID
@@ -355,8 +357,10 @@ oci_close($conn);
                                     <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
                                     <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
                                     <td>
-                                        <a href="update-medical-services.php?id=<?= htmlentities($layanan['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
-                                        <a href="dashboard.php?tab=medical-services&delete_id=<?= htmlentities($layanan['ID']); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
+                                        <?php if ($layanan['STATUS'] !== 'Finished' && $layanan['STATUS'] !== 'Canceled'): ?>
+                                            <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
+                                        <?php endif; ?>
+                                        <a href="dashboard.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
                                            class="btn btn-danger btn-sm" 
                                            onclick="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');">Hapus</a>
                                     </td>
@@ -453,8 +457,10 @@ oci_close($conn);
                                     <td><?= htmlentities($obat['NAMAHEWAN']); ?></td>
                                     <td><?= htmlentities($obat['NAMAPEMILIK']); ?></td>
                                     <td>
-                                        <a href="update-obat.php?id=<?= htmlentities($obat['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
-                                        <a href="dashboard.php?tab=obat&delete_id=<?= htmlentities($obat['ID']); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
+                                        <?php if ($obat['STATUS'] !== 'Finished' && $obat['STATUS'] !== 'Canceled'): ?>
+                                            <a href="update-obat.php?id=<?= urlencode(htmlentities($obat['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
+                                        <?php endif; ?>
+                                        <a href="dashboard.php?tab=obat&delete_id=<?= urlencode(htmlentities($obat['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
                                            class="btn btn-danger btn-sm" 
                                            onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?');">Hapus</a>
                                     </td>

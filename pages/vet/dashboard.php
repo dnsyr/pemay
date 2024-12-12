@@ -85,12 +85,12 @@ oci_close($conn);
 
 <div class="container mt-4">
     <!-- Button untuk menambah layanan medis baru -->
-    <a href="../../pages/medicine/add-medical-services.php" class="btn btn-success mb-3">Tambah Layanan Medis</a>
+    <a href="../../pages/pet-medical/add-medical-services.php" class="btn btn-success mb-3">Tambah Layanan Medis</a>
 
     <form method="POST">
         <div class="form-group">
             <label for="date">Pilih Tanggal:</label>
-            <input type="date" id="date" name="date" class="form-control" value="<?php echo $selectedDate; ?>">
+            <input type="date" id="date" name="date" class="form-control" value="<?php echo htmlspecialchars($selectedDate); ?>">
         </div>
         <button type="submit" class="btn btn-primary">Tampilkan Data</button>
     </form>
@@ -101,7 +101,7 @@ oci_close($conn);
             <div class="card text-white bg-danger mb-3">
                 <div class="card-header">Emergency</div>
                 <div class="card-body">
-                    <h5 class="card-title"><?php echo $emergencyCount; ?></h5>
+                    <h5 class="card-title"><?php echo htmlspecialchars($emergencyCount); ?></h5>
                     <p class="card-text">Jumlah layanan darurat.</p>
                     <button class="btn btn-light" data-toggle="modal" data-target="#emergencyModal">Show Data</button>
                 </div>
@@ -113,8 +113,8 @@ oci_close($conn);
             <div class="card text-white bg-warning mb-3">
                 <div class="card-header">Scheduled</div>
                 <div class="card-body">
-                    <h5 class="card-title"><?php echo $scheduledCount; ?></h5>
-                    <p class="card-text">Jumlah layanan terjadwal pada <?php echo date('d-m-Y', strtotime($selectedDate)); ?>.</p>
+                    <h5 class="card-title"><?php echo htmlspecialchars($scheduledCount); ?></h5>
+                    <p class="card-text">Jumlah layanan terjadwal pada <?php echo htmlspecialchars(date('d-m-Y', strtotime($selectedDate))); ?>.</p>
                     <button class="btn btn-light" data-toggle="modal" data-target="#scheduledModal">Show Data</button>
                 </div>
             </div>
@@ -125,7 +125,7 @@ oci_close($conn);
             <div class="card text-white bg-success mb-3">
                 <div class="card-header">Finished</div>
                 <div class="card-body">
-                    <h5 class="card-title"><?php echo $finishedCount; ?></h5>
+                    <h5 class="card-title"><?php echo htmlspecialchars($finishedCount); ?></h5>
                     <p class="card-text">Jumlah layanan yang selesai.</p>
                     <button class="btn btn-light" data-toggle="modal" data-target="#finishedModal">Show Data</button>
                 </div>
@@ -137,7 +137,7 @@ oci_close($conn);
             <div class="card text-white bg-secondary mb-3">
                 <div class="card-header">Canceled Today</div>
                 <div class="card-body">
-                    <h5 class="card-title"><?php echo $canceledCount; ?></h5>
+                    <h5 class="card-title"><?php echo htmlspecialchars($canceledCount); ?></h5>
                     <p class="card-text">Jumlah layanan yang dibatalkan hari ini.</p>
                     <button class="btn btn-light" data-toggle="modal" data-target="#canceledModal">Show Data</button>
                 </div>
@@ -149,12 +149,14 @@ oci_close($conn);
     <div class="modal fade" id="emergencyModal" tabindex="-1" role="dialog" aria-labelledby="emergencyModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
+                <!-- Modal Header -->
                 <div class="modal-header">
                     <h5 class="modal-title" id="emergencyModalLabel">Emergency Services</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
+                <!-- Modal Body -->
                 <div class="modal-body">
                     <table class="table">
                         <thead>
@@ -170,19 +172,22 @@ oci_close($conn);
                         <tbody>
                             <?php foreach ($emergencyData as $row): ?>
                                 <tr>
-                                    <td><?php echo $row['NAMAHEWAN']; ?></td>
-                                    <td><?php echo $row['SPESIES']; ?></td>
-                                    <td><?php echo $row['NAMAPEMILIK']; ?></td>
-                                    <td><?php echo $row['NOMORTELPON']; ?></td>
-                                    <td><?php echo date('H:i', strtotime($row['TANGGAL'])); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+                                    <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
                                     <td>
-                                        <a href="../../pages/medicine/update-medical-services.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <?php if ($row['STATUS'] !== 'Finished' && $row['STATUS'] !== 'Canceled'): ?>
+                                            <a href="../../pages/pet-medical/update-medical-services.php?id=<?php echo urlencode($row['ID']); ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
+                <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
@@ -194,18 +199,20 @@ oci_close($conn);
     <div class="modal fade" id="scheduledModal" tabindex="-1" role="dialog" aria-labelledby="scheduledModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
+                <!-- Modal Header -->
                 <div class="modal-header">
                     <h5 class="modal-title" id="scheduledModalLabel">Scheduled Services</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
+                <!-- Modal Body -->
                 <div class="modal-body">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>Nama Hewan</th>
-                                <th>Jenis Hewan</th>
+                                <th>Spesies</th>
                                 <th>Nama Pemilik</th>
                                 <th>No Telp</th>
                                 <th>Jam</th>
@@ -215,19 +222,22 @@ oci_close($conn);
                         <tbody>
                             <?php foreach ($scheduledData as $row): ?>
                                 <tr>
-                                    <td><?php echo $row['NAMAHEWAN']; ?></td>
-                                    <td><?php echo $row['SPESIES']; ?></td>
-                                    <td><?php echo $row['NAMAPEMILIK']; ?></td>
-                                    <td><?php echo $row['NOMORTELPON']; ?></td>
-                                    <td><?php echo date('H:i', strtotime($row['TANGGAL'])); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+                                    <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
                                     <td>
-                                        <a href="../../pages/medicine/update-medical-services.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <?php if ($row['STATUS'] !== 'Finished' && $row['STATUS'] !== 'Canceled'): ?>
+                                            <a href="../../pages/pet-medical/update-medical-services.php?id=<?php echo urlencode($row['ID']); ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
+                <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
@@ -239,18 +249,20 @@ oci_close($conn);
     <div class="modal fade" id="finishedModal" tabindex="-1" role="dialog" aria-labelledby="finishedModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
+                <!-- Modal Header -->
                 <div class="modal-header">
                     <h5 class="modal-title" id="finishedModalLabel">Finished Services</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
+                <!-- Modal Body -->
                 <div class="modal-body">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>Nama Hewan</th>
-                                <th>Jenis Hewan</th>
+                                <th>Spesies</th>
                                 <th>Nama Pemilik</th>
                                 <th>No Telp</th>
                                 <th>Jam</th>
@@ -260,19 +272,21 @@ oci_close($conn);
                         <tbody>
                             <?php foreach ($finishedData as $row): ?>
                                 <tr>
-                                    <td><?php echo $row['NAMAHEWAN']; ?></td>
-                                    <td><?php echo $row['SPESIES']; ?></td>
-                                    <td><?php echo $row['NAMAPEMILIK']; ?></td>
-                                    <td><?php echo $row['NOMORTELPON']; ?></td>
-                                    <td><?php echo date('H:i', strtotime($row['TANGGAL'])); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+                                    <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
                                     <td>
-                                        <a href="../../pages/medicine/update-medical-services.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <!-- No Update Status Button -->
+                                        <span class="text-muted">No actions available</span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
+                <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
@@ -284,18 +298,20 @@ oci_close($conn);
     <div class="modal fade" id="canceledModal" tabindex="-1" role="dialog" aria-labelledby="canceledModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
+                <!-- Modal Header -->
                 <div class="modal-header">
                     <h5 class="modal-title" id="canceledModalLabel">Canceled Services</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
+                <!-- Modal Body -->
                 <div class="modal-body">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>Nama Hewan</th>
-                                <th>Jenis Hewan</th>
+                                <th>Spesies</th>
                                 <th>Nama Pemilik</th>
                                 <th>No Telp</th>
                                 <th>Jam</th>
@@ -305,19 +321,21 @@ oci_close($conn);
                         <tbody>
                             <?php foreach ($canceledData as $row): ?>
                                 <tr>
-                                    <td><?php echo $row['NAMAHEWAN']; ?></td>
-                                    <td><?php echo $row['SPESIES']; ?></td>
-                                    <td><?php echo $row['NAMAPEMILIK']; ?></td>
-                                    <td><?php echo $row['NOMORTELPON']; ?></td>
-                                    <td><?php echo date('H:i', strtotime($row['TANGGAL'])); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+                                    <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
                                     <td>
-                                        <a href="../../pages/medicine/update-medical-services.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">Update Status</a>
+                                        <!-- No Update Status Button -->
+                                        <span class="text-muted">No actions available</span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
+                <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
@@ -326,6 +344,7 @@ oci_close($conn);
     </div>
 </div>
 
+<!-- Include jQuery, Popper.js, and Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
