@@ -357,7 +357,9 @@ oci_close($conn);
                                     <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
                                     <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
                                     <td>
-                                        <?php if ($layanan['STATUS'] !== 'Finished' && $layanan['STATUS'] !== 'Canceled'): ?>
+                                        <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
+                                            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
+                                        <?php else: ?>
                                             <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
                                         <?php endif; ?>
                                         <a href="dashboard.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
@@ -457,7 +459,9 @@ oci_close($conn);
                                     <td><?= htmlentities($obat['NAMAHEWAN']); ?></td>
                                     <td><?= htmlentities($obat['NAMAPEMILIK']); ?></td>
                                     <td>
-                                        <?php if ($obat['STATUS'] !== 'Finished' && $obat['STATUS'] !== 'Canceled'): ?>
+                                        <?php if ($obat['STATUS'] === 'Finished' || $obat['STATUS'] === 'Canceled'): ?>
+                                            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
+                                        <?php else: ?>
                                             <a href="update-obat.php?id=<?= urlencode(htmlentities($obat['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
                                         <?php endif; ?>
                                         <a href="dashboard.php?tab=obat&delete_id=<?= urlencode(htmlentities($obat['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
