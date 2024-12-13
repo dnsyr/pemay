@@ -177,7 +177,8 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <!-- Category Type Dropdown -->
             <div class="col-md-3">
                 <select class="form-select" name="category_type">
-                    <option value="" <?php echo empty($selectedCategoryType) ? 'selected' : ''; ?>>-- Select Category Type --</option>
+                    <option disabled value="" <?php echo empty($selectedCategoryType) ? 'selected' : ''; ?>>-- Select Category Type --</option>
+                    <option value="all" <?php echo ($selectedCategoryType) == 'all' ?'selected' : ''; ?>>All</option>
                     <option value="produk" <?php echo $selectedCategoryType == 'produk' ? 'selected' : ''; ?>>Produk</option>
                     <option value="obat" <?php echo $selectedCategoryType == 'obat' ? 'selected' : ''; ?>>Obat</option>
                 </select>

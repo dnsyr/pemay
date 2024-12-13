@@ -41,11 +41,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $kategori = $_POST['kategori'];
     $tipeKategori = $_POST['tipe_kategori']; // produk atau obat
 
-    // Insert new product item into the correct table
-    $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
-    $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, {$table}_ID) 
-            VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
-    $stid = oci_parse($conn, $sql);
+    // Validasi input
+    if ($jumlah < 0 || $harga < 0) {
+        echo "<script>alert('Quantity and Price must be zero or positive!');</script>";
+    } else {
+        // Insert new product item into the correct table
+        $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+        $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, {$table}_ID) 
+                VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
+        $stid = oci_parse($conn, $sql);
 
     oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
@@ -59,6 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "<script>alert('Failed to add product item.');</script>";
     }
     oci_free_statement($stid);
+}
 }
 
 oci_close($conn);
@@ -76,11 +81,11 @@ oci_close($conn);
             </div>
             <div class="mb-3">
                 <label for="jumlah" class="form-label">Quantity</label>
-                <input type="number" class="form-control" id="jumlah" name="jumlah" required>
+                <input type="number" class="form-control" id="jumlah" name="jumlah" min="0" required>
             </div>
             <div class="mb-3">
                 <label for="harga" class="form-label">Price</label>
-                <input type="number" class="form-control" id="harga" name="harga" required>
+                <input type="number" class="form-control" id="harga" name="harga" min = "0" required>
             </div>
             <div class="mb-3">
                 <label for="tipe_kategori" class="form-label">Category Type</label><br>
@@ -90,21 +95,22 @@ oci_close($conn);
                 <label for="obat">Obat</label>
             </div>
             <div class="mb-3">
-                <label for="kategori" class="form-label">Category</label>
-                <select class="form-select" id="kategori" name="kategori" required>
-                    <option value="" disabled selected>-- Select Category --</option>
-                    <?php foreach ($categoriesProduk as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>" class="produk">
-                            <?php echo htmlentities($category['NAMA']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                    <?php foreach ($categoriesObat as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;">
-                            <?php echo htmlentities($category['NAMA']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+    <label for="kategori" class="form-label">Category</label>
+    <select class="form-select select2" id="kategori" name="kategori" required>
+        <option value="" disabled selected>-- Select Category --</option>
+        <?php foreach ($categoriesProduk as $category): ?>
+            <option value="<?php echo $category['ID']; ?>" class="produk">
+                <?php echo htmlentities($category['NAMA']); ?>
+            </option>
+        <?php endforeach; ?>
+        <?php foreach ($categoriesObat as $category): ?>
+            <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;">
+                <?php echo htmlentities($category['NAMA']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary">Add Product Item</button>
                 <a href="product.php" class="btn btn-secondary">Cancel</a>
@@ -126,6 +132,53 @@ oci_close($conn);
             // Reset selection when changing type
             kategori.value = '';
         }
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+    const jumlah = document.getElementById('jumlah').value;
+    const harga = document.getElementById('harga').value;
+
+    if (jumlah < 0 || harga < 0) {
+        alert('Quantity and Price must be zero or positive!');
+        e.preventDefault(); // Batalkan pengiriman form
+    }
+});
+document.addEventListener('DOMContentLoaded', function () {
+    // Inisialisasi Select2
+    $('.select2').select2({
+        placeholder: '-- Select Category --',
+        allowClear: true
+    });
+
+    // Update kategori berdasarkan tipe kategori
+    function updateCategory() {
+        const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+        const kategoriSelect = $('#kategori');
+
+        // Reset nilai dropdown
+        kategoriSelect.val(null).trigger('change');
+
+        // Perbarui pilihan yang ditampilkan
+        kategoriSelect.find('option').each(function () {
+            if ($(this).hasClass(tipeKategori)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+
+        // Refresh Select2 setelah perubahan
+        kategoriSelect.select2();
+    }
+
+    // Event listener untuk tipe kategori
+    document.querySelectorAll('input[name="tipe_kategori"]').forEach(function (radio) {
+        radio.addEventListener('change', updateCategory);
+    });
+
+    // Panggil saat halaman dimuat
+    updateCategory();
+});
+
     </script>
 </body>
 
