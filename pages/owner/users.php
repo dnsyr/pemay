@@ -1,40 +1,30 @@
 <?php
 session_start();
+ob_start();
 include '../../config/connection.php';
-include '../../layout/header.php';
+include '../../config/database.php';
+include '../../handlers/pegawai.php';
 
 $pageTitle = 'Manage Users';
+include '../../layout/header.php';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
 
-$sql = "SELECT * FROM Pegawai";
-$stid = oci_parse($conn, $sql);
-oci_execute($stid);
-$users = [];
-while ($row = oci_fetch_assoc($stid)) {
-  $users[] = $row;
-}
-oci_free_statement($stid);
+$db = new Database();
+
+$dataEmployees = getAllDataEmployees($db);
 
 // Delete Users
-if (isset($_GET['delete'])) {
-  $username = $_GET['delete'];
-  $sql = "DELETE FROM Pegawai WHERE Username = :username";
-  $stid = oci_parse($conn, $sql);
-  oci_bind_by_name($stid, ":username", $username);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+  $username = $_POST['delete'];
 
-  if (oci_execute($stid)) {
-    echo "<script>alert('User deleted successfully!');</script>";
-  } else {
-    echo "<script>alert('Failed to delete user.');</script>";
-  }
-  oci_free_statement($stid);
+  deleteEmployee($db, $username);
 }
 
-oci_close($conn);
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -73,7 +63,7 @@ oci_close($conn);
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($users as $user): ?>
+        <?php foreach ($dataEmployees as $user): ?>
           <tr>
             <td><?php echo htmlentities($user['NAMA']); ?></td>
             <td><?php echo htmlentities($user['USERNAME']); ?></td>
@@ -81,12 +71,20 @@ oci_close($conn);
             <td><?php echo htmlentities($user['EMAIL']); ?></td>
             <td><?php echo htmlentities($user['NOMORTELPON']); ?></td>
             <td>
-              <a href="update-user.php?username=<?php echo $user['USERNAME']; ?>" class="btn btn-warning">
-                <i class="fas fa-edit"></i> Edit
-              </a>
-              <a href="users.php?delete=<?php echo $user['USERNAME']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this user?');">
-                <i class="fas fa-trash-alt"></i> Delete
-              </a>
+              <div class="d-flex gap-3 align-items-center">
+                <a href="update-user.php?username=<?php echo $user['USERNAME']; ?>" class="btn btn-warning">
+                  <i class="fas fa-edit"></i> Edit
+                </a>
+                <form method="POST" action="">
+                  <input type="hidden" name="delete" value="<?php echo $user['USERNAME']; ?>">
+                  <button
+                    type="submit"
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirm('Are you sure you want to delete this user?');">
+                    <i class="fas fa-trash-alt"></i> Delete
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
         <?php endforeach; ?>

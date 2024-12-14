@@ -93,8 +93,8 @@ $isPetServicesActive = (
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="/pemay/public/css/index.css">
-  <link rel="stylesheet" href="/pemay/public/css/components.css">
+  <link rel="stylesheet" href="/pemay/public/css/index.css?v=<?php echo time(); ?>">
+  <link rel="stylesheet" href="/pemay/public/css/components.css?v=<?php echo time(); ?>">
 </head>
 
 <body>
@@ -124,7 +124,7 @@ $isPetServicesActive = (
               <ul class="dropdown-menu" aria-labelledby="dropdownManagements">
                 <!-- Users Menu Item -->
                 <?php if ($role === 'owner'): ?>
-                  <a class="dropdown-item <?php echo (in_array($currentUri, $usersUri)) ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Users</a>
+                  <a class="dropdown-item <?php echo (in_array($currentUri, $usersUri)) ? 'active' : ''; ?>" href="/pemay/pages/owner/users.php">Employees</a>
                 <?php endif; ?>
 
                 <!-- Product Menu Item -->
