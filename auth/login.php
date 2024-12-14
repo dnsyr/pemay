@@ -25,11 +25,9 @@ if (!isset($_SESSION['captcha'])) {
   <title>Login</title>
   <link rel="shortcut icon" href="../public/img/icon.png" type="image/x-icon">
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-  <link rel="stylesheet" href="../public/css/index.css?v=<?php echo time(); ?>">
-  <link rel="stylesheet" href="../public/css/components.css?v=<?php echo time(); ?>">
+  <!-- Daisy UI + Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
 
   <script>
     const isLoggedIn = <?php echo json_encode($is_logged_in); ?>;
@@ -44,66 +42,119 @@ if (!isset($_SESSION['captcha'])) {
       }
     }
   </script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+
+    body {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-optical-sizing: auto;
+      font-style: normal;
+    }
+  </style>
 </head>
 
-<body>
-  <div class="container container-login d-flex justify-content-end align-items-center">
-    <div class="login-card">
-      <h2 class="title text-center">Pet Shop</h2>
-      <h2 class="title text-center">Management System</h2>
-      <form class="w-100 needs-validation mt-5 d-flex flex-column gap-3 align-items-center" validate action="authentication.php" method="POST">
-        <div class="col-md-6">
-          <div class="input-group">
-            <input type="text" name="username" class="form-control" placeholder="Username" required>
+<body class="bg-white min-h-screen py-11 px-20">
+  <div class="bg-[#E5E0DA] min-h-full flex w-full p-[1.5rem]">
+    <div class="bg-white rounded-[2rem] min-h-[80vh] w-[55%] py-8 px-12">
+      <div class="flex flex-col gap-3 text-[#363636]">
+        <p class="text-md font-semibold">Welcome to</p>
+        <p class="text-2xl font-bold">Petshop Management System</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center justify-center w-[45%]">
+      <div class="w-[60%]">
+        <h2 class="text-5xl font-bold text-[#565656] mb-12">Sign in</h2>
+        <form class="w-full flex flex-col gap-5" action="authentication.php" method="POST">
+          <input type="text" name="username" class="w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" placeholder="Username" required>
+
+          <input type="password" name="password" class="w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" placeholder="Password" required>
+
+          <input type="hidden" name="posisi" id="posisi">
+
+          <div class="relative inline-block w-full">
+            <!-- Dropdown Toggle -->
+            <label tabindex="0" class="btn min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] rounded-full font-normal hover:bg-[#FCFCFC] py-2 px-7 w-full justify-between bg-[#FCFCFC] border border-[#565656] text-[#565656] focus:outline-none focus:ring-[#565656] text-sm">
+              <span id="selectedOption">Role</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </label>
+
+            <!-- Dropdown Menu -->
+            <ul
+              tabindex="0"
+              class="dropdown-content menu absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] text-[#565656] rounded-2xl w-full border border-[#565656] hidden">
+              <li>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Owner')">Owner</a>
+              </li>
+              <li>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Vet')">Vet</a>
+              </li>
+              <li>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Staff')">Staff</a>
+              </li>
+            </ul>
           </div>
-        </div>
-        <div class="col-md-6">
-          <div class="input-group">
-            <input type="password" name="password" class="form-control" placeholder="Password" required>
+
+          <input type="text" name="captcha" class="w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" placeholder="Enter CAPTCHA" required>
+
+          <div class="flex justify-between mt-3">
+            <img src="generate-captcha.php" class="rounded-xl max-w-[50%] border border-[#565656]" alt="CAPTCHA">
+            <button class="btn bg-[#FCFCFC] w-[50%] rounded-full text-[#565656] text-xl text-extrabold italic hover:bg-[#565656] hover:text-[#FCFCFC]" type="submit">Login</button>
           </div>
-        </div>
 
-        <div class="col-md-6">
-          <select class="form-select" name="posisi" required>
-            <option selected disabled value="">Role</option>
-            <option value="owner">Owner</option>
-            <option value="vet">Vet</option>
-            <option value="staff">Staff</option>
-          </select>
-        </div>
+          <!-- Alert -->
+          <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
+            <div class="alert alert-info m-0 p-2">
+              <?php echo htmlentities($_SESSION['success_message']);
+              unset($_SESSION['success_message']); ?>
+            </div>
+          <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
+            <div class="alert alert-danger m-0 p-2">
+              <?php echo htmlentities($_SESSION['error_message']);
+              unset($_SESSION['error_message']); ?>
+            </div>
+          <?php endif; ?>
+        </form>
 
-        <div class="col-md-6">
-          <input type="text" name="captcha" class="form-control" placeholder="Enter CAPTCHA" required>
-          <img src="generate-captcha.php" class="w-50 mt-3" alt="CAPTCHA">
-        </div>
-
-        <div class="col-12 text-end">
-          <button class="btn btn-login" type="submit">Login</button>
-        </div>
-
-        <!-- Alert -->
-        <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
-          <div class="alert alert-info m-0 p-2">
-            <?php echo htmlentities($_SESSION['success_message']);
-            unset($_SESSION['success_message']); ?>
-          </div>
-        <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
-          <div class="alert alert-danger m-0 p-2">
-            <?php echo htmlentities($_SESSION['error_message']);
-            unset($_SESSION['error_message']); ?>
-          </div>
-        <?php endif; ?>
-      </form>
-
-      <!-- <form action="generate-dummy-users.php" method="post">
+        <!-- <form action="generate-dummy-users.php" method="post">
         <button type="submit">Generate Dummy Users</button>
       </form> -->
+      </div>
     </div>
   </div>
 
+  <script>
+    const dropdownLabel = document.querySelector('.btn');
+    const dropdownMenu = document.querySelector('.dropdown-content');
+
+    dropdownLabel.addEventListener('click', () => {
+      dropdownMenu.classList.toggle('hidden');
+    });
+
+    function handleSelectRole(selectedValue) {
+      selectOption(selectedValue);
+      let posisi = document.getElementById('posisi');
+
+      if (selectedValue == "Owner") {
+        posisi.value = "owner";
+      } else if (selectedValue == "Vet") {
+        posisi.value = "vet";
+      } else if (selectedValue == "Staff") {
+        posisi.value = "staff";
+      }
+    }
+
+    function selectOption(value) {
+      document.getElementById('selectedOption').textContent = value;
+      dropdownMenu.classList.add('hidden');
+    }
+  </script>
+  <!-- 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
 </body>
 
 </html>

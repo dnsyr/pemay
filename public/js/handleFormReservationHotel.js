@@ -18,24 +18,10 @@ $(document).ready(function () {
     allowClear: true
   });
 
-  flatpickr("#updateCheckIn", {
-    enableTime: true,
-    dateFormat: "Y-m-d H:i",
-    // minDate: "today", // Disable past dates
-    // minTime: `${hours}:${minutes}`, // Disable past times
-    onChange: function (selectedDates, dateStr, instance) {
-      const checkOut = document.getElementById('checkOut');
-      checkOut._flatpickr.set('minDate', new Date(selectedDates[0].getTime() + 60000)); // 1 minute after checkIn
-    }
-  });
 
-  // Initialize checkOut flatpickr
-  flatpickr("#updateCheckOut", {
-    enableTime: true,
-    dateFormat: "Y-m-d H:i",
-    // minDate: "today", // Disable past dates
-    // minTime: `${hours}:${minutes + 1}`, // Disable past times
-  });
+  const checkIn = document.getElementById('checkIn');
+  const checkOut = document.getElementById('checkOut');
+  let cageSize = null;
 
   const now = new Date();
   const hours = now.getHours().toString().padStart(2, '0');
@@ -47,10 +33,18 @@ $(document).ready(function () {
       enableTime: true,
       dateFormat: "Y-m-d H:i",
       minDate: "today", // Disable past dates
-      minTime: `${hours}:${minutes}`, // Disable past times
       onChange: function (selectedDates, dateStr, instance) {
-        const checkOut = document.getElementById('checkOut');
+        const selectedDate = selectedDates[0];
+        let isToday = selectedDate.toDateString() === now.toDateString();
+
+        if (isToday) {
+          checkIn._flatpickr.set('minTime', `${hours}:${minutes}`);
+        }
+
+        checkOut.disabled = false;
         checkOut._flatpickr.set('minDate', new Date(selectedDates[0].getTime() + 60000)); // 1 minute after checkIn
+
+        checkPrice();
       }
     });
 
@@ -59,24 +53,20 @@ $(document).ready(function () {
       enableTime: true,
       dateFormat: "Y-m-d H:i",
       minDate: "today", // Disable past dates
-      minTime: `${hours}:${minutes + 1}`, // Disable past times
+      onChange: function (selectedDates, dateStr, instance) {
+        checkPrice()
+      }
     });
   };
-
-  const checkIn = document.getElementById('checkIn');
-  const checkOut = document.getElementById('checkOut');
-  let cageSize = null;
 
   // Event listener for reservatorID using Select2
   $('#reservatorID').on('change', function () {
     if ($(this).val() !== '') {
       checkIn.disabled = false;
-      checkOut.disabled = false;
 
       initFlatpickr();
     } else {
       checkIn.disabled = true;
-      checkOut.disabled = true;
     }
   });
 
@@ -86,16 +76,18 @@ $(document).ready(function () {
     // Check if a value has been selected in the kandang select2
     if ($(this).val() !== '') {
       // Show the price-related elements (button and input field)
-      $('#checkPriceBtn').show();
+      checkPrice();
+      $('#biayaLabel').show();
       $('#biaya').show();
     } else {
       // Hide the price-related elements if no value is selected
-      $('#checkPriceBtn').hide();
+      $('#biayaLabel').hide();
       $('#biaya').hide();
     }
   });
 
-  $('#checkPriceBtn').click(function () {
+  // $('#checkPriceBtn').click(function () {
+  function checkPrice() {
     // Get values from form inputs
     let checkin = $('#checkIn').val();
     let checkout = $('#checkOut').val();
@@ -137,12 +129,11 @@ $(document).ready(function () {
     // Get the price per day based on the selected cage size
     let price = pricePerDay[cageSize] * roundedDuration;
 
-    // Display the result
-    console.log("price: ", price);
-
     $('#price').val(price);
     $('#biaya').val("Price: Rp " + price.toLocaleString());
-  });
+  };
+
+
 });
 
 document.addEventListener('DOMContentLoaded', () => {

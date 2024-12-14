@@ -1,11 +1,11 @@
 <?php
-if (!isset($db)) {
-  throw new Exception("Database connection not established.");
-}
+include '../config/database.php';
+
+$db = new Database();
 
 $deleteId = $_POST['delete_id'];
 $sqlReservation = "UPDATE $currentTable SET onDelete = 1 WHERE ID = :id";
-$sqlKandang = "UPDATE $currentTable SET onDelete = 1 WHERE Nomor = :id";
+$sqlKandang = "UPDATE $currentTable SET onDelete = 1 WHERE ID = :id";
 
 $db->query($tab == 'reservation' ? $sqlReservation : $sqlKandang);
 

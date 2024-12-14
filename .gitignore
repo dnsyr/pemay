@@ -1,6 +1,6 @@
 # Ignore env DB
 /config/connection.php
-# /config/database.php
+/config/database.php
 
 # Ignore create dummy users
 /auth/generate-dummy-users.php

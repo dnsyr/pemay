@@ -1,11 +1,18 @@
 <?php
 session_start();
+ob_start();
 require_once '../../config/database.php';
+include '../../handlers/pet-hotel-and-cage.php';
 
 $pageTitle = 'Pet Hotel';
 include '../../layout/header.php';
 
-$pegawaiID = intval($_SESSION['employee_id']);
+$pegawaiID = $_SESSION['employee_id'];
+
+if (!isset($_SESSION['username'])) {
+  header("Location: ../../auth/restricted.php");
+  exit();
+}
 
 // Default tab
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'reservation';
@@ -49,35 +56,21 @@ $db = new Database();
 
 // Handle Create or Delete (Reservation & Cage)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-  try {
-    $db->beginTransaction(); // Begin the transaction
-
-    if ($_POST['action'] === 'addReservation') {
-      include '../../handlers/add-pet-hotel-reservation.php';
-    } elseif ($_POST['action'] === 'addCage') {
-      include '../../handlers/add-cage.php';
-    } else {
-      include '../../handlers/delete-reservation-or-cage.php';
-    }
-  } catch (PDOException $e) {
-    // Rollback if there is an error
-    $db->rollBack();
-    $_SESSION['error_message'] = "Error: " . $e->getMessage();
+  if ($_POST['action'] === 'addReservation') {
+    createDataReservation($db);
+  } elseif ($_POST['action'] === 'addCage') {
+    include '../../handlers/add-cage.php';
+  } elseif ($_POST['action'] === 'deleteReservation') {
+    deleteDataReservation($db);
+  } elseif ($_POST['action'] === 'deleteCage') {
+    deleteDataCage($db);
   }
 }
 
 // Fetch Data
-$sqlQuery = $tab === 'reservation'
-  ? "SELECT lh.*, h.NAMA AS HEWAN_NAMA, p.NAMA AS PEGAWAI_NAMA, k.Nomor AS KANDANG_NOMOR FROM $currentTable lh 
-       JOIN HEWAN h ON lh.HEWAN_ID = h.ID 
-       JOIN Pegawai p ON lh.Pegawai_ID = p.ID
-       JOIN Kandang k ON lh.Kandang_ID = k.ID
-       WHERE lh.onDelete = 0 
-       ORDER BY lh.CheckOut"
-  : "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY Nomor";
-
-$db->query($sqlQuery);
-$results = $db->resultSet(); // Fetch all results for data pet hotel reservation
+$results = $tab === 'reservation'
+  ? getAllDataReservations($db)
+  : getAllDataCages($db);
 
 $petAndOwnerNameQuery = "SELECT h.ID AS ID, h.NAMA AS NAMA, ph.NAMA AS PEMILIK 
                          FROM HEWAN h
@@ -87,23 +80,9 @@ $petAndOwnerNameQuery = "SELECT h.ID AS ID, h.NAMA AS NAMA, ph.NAMA AS PEMILIK
 $db->query($petAndOwnerNameQuery);
 $petAndOwnerNames = $db->resultSet(); // Fetch all results for pet and owner names
 
-$cageRoomsQuery =
-  "SELECT ID, NOMOR, UKURAN FROM KANDANG WHERE ONDELETE = 0
-  ORDER BY
-  CASE UKURAN
-  WHEN 'XS' THEN 1
-  WHEN 'S' THEN 2
-  WHEN 'M' THEN 3
-  WHEN 'L' THEN 4
-  WHEN 'XL' THEN 5
-  WHEN 'XXL' THEN 6
-  WHEN 'XXXL' THEN 7
-  ELSE 8
-  END, 
-  NOMOR";
+$cageRooms = getAllDataCages($db);
 
-$db->query($cageRoomsQuery);
-$cageRooms = $db->resultSet(); // Fetch all results for cage rooms
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
@@ -133,7 +112,7 @@ $cageRooms = $db->resultSet(); // Fetch all results for cage rooms
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="/pemay/public/js/handleFormReservationHotel.js"></script>
+  <script src="/pemay/public/js/handleFormReservationHotel.js?v=<?php echo time(); ?>"></script>
 </head>
 
 <body>
@@ -208,7 +187,7 @@ $cageRooms = $db->resultSet(); // Fetch all results for cage rooms
                   </select>
                 </div>
                 <div class="mb-3 w-25">
-                  <button class="btn btn-secondary mb-2 w-100" id="checkPriceBtn" type="button" style="display: none;">Check Price</button>
+                  <label for="biaya" class="form-label" id="biayaLabel" style="display: none; margin-bottom: 12px;">Price</label>
                   <input type="hidden" id="price" name="price">
                   <input type="text" class="form-control" id="biaya" name="biaya" placeholder="Price: Rp0" disabled required style="display: none;">
                 </div>
@@ -287,27 +266,44 @@ $cageRooms = $db->resultSet(); // Fetch all results for cage rooms
                   <!-- Action Button -->
                   <td>
                     <div class="d-flex gap-3">
-                      <a href="update-reservation.php?id=<?php echo $result['ID']; ?>"
-                        class="btn btn-warning btn-sm">
-                        Update
-                      </a>
-                      <form method="POST" action="?tab=<?php echo $tab; ?>">
-                        <input type="hidden" name="action" value="deleteReservation">
-                        <input type="hidden" name="delete_id" value="<?php echo $result['ID']; ?>">
+                      <?php if ($result['STATUS'] === 'Completed' || $result['STATUS'] === 'Canceled'): ?>
                         <button
-                          type="submit"
+                          class="btn btn-warning btn-sm"
+                          onclick="alert('Cannot update this reservation!');">
+                          Update
+                        </button>
+                      <?php else: ?>
+                        <a href="update-reservation.php?id=<?php echo $result['ID']; ?>"
+                          class="btn btn-warning btn-sm">
+                          Update
+                        </a>
+                      <?php endif; ?>
+
+                      <?php if ($result['STATUS'] === 'In Progress' || $result['STATUS'] === 'Scheduled'): ?>
+                        <button
                           class="btn btn-danger btn-sm"
-                          onclick="return confirm('Are you sure you want to delete this item?');">
+                          onclick="alert('Cannot remove this reservation!');">
                           Delete
                         </button>
-                      </form>
+                      <?php else: ?>
+                        <form method="POST" action="?tab=<?php echo $tab; ?>">
+                          <input type="hidden" name="action" value="deleteReservation">
+                          <input type="hidden" name="delete_id" value="<?php echo $result['ID']; ?>">
+                          <button
+                            type="submit"
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('Are you sure you want to delete this item?');">
+                            Delete
+                          </button>
+                        </form>
+                      <?php endif; ?>
                     </div>
                   </td>
                 </tr>
               <?php elseif ($tab === 'cage'): ?>
                 <tr class="<?php if ($result['STATUS'] == 'Empty') {
                               echo 'table-success';
-                            } elseif ($result['STATUS'] == 'Booked') {
+                            } elseif ($result['STATUS'] == 'Scheduled') {
                               echo 'table-secondary';
                             } elseif ($result['STATUS'] == 'Filled') {
                               echo 'table-info';

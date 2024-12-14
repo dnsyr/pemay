@@ -1,5 +1,6 @@
 <?php
 session_start();
+ob_start();
 include '../../config/connection.php';
 include '../../config/database.php';
 include '../../handlers/pegawai.php';
@@ -22,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
 
   deleteEmployee($db, $username);
 }
+
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>

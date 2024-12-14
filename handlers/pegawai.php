@@ -1,7 +1,7 @@
 <?php
 function createDataEmployee($db)
 {
-  $db->beginTransaction(); // Begin the transaction
+  $db->beginTransaction();
 
   $username = $_POST['username'];
   $checkUsernameSql = "SELECT COUNT(*) AS count FROM Pegawai WHERE Username = :username";
@@ -60,20 +60,16 @@ function getDataEmployee($db, $username)
 
 function updateDataEmployee($db, $username)
 {
-  // Fetch values from POST
   $nama = $_POST['nama'];
   $password = $_POST['password'] ? password_hash($_POST['password'], PASSWORD_DEFAULT) : '';
   $posisi = $_POST['posisi'];
   $email = $_POST['email'];
   $nomorTelpon = $_POST['nomorTelpon'];
 
-  // Prepare the SQL for calling the procedure
   $sql = "BEGIN UpdatePegawai(:nama, :username, :password, :posisi, :email, :nomorTelpon); END;";
 
-  // Start a transaction
   $db->beginTransaction();
 
-  // Bind the parameters
   $db->query($sql);
   $db->bind(':nama', $nama);
   $db->bind(':username', $username);
@@ -82,7 +78,6 @@ function updateDataEmployee($db, $username)
   $db->bind(':email', $email);
   $db->bind(':nomorTelpon', $nomorTelpon);
 
-  // Execute the query and commit the transaction if successful
   if ($db->execute()) {
     $db->commit();
     $_SESSION['success_message'] = "Data employee updated successfully!";
@@ -100,7 +95,6 @@ function deleteEmployee($db, $username)
 
   $db->beginTransaction();
 
-  // Bind the parameters
   $db->query($sql);
   $db->bind(':username', $username);
 
@@ -108,6 +102,8 @@ function deleteEmployee($db, $username)
     $db->commit();
 
     $_SESSION['success_message'] = "Data employee removed successfully!";
+    header("Location: users.php");
+    exit();
   } else {
     $_SESSION['error_message'] = "Failed to removed data employee!";
   }
