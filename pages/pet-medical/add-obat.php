@@ -79,8 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <head>
     <meta charset="UTF-8">
     <title>Tambah Obat</title>
-    <link rel="stylesheet" href="../../public/css/index.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -115,47 +113,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
 
             <div class="mb-3">
-                <label for="layanan_medis_id" class="form-label">Layanan Medis</label>
-                <select class="form-select" id="layanan_medis_id" name="layanan_medis_id" required>
-                    <?php foreach ($layananMedisList as $layanan): ?>
-                        <option value="<?= $layanan['ID']; ?>">
-                            <?= $layanan['ID']; ?> - <?= htmlentities($layanan['NamaHewan']); ?> (<?= htmlentities($layanan['Spesies']); ?>) - <?= htmlentities($layanan['NamaPemilik']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+    <label for="layanan_medis_id" class="form-label">Layanan Medis</label>
+    <select class="form-select" id="layanan_medis_id" name="layanan_medis_id" required>
+        <?php foreach ($layananMedisList as $layanan): ?>
+            <option value="<?= $layanan['ID']; ?>">
+                <?= $layanan['ID']; ?> - <?= htmlentities($layanan['NAMAHEWAN']); ?> (<?= htmlentities($layanan['SPESIES']); ?>) - <?= htmlentities($layanan['NAMAPEMILIK']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
 
-            <div class="mb-3">
-                <label for="kategori_obat_id" class="form-label">Kategori Obat</label>
-                <select class="form-select" id="kategori_obat_id" name="kategori_obat_id" required>
-                    <?php foreach ($kategoriObatList as $kategori): ?>
-                        <option value="<?= $kategori['ID']; ?>">
-                            Kategori ID: <?= $kategori['ID']; ?> - <?= htmlentities($kategori['Nama']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+<div class="mb-3">
+    <label for="kategori_obat_id" class="form-label">Kategori Obat</label>
+    <select class="form-select" id="kategori_obat_id" name="kategori_obat_id" required>
+        <?php foreach ($kategoriObatList as $kategori): ?>
+            <option value="<?= $kategori['ID']; ?>">
+                Kategori ID: <?= $kategori['ID']; ?> - <?= htmlentities($kategori['NAMA']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
 
-            <button type="submit" class="btn btn-success mt-4">Tambah Obat</button>
+            <button type="submit" class="btn btn-primary">Tambah Obat</button>
         </form>
     </div>
-
-    <script>
-        // Mendapatkan elemen
-        const btnTambah = document.getElementById("btn-tambah");
-        const popup = document.getElementById("popup");
-        const closePopup = document.getElementById("close-popup");
-
-        // Fungsi untuk menampilkan pop-up
-        btnTambah.addEventListener("click", () => {
-            popup.classList.remove("hidden");
-        });
-
-        // Fungsi untuk menutup pop-up
-        closePopup.addEventListener("click", () => {
-            popup.classList.add("hidden");
-        });
-    </script>
 </body>
 
 </html>

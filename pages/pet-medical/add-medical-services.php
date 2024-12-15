@@ -7,44 +7,21 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
     exit();
 }
 
-include '../../config/connection.php';
+include '../../config/database.php';
+$db = new Database();
 $pegawaiId = $_SESSION['employee_id'];
 
 // Ambil data jenis layanan medis untuk checkbox
-$sql = "SELECT * FROM JenisLayananMedis WHERE onDelete = 0";
-$stmt = oci_parse($conn, $sql);
-oci_execute($stmt);
-
-$jenisLayananMedis = [];
-while ($row = oci_fetch_assoc($stmt)) {
-    $jenisLayananMedis[] = $row;
-}
-oci_free_statement($stmt);
+$jenisLayananMedis = $db->query("SELECT * FROM JenisLayananMedis WHERE onDelete = 0");
 
 // Ambil data hewan untuk dropdown
-$sql = "SELECT DISTINCT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
-        FROM Hewan h
-        JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
-        WHERE h.onDelete = 0 AND ph.onDelete = 0";
-$stmt = oci_parse($conn, $sql);
-oci_execute($stmt);
-
-$hewanList = [];
-while ($row = oci_fetch_assoc($stmt)) {
-    $hewanList[] = $row;
-}
-oci_free_statement($stmt);
+$hewanList = $db->query("SELECT DISTINCT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
+                         FROM Hewan h
+                         JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
+                         WHERE h.onDelete = 0 AND ph.onDelete = 0");
 
 // Ambil Data Kategori Obat
-$sqlKategori = "SELECT ID, Nama FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama";
-$stmtKategori = oci_parse($conn, $sqlKategori);
-oci_execute($stmtKategori);
-
-$kategoriObatList = [];
-while ($kategori = oci_fetch_assoc($stmtKategori)) {
-    $kategoriObatList[] = $kategori;
-}
-oci_free_statement($stmtKategori);
+$kategoriObatList = $db->query("SELECT ID, Nama FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama");
 
 // Menentukan apakah form obat harus ditampilkan
 $showObatForm = false;
@@ -233,103 +210,100 @@ oci_close($conn);
         <?php endif; ?>
 
         <!-- Form Layanan Medis -->
-        <form method="POST">
-            <input type="hidden" name="action" value="add">
-            
-            <div class="form-control w-full mb-4">
+        <div class="p-4 w-full">
+    <form method="POST" class="space-y-4">
+        <input type="hidden" name="action" value="add">
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Status</span>
+            </label>
+            <select class="select select-bordered w-full" id="status" name="status" required>
+                <option value="Emergency">Emergency</option>
+                <option value="Finished">Finished</option>
+                <option value="Scheduled">Scheduled</option>
+            </select>
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Tanggal</span>
+            </label>
+            <input type="datetime-local" class="input input-bordered w-full" 
+                   id="tanggal" name="tanggal" 
+                   value="<?= date('Y-m-d\TH:i'); ?>" 
+                   required min="<?= date('Y-m-d\TH:i'); ?>">
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Deskripsi</span>
+            </label>
+            <textarea class="textarea textarea-bordered h-24" 
+                      id="description" name="description" required></textarea>
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Hewan</span>
+            </label>
+            <select class="select select-bordered w-full" id="hewan_id" name="hewan_id" required>
+                <?php foreach ($hewanList as $hewan): ?>
+                    <option value="<?= htmlentities($hewan['ID']); ?>">
+                        <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div id="jenisLayananSection">
+            <label class="label">
+                <span class="label-text">Jenis Layanan</span>
+            </label>
+            <div class="space-y-2">
+                <?php foreach ($jenisLayananMedis as $layanan): ?>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input type="checkbox" class="checkbox" 
+                                   name="jenis_layanan[]" 
+                                   value="<?= htmlentities($layanan['ID']); ?>" 
+                                   data-biaya="<?= htmlentities($layanan['BIAYA']); ?>">
+                            <span class="label-text"><?= htmlentities($layanan['NAMA']); ?> 
+                                - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?></span>
+                        </label>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div id="totalBiayaSection" class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Total Biaya</span>
+            </label>
+            <input type="number" class="input input-bordered w-full" 
+                   id="total_biaya" name="total_biaya" readonly>
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">Apakah memerlukan obat?</span>
+            </label>
+            <select class="select select-bordered w-full" 
+                    id="obat_pertanyaan" name="obat_pertanyaan" required>
+                <option value="no">Tidak</option>
+                <option value="yes">Ya</option>
+            </select>
+        </div>
+
+            <div id="obatForm" class="hidden space-y-4">
+            <!-- Form input obat -->
+            <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Status</span>
+                    <span class="label-text">Nama Obat</span>
                 </label>
-                <select class="select select-bordered w-full" id="status" name="status" required>
-                    <option value="Emergency">Emergency</option>
-                    <option value="Finished">Finished</option>
-                    <option value="Scheduled">Scheduled</option>
-                </select>
+                <input type="text" class="input input-bordered w-full" 
+                       id="obat_nama" name="obat_nama">
             </div>
-
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Tanggal</span>
-                </label>
-                <input type="datetime-local" class="input input-bordered w-full" id="tanggal" name="tanggal" 
-                       value="<?= date('Y-m-d\TH:i'); ?>" required min="<?= date('Y-m-d\TH:i'); ?>">
-            </div>
-
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Deskripsi</span>
-                </label>
-                <textarea class="textarea textarea-bordered h-24" id="description" name="description" required></textarea>
-            </div>
-
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Hewan</span>
-                </label>
-                <select class="select select-bordered w-full" id="hewan_id" name="hewan_id" required>
-                    <?php foreach ($hewanList as $hewan): ?>
-                        <option value="<?= htmlentities($hewan['ID']); ?>">
-                            <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div id="jenisLayananSection" class="mb-4">
-                <label class="label">
-                    <span class="label-text">Jenis Layanan</span>
-                </label>
-                <div class="grid grid-cols-1 gap-2">
-                    <?php foreach ($jenisLayananMedis as $layanan): ?>
-                        <div class="form-control">
-                            <label class="label cursor-pointer justify-start gap-4">
-                                <input type="checkbox" class="checkbox" name="jenis_layanan[]" 
-                                       value="<?= htmlentities($layanan['ID']); ?>" 
-                                       data-biaya="<?= htmlentities($layanan['BIAYA']); ?>">
-                                <span class="label-text"><?= htmlentities($layanan['NAMA']); ?> - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?></span>
-                            </label>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div id="totalBiayaSection" class="form-control w-full mb-6">
-                <label class="label">
-                    <span class="label-text">Total Biaya</span>
-                </label>
-                <input type="number" class="input input-bordered w-full" id="total_biaya" name="total_biaya" readonly>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Tambah Layanan Medis</button>
-        </form>
-
-        <div class="divider">Tambah Obat</div>
-
-        <!-- Formulir untuk Menambahkan Obat -->
-        <?php if (isset($messageObat)): ?>
-            <div class="alert alert-info mb-4">
-                <span><?= htmlentities($messageObat); ?></span>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" class="mt-6">
-            <div class="form-control w-full mb-4">
-                <label class="label">
-                    <span class="label-text">Apakah Anda ingin menambahkan obat?</span>
-                </label>
-                <select class="select select-bordered w-full" id="obat_pertanyaan" name="obat_pertanyaan" required onchange="this.form.submit()">
-                    <option value="no" <?= (isset($_POST['obat_pertanyaan']) && $_POST['obat_pertanyaan'] == 'no') ? 'selected' : ''; ?>>Tidak</option>
-                    <option value="yes" <?= (isset($_POST['obat_pertanyaan']) && $_POST['obat_pertanyaan'] == 'yes') ? 'selected' : ''; ?>>Ya</option>
-                </select>
-            </div>
-
-            <div id="obatForm" class="<?= $showObatForm ? '' : 'hidden'; ?>">
-                <div class="form-control w-full mb-4">
-                    <label class="label">
-                        <span class="label-text">Nama Obat</span>
-                    </label>
-                    <input type="text" class="input input-bordered w-full" id="obat_nama" name="obat_nama">
-                </div>
 
                 <div class="form-control w-full mb-4">
                     <label class="label">
@@ -364,51 +338,12 @@ oci_close($conn);
                     </select>
                 </div>
 
-                <button type="submit" name="add_obat" class="btn btn-primary">Tambah Obat</button>
-            </div>
-        </form>
+                <button type="submit" class="btn btn-primary w-full">Simpan</button>
+    </form>
 
-        <!-- Daftar Obat -->
-        <?php if (!empty($obatList)): ?>
-            <div class="mt-8">
-                <h2 class="text-xl font-semibold mb-4">Daftar Obat</h2>
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
-                        <thead>
-                            <tr>
-                                <th>Nama Obat</th>
-                                <th>Dosis</th>
-                                <th>Frekuensi</th>
-                                <th>Instruksi</th>
-                                <th>Kategori Obat</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($obatList as $obat): ?>
-                                <tr>
-                                    <td><?= htmlentities($obat['NAMA']); ?></td>
-                                    <td><?= htmlentities($obat['DOSIS']); ?></td>
-                                    <td><?= htmlentities($obat['FREKUENSI']); ?></td>
-                                    <td><?= htmlentities($obat['INSTRUKSI']); ?></td>
-                                    <td><?= htmlentities($obat['KATEGORIOBAT']); ?></td>
-                                    <td class="flex gap-2">
-                                        <a href="update-obat.php?id=<?= htmlentities($obat['ID']); ?>" 
-                                           class="btn btn-warning btn-sm">Update</a>
-                                        <a href="?delete_id=<?= htmlentities($obat['ID']); ?>" 
-                                           class="btn btn-error btn-sm"
-                                           onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?')">Hapus</a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        <?php endif; ?>
-        <?php if (!empty($obatList)): ?>
-    <div class="mt-8">
-        <a href="print.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary mb-3" target="_blank">Print Resep</a>
+    <!-- Daftar Obat jika ada -->
+    <?php if (!empty($obatList)): ?>
+        <div class="divider">Daftar Obat</div>
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
                 <thead>
@@ -416,8 +351,7 @@ oci_close($conn);
                         <th>Nama Obat</th>
                         <th>Dosis</th>
                         <th>Frekuensi</th>
-                        <th>Instruksi</th>
-                        <th>Kategori Obat</th>
+                        <th>Kategori</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -427,23 +361,22 @@ oci_close($conn);
                             <td><?= htmlentities($obat['NAMA']); ?></td>
                             <td><?= htmlentities($obat['DOSIS']); ?></td>
                             <td><?= htmlentities($obat['FREKUENSI']); ?></td>
-                            <td><?= htmlentities($obat['INSTRUKSI']); ?></td>
                             <td><?= htmlentities($obat['KATEGORIOBAT']); ?></td>
-                            <td class="flex gap-2">
-                                <a href="update-obat.php?id=<?= htmlentities($obat['ID']); ?>" 
-                                   class="btn btn-warning btn-xs">Update</a>
-                                <a href="?delete_id=<?= htmlentities($obat['ID']); ?>" 
-                                   class="btn btn-error btn-xs"
-                                   onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?')">Hapus</a>
+                            <td>
+                                <div class="join">
+                                    <a href="update-obat.php?id=<?= htmlentities($obat['ID']); ?>" 
+                                       class="btn btn-warning btn-xs join-item">Update</a>
+                                    <button onclick="deleteObat('<?= htmlentities($obat['ID']); ?>')" 
+                                            class="btn btn-error btn-xs join-item">Hapus</button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-    </div>
-<?php endif; ?>
-    </div>
+    <?php endif; ?>
+</div>
 
     <script>
         // Menambahkan event listener saat status berubah
@@ -488,6 +421,21 @@ oci_close($conn);
             const mindate = now.toISOString().slice(0, 16);
             tanggalInput.setAttribute('min', mindate);
         });
+
+        document.getElementById('obat_pertanyaan').addEventListener('change', function() {
+        const obatForm = document.getElementById('obatForm');
+        if (this.value === 'yes') {
+            obatForm.classList.remove('hidden');
+        } else {
+            obatForm.classList.add('hidden');
+        }
+    });
+
+    function deleteObat(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus obat ini?')) {
+            window.location.href = `delete-medical.php?tab=obat&delete_id=${id}`;
+        }
+    }
     </script>
 </body>
 </html>

@@ -6,11 +6,15 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
     exit();
 }
 
-include '../../config/connection.php';
+include '../../config/database.php';
 include '../../layout/header.php';
+
+$db = new Database();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
     include 'add-medical-services.php';
 }
+
 $tab = $_GET['tab'] ?? 'medical-services';
 $limit = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -18,49 +22,29 @@ $offset = ($page - 1) * $limit;
 
 $filterNamaHewan = trim($_GET['nama_hewan'] ?? '');
 $filterNamaPemilik = trim($_GET['nama_pemilik'] ?? '');
-$showForm = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['show_form'])) {
-    $showForm = true; // Set variabel untuk menampilkan form
-}
-// Fungsi untuk mengambil opsi filter
-function getOptions($conn, $sql, $field) {
-    $stmt = oci_parse($conn, $sql);
-    oci_execute($stmt);
-    $options = [];
-    while ($row = oci_fetch_assoc($stmt)) {
-        $options[] = $row[$field];
-    }
-    oci_free_statement($stmt);
-    return $options;
-}
 
-$hewanOptions = getOptions($conn, "SELECT DISTINCT h.Nama FROM Hewan h WHERE h.onDelete = 0 ORDER BY h.Nama", 'NAMA');
-$pemilikOptions = getOptions($conn, "SELECT DISTINCT ph.Nama FROM PemilikHewan ph WHERE ph.onDelete = 0 ORDER BY ph.Nama", 'NAMA');
+// Mendapatkan data untuk dropdown filter
+$hewanOptions = $db->query("SELECT DISTINCT h.Nama FROM Hewan h WHERE h.onDelete = 0 ORDER BY h.Nama");
+$pemilikOptions = $db->query("SELECT DISTINCT ph.Nama FROM PemilikHewan ph WHERE ph.onDelete = 0 ORDER BY h.Nama");
 
 $message = htmlentities($_GET['message'] ?? '');
 
-// Fungsi untuk membangun klausa WHERE
-function buildWhereClause($base, $statusCondition, $filters) {
-    $clause = $base;
-    if ($statusCondition) {
-        $clause .= " AND lm.Status = 'Finished'";
-    }
-    foreach ($filters as $column => $placeholder) {
-        if (!empty($placeholder['value'])) {
-            $clause .= " AND {$column} LIKE :{$placeholder['name']}";
-        }
-    }
-    return $clause;
-}
-
 // Data untuk Layanan Medis
 if ($tab === 'medical-services') {
-    $filters = [
-        'h.Nama' => ['name' => 'nama_hewan', 'value' => $filterNamaHewan],
-        'ph.Nama' => ['name' => 'nama_pemilik', 'value' => $filterNamaPemilik]
-    ];
-
-    $whereClause = buildWhereClause("WHERE lm.onDelete = 0", $filterNamaHewan || $filterNamaPemilik, $filters);
+    $whereConditions = ["lm.onDelete = 0"];
+    $params = [];
+    
+    if ($filterNamaHewan) {
+        $whereConditions[] = "h.Nama LIKE :nama_hewan";
+        $params[':nama_hewan'] = "%$filterNamaHewan%";
+    }
+    
+    if ($filterNamaPemilik) {
+        $whereConditions[] = "ph.Nama LIKE :nama_pemilik";
+        $params[':nama_pemilik'] = "%$filterNamaPemilik%";
+    }
+    
+    $whereClause = implode(' AND ', $whereConditions);
 
     $sql = "SELECT lm.ID, lm.Tanggal, lm.TotalBiaya, lm.Description, lm.Status, 
                    h.Nama AS NAMAHEWAN, h.Spesies, 
@@ -68,7 +52,7 @@ if ($tab === 'medical-services') {
             FROM LayananMedis lm
             JOIN Hewan h ON lm.Hewan_ID = h.ID
             JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
-            $whereClause
+            WHERE $whereClause
             ORDER BY
                 CASE 
                     WHEN lm.Status = 'Emergency' THEN 1
@@ -80,68 +64,52 @@ if ($tab === 'medical-services') {
                 lm.Tanggal DESC
             OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
 
-    $stmt = oci_parse($conn, $sql);
-
-    // Binding parameter filter tambahan jika ada
-    foreach ($filters as $column => $placeholder) {
-        if (!empty($placeholder['value'])) {
-            $bindValue = '%' . $placeholder['value'] . '%';
-            oci_bind_by_name($stmt, ":{$placeholder['name']}", $bindValue);
-        }
+    $params[':offset'] = $offset;
+    $params[':limit'] = $limit;
+    
+    $db->query($sql);
+    foreach ($params as $key => $value) {
+        $db->bind($key, $value);
     }
+    $layananMedis = $db->resultSet();
 
-    oci_bind_by_name($stmt, ":offset", $offset);
-    oci_bind_by_name($stmt, ":limit", $limit);
-
-    if (!oci_execute($stmt)) {
-        $error = oci_error($stmt);
-        die("Terjadi kesalahan saat mengambil data: " . htmlentities($error['message']));
-    }
-
-    $layananMedis = [];
-    while ($row = oci_fetch_assoc($stmt)) {
-        $layananMedis[] = $row;
-    }
-    oci_free_statement($stmt);
-
-    // Menghitung Total Data untuk Pagination Layanan Medis
+    // Count total untuk pagination
     $sqlCount = "SELECT COUNT(*) AS TOTAL 
                  FROM LayananMedis lm
                  JOIN Hewan h ON lm.Hewan_ID = h.ID
                  JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
-                 $whereClause";
-    $stmtCount = oci_parse($conn, $sqlCount);
-
-    // Binding parameter filter tambahan untuk count jika ada
-    foreach ($filters as $column => $placeholder) {
-        if (!empty($placeholder['value'])) {
-            $bindValue = '%' . $placeholder['value'] . '%';
-            oci_bind_by_name($stmtCount, ":{$placeholder['name']}", $bindValue);
+                 WHERE $whereClause";
+                 
+    $db->query($sqlCount);
+    foreach ($params as $key => $value) {
+        if ($key !== ':offset' && $key !== ':limit') {
+            $db->bind($key, $value);
         }
     }
-
-    oci_execute($stmtCount);
-    $rowCount = oci_fetch_assoc($stmtCount);
-    $totalData = $rowCount['TOTAL'] ?? 0;
-    oci_free_statement($stmtCount);
-
+    $rowCount = $db->single();
+    $totalData = $rowCount['TOTAL'];
     $totalPages = ceil($totalData / $limit);
 }
 
 // Data untuk Obat
 if ($tab === 'obat') {
-    $filters = [
-        'h.Nama' => ['name' => 'nama_hewan', 'value' => $filterNamaHewan],
-        'ph.Nama' => ['name' => 'nama_pemilik', 'value' => $filterNamaPemilik]
-    ];
-
-    $whereClauseObat = buildWhereClause("WHERE ro.onDelete = 0", $filterNamaHewan || $filterNamaPemilik, $filters);
-
-    if ($filterNamaHewan || $filterNamaPemilik) {
-        $whereClauseObat .= " AND lm.Status = 'Finished'";
+    $whereConditions = ["ro.onDelete = 0"];
+    $params = [];
+    
+    if ($filterNamaHewan) {
+        $whereConditions[] = "h.Nama LIKE :nama_hewan";
+        $params[':nama_hewan'] = "%$filterNamaHewan%";
+        $whereConditions[] = "lm.Status = 'Finished'";
     }
+    
+    if ($filterNamaPemilik) {
+        $whereConditions[] = "ph.Nama LIKE :nama_pemilik";
+        $params[':nama_pemilik'] = "%$filterNamaPemilik%";
+        $whereConditions[] = "lm.Status = 'Finished'";
+    }
+    
+    $whereClause = implode(' AND ', $whereConditions);
 
-    // Include lm.Status in SELECT to determine if the record is editable
     $sqlObat = "SELECT ro.ID, ro.Nama, ro.Dosis, ro.Frekuensi, ro.Instruksi, 
                        lm.Tanggal AS TANGGALLAYANAN, 
                        ko.Nama AS KATEGORIOBAT, 
@@ -153,208 +121,209 @@ if ($tab === 'obat') {
                 JOIN Hewan h ON lm.Hewan_ID = h.ID
                 JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
                 JOIN KategoriObat ko ON ro.KategoriObat_ID = ko.ID
-                $whereClauseObat
+                WHERE $whereClause
                 ORDER BY ro.Nama ASC
                 OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
 
-    $stmtObat = oci_parse($conn, $sqlObat);
-
-    // Binding parameter filter tambahan jika ada
-    foreach ($filters as $column => $placeholder) {
-        if (!empty($placeholder['value'])) {
-            $bindValue = '%' . $placeholder['value'] . '%';
-            oci_bind_by_name($stmtObat, ":{$placeholder['name']}", $bindValue);
-        }
+    $params[':offset'] = $offset;
+    $params[':limit'] = $limit;
+    
+    $db->query($sqlObat);
+    foreach ($params as $key => $value) {
+        $db->bind($key, $value);
     }
+    $obatList = $db->resultSet();
 
-    oci_bind_by_name($stmtObat, ":offset", $offset);
-    oci_bind_by_name($stmtObat, ":limit", $limit);
-
-    if (!oci_execute($stmtObat)) {
-        $error = oci_error($stmtObat);
-        die("Terjadi kesalahan saat mengambil data obat: " . htmlentities($error['message']));
-    }
-
-    $obatList = [];
-    while ($row = oci_fetch_assoc($stmtObat)) {
-        $obatList[] = $row;
-    }
-    oci_free_statement($stmtObat);
-
-    // Menghitung Total Data untuk Pagination Obat
+    // Count total untuk pagination obat
     $sqlCountObat = "SELECT COUNT(*) AS TOTAL 
                      FROM ResepObat ro
                      JOIN LayananMedis lm ON ro.LayananMedis_ID = lm.ID
                      JOIN Hewan h ON lm.Hewan_ID = h.ID
                      JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
                      JOIN KategoriObat ko ON ro.KategoriObat_ID = ko.ID
-                     $whereClauseObat";
-    $stmtCountObat = oci_parse($conn, $sqlCountObat);
-
-    // Binding parameter filter tambahan untuk count jika ada
-    foreach ($filters as $column => $placeholder) {
-        if (!empty($placeholder['value'])) {
-            $bindValue = '%' . $placeholder['value'] . '%';
-            oci_bind_by_name($stmtCountObat, ":{$placeholder['name']}", $bindValue);
+                     WHERE $whereClause";
+                 
+    $db->query($sqlCountObat);
+    foreach ($params as $key => $value) {
+        if ($key !== ':offset' && $key !== ':limit') {
+            $db->bind($key, $value);
         }
     }
-
-    oci_execute($stmtCountObat);
-    $rowCountObat = oci_fetch_assoc($stmtCountObat);
-    $totalDataObat = $rowCountObat['TOTAL'] ?? 0;
-    oci_free_statement($stmtCountObat);
-
+    $rowCount = $db->single();
+    $totalDataObat = $rowCount['TOTAL'];
     $totalPagesObat = ceil($totalDataObat / $limit);
 }
+
+// Hapus oci_close karena tidak digunakan lagi
 ob_end_flush();
-oci_close($conn);
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
-
+<html lang="id" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>Pet Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Pet Management</h1>
+    <div class="container mx-auto p-5">
+        <h1 class="text-2xl font-bold mb-4">Pet Management</h1>
 
         <?php if (isset($deleteMessage)): ?>
-            <?= $deleteMessage; ?>
+            <div class="alert alert-error"><?= $deleteMessage ?></div>
         <?php endif; ?>
 
         <?php if ($message): ?>
-            <div class="alert alert-success"><?= $message; ?></div>
+            <div class="alert alert-success"><?= $message ?></div>
         <?php endif; ?>
 
         <!-- Tab Navigation -->
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link <?= $tab === 'medical-services' ? 'active' : ''; ?>" href="?tab=medical-services">Layanan Medis</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= $tab === 'obat' ? 'active' : ''; ?>" href="?tab=obat">Obat</a>
-            </li>
-        </ul>
+        <div class="tabs mb-4">
+            <a class="tab tab-lifted <?= $tab === 'medical-services' ? 'tab-active' : '' ?>" 
+               href="?tab=medical-services">Layanan Medis</a>
+            <a class="tab tab-lifted <?= $tab === 'obat' ? 'tab-active' : '' ?>" 
+               href="?tab=obat">Obat</a>
+        </div>
 
         <div class="mt-3">
             <?php if ($tab === 'medical-services'): ?>
                 <!-- Filter Form -->
-                <form method="GET" action="dashboard.php" class="mb-3">
+                <form method="GET" action="dashboard.php" class="mb-4">
                     <input type="hidden" name="tab" value="medical-services">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <label for="nama_hewan" class="form-label">Nama Hewan</label>
-                            <select name="nama_hewan" id="nama_hewan" class="form-control select2">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-control">
+                            <label class="label">Nama Hewan</label>
+                            <select name="nama_hewan" class="select select-bordered w-full">
                                 <option value="">Pilih Nama Hewan</option>
                                 <?php foreach ($hewanOptions as $hewan): ?>
-                                    <option value="<?= htmlentities($hewan); ?>" <?= $hewan === $filterNamaHewan ? 'selected' : ''; ?>>
-                                        <?= htmlentities ($hewan); ?>
+                                    <option value="<?= htmlentities($hewan['NAMA']) ?>" 
+                                            <?= $hewan['NAMA'] === $filterNamaHewan ? 'selected' : '' ?>>
+                                        <?= htmlentities($hewan['NAMA']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="nama_pemilik" class="form-label">Nama Pemilik</label>
-                            <select name="nama_pemilik" id="nama_pemilik" class="form-control select2">
+                        <div class="form-control">
+                            <label class="label">Nama Pemilik</label>
+                            <select name="nama_pemilik" class="select select-bordered w-full">
                                 <option value="">Pilih Nama Pemilik</option>
                                 <?php foreach ($pemilikOptions as $pemilik): ?>
-                                    <option value="<?= htmlentities($pemilik); ?>" <?= $pemilik === $filterNamaPemilik ? 'selected' : ''; ?>>
-                                        <?= htmlentities($pemilik); ?>
+                                    <option value="<?= htmlentities($pemilik['NAMA']) ?>" 
+                                            <?= $pemilik['NAMA'] === $filterNamaPemilik ? 'selected' : '' ?>>
+                                        <?= htmlentities($pemilik['NAMA']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        <div class="form-control">
+                            <label class="label opacity-0">Filter</label>
+                            <button type="submit" class="btn btn-primary w-full">Filter</button>
                         </div>
                     </div>
                 </form>
 
-                <!-- Tambah Layanan Medis -->
-<div class="mt-3">
-    <div class="mb-3">
-        <button type="button" id="openSidebar" class="btn btn-primary">Tambah Layanan Medis</button>
-    </div>
-    <div id="sidebar" class="sidebar">
-        <button type="button" id="closeSidebar" class="close-btn">X</button>
-        <?php include 'add-medical-services.php'; ?>
-    </div>
-</div>
+                <!-- Drawer Implementation -->
+                <div class="drawer drawer-end">
+                    <input id="my-drawer" type="checkbox" class="drawer-toggle" /> 
+                    
+                    <!-- Page content -->
+                    <div class="drawer-content">
+                        <label for="my-drawer" class="btn btn-primary mb-4">Tambah Layanan Medis</label>
+                    </div> 
 
+                    <!-- Drawer side -->
+                    <div class="drawer-side z-50">
+                        <label for="my-drawer" class="drawer-overlay"></label>
+                        <div class="menu p-4 w-96 min-h-full bg-base-200 text-base-content">
+                            <!-- Drawer header -->
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-lg">Tambah Layanan Medis</h3>
+                                <label for="my-drawer" class="btn btn-sm btn-circle">✕</label>
+                            </div>
+
+                            <!-- Form content -->
+                            <?php include 'add-medical-services.php'; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
                 <?php if (empty($layananMedis)): ?>
                     <div class="alert alert-info">Tidak ada data layanan medis untuk ditampilkan.</div>
                 <?php else: ?>
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <th>Tanggal</th>
-                                <th>Total Biaya</th>
-                                <th>Deskripsi</th>
-                                <th>Status</th>
-                                <th>Nama Hewan</th>
-                                <th>Spesies</th>
-                                <th>Nama Pemilik</th>
-                                <th>No. Telepon</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $nomor = $offset + 1; ?>
-                            <?php foreach ($layananMedis as $layanan): ?>
-                                <tr class="<?= match ($layanan['STATUS']) {
-                                    'Emergency' => 'table-danger',
-                                    'Finished' => 'table-success',
-                                    'Scheduled' => 'table-secondary',
-                                    'Canceled' => 'table-light',
-                                    default => ''
-                                }; ?>">
-                                    <td><?= $nomor++; ?></td>
-                                    <td><?= htmlentities($layanan['TANGGAL']); ?></td>
-                                    <td>Rp <?= number_format($layanan['TOTALBIAYA'], 0, ',', '.'); ?></td>
-                                    <td><?= htmlentities($layanan['DESCRIPTION']); ?></td>
-                                    <td><?= htmlentities($layanan['STATUS']); ?></td>
-                                    <td><?= htmlentities($layanan['NAMAHEWAN']); ?></td>
-                                    <td><?= htmlentities($layanan['SPESIES']); ?></td>
-                                    <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
-                                    <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
-                                    <td>
-    <div class="btn-group" role="group">
-        <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
-            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
-        <?php else: ?>
-            <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
-        <?php endif; ?>
-        <a href="delete-medical.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
-           class="btn btn-danger btn-sm" 
-           onclick="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');">Hapus</a>
-    </div>
-</td>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Tanggal</th>
+                                    <th>Total Biaya</th>
+                                    <th>Deskripsi</th>
+                                    <th>Status</th>
+                                    <th>Nama Hewan</th>
+                                    <th>Spesies</th>
+                                    <th>Nama Pemilik</th>
+                                    <th>No. Telepon</th>
+                                    <th>Aksi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php $nomor = $offset + 1; ?>
+                                <?php foreach ($layananMedis as $layanan): ?>
+                                    <tr>
+                                        <td><?= $nomor++; ?></td>
+                                        <td><?= htmlentities($layanan['TANGGAL']); ?></td>
+                                        <td>Rp <?= number_format($layanan['TOTALBIAYA'], 0, ',', '.'); ?></td>
+                                        <td><?= htmlentities($layanan['DESCRIPTION']); ?></td>
+                                        <td>
+                                            <span class="badge <?= match ($layanan['STATUS']) {
+                                                'Emergency' => 'badge-error',
+                                                'Finished' => 'badge-success',
+                                                'Scheduled' => 'badge-warning',
+                                                'Canceled' => 'badge-ghost',
+                                                default => 'badge-info'
+                                            } ?>">
+                                                <?= htmlentities($layanan['STATUS']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlentities($layanan['NAMAHEWAN']); ?></td>
+                                        <td><?= htmlentities($layanan['SPESIES']); ?></td>
+                                        <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
+                                        <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
+                                        <td>
+                                            <div class="join">
+                                                <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
+                                                    <button class="btn btn-warning btn-sm join-item" onclick="alert('Cannot update this record.')">Update</button>
+                                                <?php else: ?>
+                                                    <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" 
+                                                       class="btn btn-warning btn-sm join-item">Update</a>
+                                                <?php endif; ?>
+                                                <a href="delete-medical.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
+                                                   class="btn btn-error btn-sm join-item" 
+                                                   onclick="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');">Hapus</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
 
                     <!-- Pagination -->
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?tab=medical-services&page=<?= $page - 1; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>">Previous</a>
-                            </li>
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <li class="page-item <?= ($page === $i) ? 'active' : ''; ?>">
-                                    <a class="page-link" href="?tab=medical-services&page=<?= $i; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>"><?= $i; ?></a>
-                                </li>
-                            <?php endfor; ?>
-                            <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?tab=medical-services&page=<?= $page + 1; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+                    <div class="join flex justify-center mt-4">
+                        <a class="join-item btn <?= ($page <= 1) ? 'btn-disabled' : '' ?>"
+                           href="?tab=medical-services&page=<?= $page - 1 ?>&nama_hewan=<?= urlencode($filterNamaHewan) ?>&nama_pemilik=<?= urlencode($filterNamaPemilik) ?>">«</a>
+                        
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a class="join-item btn <?= ($page === $i) ? 'btn-active' : '' ?>"
+                               href="?tab=medical-services&page=<?= $i ?>&nama_hewan=<?= urlencode($filterNamaHewan) ?>&nama_pemilik=<?= urlencode($filterNamaPemilik) ?>"><?= $i ?></a>
+                        <?php endfor; ?>
+                        
+                        <a class="join-item btn <?= ($page >= $totalPages) ? 'btn-disabled' : '' ?>"
+                           href="?tab=medical-services&page=<?= $page + 1 ?>&nama_hewan=<?= urlencode($filterNamaHewan) ?>&nama_pemilik=<?= urlencode($filterNamaPemilik) ?>">»</a>
+                    </div>
                 <?php endif; ?>
 
             <?php elseif ($tab === 'obat'): ?>
@@ -460,27 +429,12 @@ oci_close($conn);
     </div>
 
     <script>
-    $(document).ready(function() {
-        $('.select2').select2({
-            theme: 'bootstrap4',
-            placeholder: "Select Option",
-            allowClear: true
-        });
-
-        // Sidebar handling
-        $('#openSidebar').click(function() {
-            $('#sidebar').addClass('active');
-        });
-
-        $('#closeSidebar').click(function() {
-            $('#sidebar').removeClass('active');
-        });
-
-        // Jika ada pesan sukses, tutup sidebar
+    document.addEventListener('DOMContentLoaded', function() {
         <?php if (isset($_GET['message'])): ?>
-            $('#sidebar').removeClass('active');
+            document.getElementById('my-drawer').checked = false;
         <?php endif; ?>
     });
+    </script>
 </script>
 </body>
 
