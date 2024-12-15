@@ -142,7 +142,7 @@ CREATE TABLE Produk (
   KategoriProduk_ID VARCHAR2(36) NULL,
   KategoriObat_ID VARCHAR2(36) NULL,
   FOREIGN KEY (Pegawai_ID) REFERENCES Pegawai(ID),
-  FOREIGN KEY (KategoriProduk_ID) REFERENCES KategoriProduk(ID)
+  FOREIGN KEY (KategoriProduk_ID) REFERENCES KategoriProduk(ID),
   FOREIGN KEY (KategoriObat_ID) REFERENCES KategoriObat(ID)
 );
 CREATE OR REPLACE TRIGGER trg_produk BEFORE
@@ -240,6 +240,7 @@ CREATE OR REPLACE TRIGGER trg_resepObat BEFORE
 INSERT ON ResepObat FOR EACH ROW BEGIN -- Generate UUID in the specified format and assign it to the ID column
   :NEW.ID := SUBSTR(RAWTOHEX(SYS_GUID()), 1, 8) || '-' || SUBSTR(RAWTOHEX(SYS_GUID()), 9, 4) || '-' || SUBSTR(RAWTOHEX(SYS_GUID()), 13, 4) || '-' || SUBSTR(RAWTOHEX(SYS_GUID()), 17, 4) || '-' || SUBSTR(RAWTOHEX(SYS_GUID()), 21, 12);
 END;
+--Tabel Penjualan
 CREATE TABLE Penjualan (
   ID VARCHAR2(36) PRIMARY KEY,
   TanggalTransaksi TIMESTAMP NOT NULL,

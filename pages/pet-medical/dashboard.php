@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
     header("Location: ../../auth/restricted.php");
@@ -7,7 +8,9 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
 
 include '../../config/connection.php';
 include '../../layout/header.php';
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
+    include 'add-medical-services.php';
+}
 $tab = $_GET['tab'] ?? 'medical-services';
 $limit = 5;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -15,7 +18,10 @@ $offset = ($page - 1) * $limit;
 
 $filterNamaHewan = trim($_GET['nama_hewan'] ?? '');
 $filterNamaPemilik = trim($_GET['nama_pemilik'] ?? '');
-
+$showForm = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['show_form'])) {
+    $showForm = true; // Set variabel untuk menampilkan form
+}
 // Fungsi untuk mengambil opsi filter
 function getOptions($conn, $sql, $field) {
     $stmt = oci_parse($conn, $sql);
@@ -30,42 +36,6 @@ function getOptions($conn, $sql, $field) {
 
 $hewanOptions = getOptions($conn, "SELECT DISTINCT h.Nama FROM Hewan h WHERE h.onDelete = 0 ORDER BY h.Nama", 'NAMA');
 $pemilikOptions = getOptions($conn, "SELECT DISTINCT ph.Nama FROM PemilikHewan ph WHERE ph.onDelete = 0 ORDER BY ph.Nama", 'NAMA');
-
-// Menghapus data
-if (isset($_GET['delete_id'])) {
-    $deleteId = trim($_GET['delete_id']);
-    $currentTab = $tab;
-    $currentPage = $page;
-
-    if (!preg_match('/^[a-f0-9\-]{36}$/i', $deleteId)) {
-        $deleteMessage = '<div class="alert alert-danger">Format ID tidak valid.</div>';
-    } else {
-        $sqlDelete = match ($currentTab) {
-            'medical-services' => "UPDATE LayananMedis SET onDelete = 1 WHERE ID = :id",
-            'obat' => "UPDATE ResepObat SET onDelete = 1 WHERE ID = :id",
-            default => null
-        };
-
-        if ($sqlDelete) {
-            $stmtDelete = oci_parse($conn, $sqlDelete);
-            oci_bind_by_name($stmtDelete, ':id', $deleteId);
-
-            if (oci_execute($stmtDelete, OCI_COMMIT_ON_SUCCESS)) {
-                $messageText = $currentTab === 'medical-services' 
-                    ? 'Layanan Medis berhasil dihapus.' 
-                    : 'Obat berhasil dihapus.';
-                header("Location: dashboard.php?tab={$currentTab}&page={$currentPage}&message=" . urlencode($messageText));
-                exit();
-            } else {
-                $error = oci_error($stmtDelete);
-                $deleteMessage = '<div class="alert alert-danger">Gagal menghapus: ' . htmlentities($error['message']) . '</div>';
-            }
-            oci_free_statement($stmtDelete);
-        } else {
-            $deleteMessage = '<div class="alert alert-danger">Tab tidak dikenal untuk penghapusan.</div>';
-        }
-    }
-}
 
 $message = htmlentities($_GET['message'] ?? '');
 
@@ -236,7 +206,7 @@ if ($tab === 'obat') {
 
     $totalPagesObat = ceil($totalDataObat / $limit);
 }
-
+ob_end_flush();
 oci_close($conn);
 ?>
 
@@ -282,7 +252,7 @@ oci_close($conn);
                                 <option value="">Pilih Nama Hewan</option>
                                 <?php foreach ($hewanOptions as $hewan): ?>
                                     <option value="<?= htmlentities($hewan); ?>" <?= $hewan === $filterNamaHewan ? 'selected' : ''; ?>>
-                                        <?= htmlentities($hewan); ?>
+                                        <?= htmlentities ($hewan); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -305,9 +275,15 @@ oci_close($conn);
                 </form>
 
                 <!-- Tambah Layanan Medis -->
-                <div class="mb-3">
-                    <a href="add-medical-services.php" class="btn btn-primary">Tambah Layanan Medis</a>
-                </div>
+<div class="mt-3">
+    <div class="mb-3">
+        <button type="button" id="openSidebar" class="btn btn-primary">Tambah Layanan Medis</button>
+    </div>
+    <div id="sidebar" class="sidebar">
+        <button type="button" id="closeSidebar" class="close-btn">X</button>
+        <?php include 'add-medical-services.php'; ?>
+    </div>
+</div>
 
                 <?php if (empty($layananMedis)): ?>
                     <div class="alert alert-info">Tidak ada data layanan medis untuk ditampilkan.</div>
@@ -347,15 +323,17 @@ oci_close($conn);
                                     <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
                                     <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
                                     <td>
-                                        <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
-                                            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
-                                        <?php else: ?>
-                                            <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
-                                        <?php endif; ?>
-                                        <a href="dashboard.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
-                                           class="btn btn-danger btn-sm" 
-                                           onclick="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');">Hapus</a>
-                                    </td>
+    <div class="btn-group" role="group">
+        <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
+            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
+        <?php else: ?>
+            <a href="update-medical-services.php?id=<?= urlencode(htmlentities($layanan['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
+        <?php endif; ?>
+        <a href="delete-medical.php?tab=medical-services&delete_id=<?= urlencode(htmlentities($layanan['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
+           class="btn btn-danger btn-sm" 
+           onclick="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');">Hapus</a>
+    </div>
+</td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -412,11 +390,6 @@ oci_close($conn);
                     </div>
                 </form>
 
-                <!-- Tambah Obat -->
-                <div class="mb-3">
-                    <a href="add-obat.php" class="btn btn-primary">Tambah Obat</a>
-                </div>
-
                 <?php if (empty($obatList)): ?>
                     <div class="alert alert-info">Tidak ada data obat untuk ditampilkan.</div>
                 <?php else: ?>
@@ -448,16 +421,18 @@ oci_close($conn);
                                     <td><?= htmlentities($obat['KATEGORIOBAT']); ?></td>
                                     <td><?= htmlentities($obat['NAMAHEWAN']); ?></td>
                                     <td><?= htmlentities($obat['NAMAPEMILIK']); ?></td>
-                                    <td>
-                                        <?php if ($obat['STATUS'] === 'Finished' || $obat['STATUS'] === 'Canceled'): ?>
-                                            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
-                                        <?php else: ?>
-                                            <a href="update-obat.php?id=<?= urlencode(htmlentities($obat['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
-                                        <?php endif; ?>
-                                        <a href="dashboard.php?tab=obat&delete_id=<?= urlencode(htmlentities($obat['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
-                                           class="btn btn-danger btn-sm" 
-                                           onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?');">Hapus</a>
-                                    </td>
+<td>
+    <div class="btn-group" role="group">
+        <?php if ($obat['STATUS'] === 'Finished' || $obat['STATUS'] === 'Canceled'): ?>
+            <a href="#" class="btn btn-warning btn-sm" onclick="alert('Cannot update this record.'); return false;">Update</a>
+        <?php else: ?>
+            <a href="update-obat.php?id=<?= urlencode(htmlentities($obat['ID'])); ?>" class="btn btn-warning btn-sm">Update</a>
+        <?php endif; ?>
+        <a href="delete-medical.php?tab=obat&delete_id=<?= urlencode(htmlentities($obat['ID'])); ?>&page=<?= $page; ?>&nama_hewan=<?= urlencode($filterNamaHewan); ?>&nama_pemilik=<?= urlencode($filterNamaPemilik); ?>" 
+           class="btn btn-danger btn-sm" 
+           onclick="return confirm('Apakah Anda yakin ingin menghapus obat ini?');">Hapus</a>
+    </div>
+</td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -484,16 +459,29 @@ oci_close($conn);
         </div>
     </div>
 
-    <!-- Inisialisasi Select2 -->
     <script>
-        $(document).ready(function() {
-            $('.select2').select2({
-                theme: 'bootstrap4',
-                placeholder: "Select Option",
-                allowClear: true
-            });
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            placeholder: "Select Option",
+            allowClear: true
         });
-    </script>
+
+        // Sidebar handling
+        $('#openSidebar').click(function() {
+            $('#sidebar').addClass('active');
+        });
+
+        $('#closeSidebar').click(function() {
+            $('#sidebar').removeClass('active');
+        });
+
+        // Jika ada pesan sukses, tutup sidebar
+        <?php if (isset($_GET['message'])): ?>
+            $('#sidebar').removeClass('active');
+        <?php endif; ?>
+    });
+</script>
 </body>
 
 </html>
