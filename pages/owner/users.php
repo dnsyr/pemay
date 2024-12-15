@@ -6,7 +6,8 @@ include '../../config/database.php';
 include '../../handlers/pegawai.php';
 
 $pageTitle = 'Manage Users';
-include '../../layout/header.php';
+// include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");

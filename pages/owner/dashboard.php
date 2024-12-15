@@ -6,14 +6,15 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
 }
 
 $pageTitle = 'Owner Dashboard';
-include '../../layout/header.php';
+// include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 
 <body>
-  <div class="page-container">
+  <div class="border border-0 border-t-2 pt-10 pb-20 px-16">
     <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
       <div class="alert alert-info">
         <?php echo htmlentities($_SESSION['success_message']);
