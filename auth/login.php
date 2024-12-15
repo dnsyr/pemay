@@ -43,6 +43,7 @@ if (!isset($_SESSION['captcha'])) {
     }
   </script>
 
+  <!-- Custom Font Plus Jakarta Sans -->
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
 
@@ -50,11 +51,12 @@ if (!isset($_SESSION['captcha'])) {
       font-family: "Plus Jakarta Sans", sans-serif;
       font-optical-sizing: auto;
       font-style: normal;
+      background-color: #FCFCFC;
     }
   </style>
 </head>
 
-<body class="bg-white min-h-screen py-11 px-20">
+<body class="min-h-screen py-11 px-20">
   <div class="bg-[#E5E0DA] min-h-full flex w-full p-[1.5rem]">
     <div class="bg-white rounded-[2rem] min-h-[80vh] w-[55%] py-8 px-12">
       <div class="flex flex-col gap-3 text-[#363636]">
@@ -106,14 +108,37 @@ if (!isset($_SESSION['captcha'])) {
 
           <!-- Alert -->
           <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
-            <div class="alert alert-info m-0 p-2">
-              <?php echo htmlentities($_SESSION['success_message']);
-              unset($_SESSION['success_message']); ?>
+            <div role="alert" class="alert alert-success py-2 px-7 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                <?php echo htmlentities($_SESSION['success_message']);
+                unset($_SESSION['success_message']); ?></span>
             </div>
           <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
-            <div class="alert alert-danger m-0 p-2">
-              <?php echo htmlentities($_SESSION['error_message']);
-              unset($_SESSION['error_message']); ?>
+            <div role="alert" class="alert alert-error py-2 px-7 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 shrink-0 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span><?php echo htmlentities($_SESSION['error_message']);
+                    unset($_SESSION['error_message']); ?></span>
             </div>
           <?php endif; ?>
         </form>
@@ -151,10 +176,6 @@ if (!isset($_SESSION['captcha'])) {
       dropdownMenu.classList.add('hidden');
     }
   </script>
-  <!-- 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
 </body>
 
 </html>
