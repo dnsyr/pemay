@@ -60,11 +60,11 @@ function getDataEmployee($db, $username)
 
 function updateDataEmployee($db, $username)
 {
-  $nama = $_POST['nama'];
-  $password = $_POST['password'] ? password_hash($_POST['password'], PASSWORD_DEFAULT) : '';
-  $posisi = $_POST['posisi'];
-  $email = $_POST['email'];
-  $nomorTelpon = $_POST['nomorTelpon'];
+  $nama = $_POST['updateNama'];
+  $password = $_POST['updatePassword'] ? password_hash($_POST['updatePassword'], PASSWORD_DEFAULT) : '';
+  $posisi = $_POST['updatePosisi'];
+  $email = $_POST['updateEmail'];
+  $nomorTelpon = $_POST['updateNomorTelpon'];
 
   $sql = "BEGIN UpdatePegawai(:nama, :username, :password, :posisi, :email, :nomorTelpon); END;";
 

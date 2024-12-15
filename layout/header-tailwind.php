@@ -94,18 +94,8 @@ $isPetServicesActive = (
   <link rel="stylesheet" href="/pemay/public/css/index.css?v=<?php echo time(); ?>">
   <link rel="stylesheet" href="/pemay/public/css/components.css?v=<?php echo time(); ?>">
 
-  <!-- Custom Font Plus Jakarta Sans -->
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
-
-    body {
-      font-family: "Plus Jakarta Sans", sans-serif;
-      font-optical-sizing: auto;
-      font-style: normal;
-      background-color: #FCFCFC;
-      color: #363636;
-    }
-  </style>
+  <!-- Custom JS -->
+  <script src="/pemay/public/js/drawer.js?v=<?php echo time(); ?>"></script>
 </head>
 
 <body class="min-h-screen">

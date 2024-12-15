@@ -43,17 +43,12 @@ if (!isset($_SESSION['captcha'])) {
     }
   </script>
 
-  <!-- Custom Font Plus Jakarta Sans -->
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/pemay/public/css/index.css?v=<?php echo time(); ?>">
+  <link rel="stylesheet" href="/pemay/public/css/components.css?v=<?php echo time(); ?>">
 
-    body {
-      font-family: "Plus Jakarta Sans", sans-serif;
-      font-optical-sizing: auto;
-      font-style: normal;
-      background-color: #FCFCFC;
-    }
-  </style>
+  <!-- Custom JS -->
+  <script src="/pemay/public/js/drawer.js?v=<?php echo time(); ?>"></script>
 </head>
 
 <body class="min-h-screen py-11 px-20">
@@ -88,13 +83,13 @@ if (!isset($_SESSION['captcha'])) {
               tabindex="0"
               class="dropdown-content menu absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] text-[#565656] rounded-2xl w-full border border-[#565656] hidden">
               <li>
-                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Owner')">Owner</a>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" id="optionOwnerLogin" onclick="handleSelectRole('Owner')">Owner</a>
               </li>
               <li>
-                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Vet')">Vet</a>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" id="optionVetLogin" onclick="handleSelectRole('Vet')">Vet</a>
               </li>
               <li>
-                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" onclick="handleSelectRole('Staff')">Staff</a>
+                <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" id="optionStaffLogin" onclick="handleSelectRole('Staff')">Staff</a>
               </li>
             </ul>
           </div>
@@ -151,11 +146,15 @@ if (!isset($_SESSION['captcha'])) {
   </div>
 
   <script>
-    const dropdownLabel = document.querySelector('.btn');
-    const dropdownMenu = document.querySelector('.dropdown-content');
+    const dropdownLabelLogin = document.querySelector('.btn');
+    const dropdownMenuLogin = document.querySelector('.dropdown-content');
 
-    dropdownLabel.addEventListener('click', () => {
-      dropdownMenu.classList.toggle('hidden');
+    const optionOwnerLogin = document.getElementById('optionOwnerLogin');
+    const optionVetLogin = document.getElementById('optionVetLogin');
+    const optionStaffLogin = document.getElementById('optionStaffLogin');
+
+    dropdownLabelLogin.addEventListener('click', () => {
+      dropdownMenuLogin.classList.toggle('hidden');
     });
 
     function handleSelectRole(selectedValue) {
@@ -164,17 +163,35 @@ if (!isset($_SESSION['captcha'])) {
 
       if (selectedValue == "Owner") {
         posisi.value = "owner";
+
+        addActiveClassOwner(optionOwnerLogin)
+        removeActiveClassStaff(optionStaffLogin)
+        removeActiveClassVet(optionVetLogin)
       } else if (selectedValue == "Vet") {
         posisi.value = "vet";
+
+        addActiveClassVet(optionVetLogin)
+        removeActiveClassOwner(optionOwnerLogin)
+        removeActiveClassStaff(optionStaffLogin)
       } else if (selectedValue == "Staff") {
         posisi.value = "staff";
+
+        addActiveClassStaff(optionStaffLogin)
+        removeActiveClassOwner(optionOwnerLogin)
+        removeActiveClassVet(optionVetLogin)
       }
     }
 
     function selectOption(value) {
       document.getElementById('selectedOption').textContent = value;
-      dropdownMenu.classList.add('hidden');
+      dropdownMenuLogin.classList.add('hidden');
     }
+
+    window.addEventListener('click', (event) => {
+      if (!dropdownLabelLogin.contains(event.target) && !dropdownMenuLogin.contains(event.target)) {
+        dropdownMenuLogin.classList.add('hidden');
+      }
+    });
   </script>
 </body>
 

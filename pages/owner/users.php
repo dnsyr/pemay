@@ -6,8 +6,10 @@ include '../../config/database.php';
 include '../../handlers/pegawai.php';
 
 $pageTitle = 'Manage Users';
-// include '../../layout/header.php';
 include '../../layout/header-tailwind.php';
+include '../../components/drawer/add-employee.php';
+include '../../components/drawer/update-employee.php';
+include '../../components/modal/delete-employee.php';
 
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
@@ -18,7 +20,14 @@ $db = new Database();
 
 $dataEmployees = getAllDataEmployees($db);
 
-// Delete Users
+// Update employee
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update'])) {
+  $username = $_POST['oldUsername'];
+
+  updateDataEmployee($db, $username);
+}
+
+// Delete employee
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
   $username = $_POST['delete'];
 
@@ -38,7 +47,7 @@ ob_end_flush();
 
       <!-- Alert -->
       <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
-        <div role="alert" class="alert alert-success py-2 px-7 rounded-full">
+        <div role="alert" class="alert alert-success py-2 px-7 rounded-full w-fit">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-6 w-6 shrink-0 stroke-current"
@@ -55,7 +64,7 @@ ob_end_flush();
             unset($_SESSION['success_message']); ?></span>
         </div>
       <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
-        <div role="alert" class="alert alert-error py-2 px-7 rounded-full">
+        <div role="alert" class="alert alert-error py-2 px-7 rounded-full w-fit">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-6 w-6 shrink-0 stroke-current"
@@ -72,11 +81,40 @@ ob_end_flush();
         </div>
       <?php endif; ?>
 
-      <a href="add-user.php" class="bg-[#D4F0EA] w-14 h-14 flex justify-center items-center rounded-full fixed bottom-5 right-5 border border-[#363636] shadow-md shadow-[#717171]"><i class="fas fa-plus fa-lg"></i></a>
+      <div role="alert" id="alertDeleteSelf" class="alert bg-[#D4F0EA] py-2 px-7 rounded-full w-fit hidden text-[#363636]">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          class="h-6 w-6 shrink-0 stroke-current">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>You can't delete your account by your self.</span>
+        <div>
+          <button class="btn btn-circle btn-outline w-6 h-6 min-h-fit text-black hover:bg-black hover:text-white border border-2 hover:border-none" onclick="closeAlertDeleteSelf()">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div role="tablist" class="tabs tabs-lifted">
-      <input type="radio" name="my_tabs_2" role="tab" checked class="tab text-[#363636] text-base font-semibold [--tab-bg:#FCFCFC] [--tab-border-color:#363636]" aria-label="Employees" />
+    <div role="tablist" class="tabs tabs-lifted relative z-0">
+      <input type="radio" name="my_tabs_2" role="tab" checked class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636]" aria-label="Employees" />
       <div role="tabpanel" class="tab-content  bg-[#FCFCFC] border-base-300 rounded-box p-6">
         <p class="text-lg text-[#363636] font-semibold">Registered Employees</p>
 
@@ -102,18 +140,19 @@ ob_end_flush();
                   <td><?php echo htmlentities($user['NOMORTELPON']); ?></td>
                   <td class="<?= $index === count($dataEmployees) - 1 ? 'rounded-br-xl' : '' ?>">
                     <div class="flex gap-3 justify-center items-center">
-                      <a href="update-user.php?username=<?php echo $user['USERNAME']; ?>" class="btn btn-warning btn-sm">
+                      <button
+                        type="button"
+                        class="drawer-btn btn btn-warning btn-sm"
+                        onclick="handleUpdateBtn('<?php echo $user['USERNAME']; ?>')">
                         <i class="fas fa-edit"></i>
-                      </a>
-                      <form method="POST" action="">
-                        <input type="hidden" name="delete" value="<?php echo $user['USERNAME']; ?>">
-                        <button
-                          type="submit"
-                          class="btn btn-error btn-sm"
-                          onclick="return confirm('Are you sure you want to delete this user?');">
-                          <i class="fas fa-trash-alt"></i>
-                        </button>
-                      </form>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn btn-error btn-sm"
+                        onclick="handleDeleteBtn('<?php echo $user['USERNAME']; ?>')">
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -124,6 +163,57 @@ ob_end_flush();
       </div>
     </div>
 
+    <script>
+      function showAlertDeleteSelf() {
+        document.getElementById('alertDeleteSelf').classList.remove('hidden')
+      }
+
+      function closeAlertDeleteSelf() {
+        document.getElementById('alertDeleteSelf').classList.add('hidden')
+      }
+
+      function handleDeleteBtn(username) {
+        const sessionUsername = "<?php echo $_SESSION['username']; ?>";
+
+        if (sessionUsername === username) {
+          showAlertDeleteSelf()
+        } else {
+          document.getElementById('deleteEmployee').value = username;
+          document.getElementById('modalDeleteEmployee').showModal()
+        }
+      }
+
+      function handleUpdateBtn(username) {
+        const userData = getDataEmployee(username);
+        document.getElementById('oldUsername').value = userData.username;
+
+        fillUpdateRole(userData.role)
+
+        // Populate input fields
+        document.getElementById('updateNama').value = userData.name;
+        document.getElementById('updateUsername').value = userData.username;
+        document.getElementById('updateEmail').value = userData.email;
+        document.getElementById('updatePosisi').value = userData.role;
+        document.getElementById('updateNomorTelpon').value = userData.nomorTelpon;
+
+        document.getElementById('drawerUpdateEmployee').checked = true;
+      }
+
+      const users = <?php echo json_encode(array_reduce($dataEmployees, function ($carry, $employee) {
+                      $carry[$employee['USERNAME']] = [
+                        'name' => $employee['NAMA'],
+                        'email' => $employee['EMAIL'],
+                        'nomorTelpon' => $employee['NOMORTELPON'],
+                        'role' => $employee['POSISI'],
+                        'username' => $employee['USERNAME']
+                      ];
+                      return $carry;
+                    }, [])); ?>;
+
+      function getDataEmployee(username) {
+        return users[username] || {};
+      }
+    </script>
 </body>
 
 </html>
