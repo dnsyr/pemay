@@ -109,7 +109,7 @@ $isPetServicesActive = (
 </head>
 
 <body class="min-h-screen">
-  <nav class="bg-[#F9F9F9] py-6 px-40">
+  <nav class="bg-[#F9F9F9] py-6 px-24">
     <div class="flex gap-10 justify-between items-center w-100">
       <a class=" text-[#363636] bg-[#B2E0D6] py-2 px-5 h-full rounded-full font-extrabold text-lg tracking-wide" href="/pemay/pages/<?php echo $role; ?>/dashboard.php">
         <!-- <img src="/pemay/public/img/icon.png" alt="" width="30" height="30" class="d-inline-block align-text-top"> -->
@@ -119,12 +119,12 @@ $isPetServicesActive = (
       <div class="w-full flex justify-between border border-[#565656] rounded-full px-5">
         <div class="flex gap-5 items-center" id="navbarNav">
           <!-- Dashboard Menu Item -->
-          <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $ownerDashboardUri) ? $linkActive : ''; ?>" href="/pemay/pages/<?php echo $role; ?>/dashboard.php">Dashboard</a>
+          <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $ownerDashboardUri) ? $linkActive : ''; ?> hover:font-semibold" href="/pemay/pages/<?php echo $role; ?>/dashboard.php">Dashboard</a>
 
           <!-- Management Dropdown -->
           <div class="relative inline-block w-[140px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#565656] text-sm <?php echo $isManagementsActive; ?>">
+            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $isManagementsActive; ?> hover:font-semibold">
               <span id="selectedManagement">Managements</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -137,17 +137,17 @@ $isPetServicesActive = (
               class="menuManagement dropdown-content menu absolute z-10 mt-2 py-1 px-3 shadow bg-[#FCFCFC] border border-[#565656] text-[#565656] rounded-2xl w-full hidden">
               <?php if ($role === 'owner'): ?>
                 <li>
-                  <a href="/pemay/pages/owner/users.php" class=" hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $usersUri)) ? $linkActive : ''; ?>">Employees</a>
+                  <a href="/pemay/pages/owner/users.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $usersUri)) ? $linkActive : ''; ?>">Employees</a>
                 </li>
               <?php endif; ?>
               <li>
-                <a href="/pemay/pages/product/product.php" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $productUris)) ? $linkActive : ''; ?>">Products</a>
+                <a href="/pemay/pages/product/product.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $productUris)) ? $linkActive : ''; ?>">Products</a>
               </li>
               <li>
-                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $categoryUri)) ? $linkActive : ''; ?>">Categories</a>
+                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $categoryUri)) ? $linkActive : ''; ?>">Categories</a>
               </li>
               <li>
-                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
+                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
               </li>
             </ul>
           </div>
@@ -155,7 +155,7 @@ $isPetServicesActive = (
           <!-- Pet Services Dropdown -->
           <div class="relative inline-block w-[140px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#565656] text-sm <?php echo $isPetServicesActive; ?>">
+            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $isPetServicesActive; ?> hover:font-semibold">
               <span id="selectedPetService">Pet Services</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -167,26 +167,26 @@ $isPetServicesActive = (
               tabindex="0"
               class="menuPetService dropdown-content menu absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] border border-[#565656] text-[#565656] rounded-2xl w-full hidden">
               <li>
-                <a href="/pemay/pages/pet-hotel/dashboard.php" class=" hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $petHotelUri)) ? $linkActive : ''; ?>">Pet Hotel</a>
+                <a href="/pemay/pages/pet-hotel/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petHotelUri)) ? $linkActive : ''; ?>">Pet Hotel</a>
               </li>
               <li>
-                <a href="/pemay/pages/medicine/medical-services.php" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?>">Pet Medical</a>
+                <a href="/pemay/pages/medicine/medical-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?>">Pet Medical</a>
               </li>
               <li>
-                <a href="/pemay/pages/salon/salon-services.php" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC] <?php echo (in_array($currentUri, $petSalonUri)) ? $linkActive : ''; ?>">Pet Salon</a>
+                <a href="/pemay/pages/salon/salon-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petSalonUri)) ? $linkActive : ''; ?>">Pet Salon</a>
               </li>
             </ul>
           </div>
 
           <!-- Report Menu Item -->
           <?php if ($role === 'owner'): ?>
-            <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $reportUri) ? $linkActive : ''; ?>" href="/pemay/pages/owner/reports.php">Reports</a>
+            <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $reportUri) ? $linkActive : ''; ?> hover:font-semibold" href="/pemay/pages/owner/reports.php">Reports</a>
           <?php endif; ?>
         </div>
 
         <!-- Logout Button -->
         <form action="/pemay/auth/logout.php" method="post" class="flex items-center">
-          <button class="text-[#363636] font-normal text-sm py-1 px-3 decoration-none" type="submit">Logout</button>
+          <button class="text-[#363636] font-normal text-sm py-1 px-3 decoration-none hover:font-semibold" type="submit">Logout</button>
         </form>
       </div>
     </div>
