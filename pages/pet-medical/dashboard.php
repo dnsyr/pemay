@@ -194,8 +194,9 @@ ob_end_flush();
        href="?tab=medical-services">Medical Services</a>
     <a class="tab text-[#363636] text-base font-semibold [--tab-bg:#FCFCFC] [--tab-border-color:#363636] <?= $tab === 'obat' ? 'tab-active bg-[#D4F0EA]' : '' ?>" 
        href="?tab=obat">Medications</a>
-
+        </div>
     <div class="tab-content bg-[#FCFCFC] border-base-300 rounded-box p-6">
+            </div>
                 <!-- Filter Form Common Styling -->
                 <form method="GET" action="dashboard.php" class="mb-4">
                     <input type="hidden" name="tab" value="<?= $tab ?>">
@@ -230,28 +231,7 @@ ob_end_flush();
                         </div>
                     </div>
                 </form>
-
-                <!-- Add Button & Drawer -->
-                <div class="drawer drawer-end">
-                    <input id="my-drawer" type="checkbox" class="drawer-toggle" /> 
-                    <div class="drawer-content mb-4">
-                        <label for="my-drawer" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-[#363636]">
-                            <?= $tab === 'medical-services' ? 'Tambah Layanan Medis' : 'Tambah Obat' ?>
-                        </label>
-                    </div> 
-                    
-                    <div class="drawer-side z-50">
-                        <label for="my-drawer" class="drawer-overlay"></label>
-                        <div class="p-4 w-96 min-h-full bg-base-200 text-base-content">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-bold text-lg">Tambah <?= $tab === 'medical-services' ? 'Layanan Medis' : 'Obat' ?></h3>
-                                <label for="my-drawer" class="btn btn-sm btn-circle">✕</label>
-                            </div>
-                            <?php include 'add-medical-form.php'; ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3">
+                
                 <?php if ($tab === 'medical-services'): ?>
                     <!-- Medical Services Table -->
                     <?php if (empty($layananMedis)): ?>
@@ -321,7 +301,7 @@ ob_end_flush();
                             </table>
                         </div>
                     <?php endif; ?>
-
+                
                 <?php else: ?>
                     <!-- Medications Table -->
                     <?php if (empty($obatList)): ?>
