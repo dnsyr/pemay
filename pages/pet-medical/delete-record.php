@@ -7,10 +7,11 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
     exit();
 }
 
-if (isset($_GET['delete_id']) && isset($_GET['tab'])) {
-    $deleteId = trim($_GET['delete_id']);
+if (isset($_GET['id']) && isset($_GET['type']) && isset($_GET['tab'])) {
+    $deleteId = trim($_GET['id']);
+    $type = trim($_GET['type']);
     $currentTab = trim($_GET['tab']);
-    $currentPage = trim($_GET['page']);
+    $currentPage = isset($_GET['page']) ? trim($_GET['page']) : '1';
     $filterNamaHewan = trim($_GET['nama_hewan'] ?? '');
     $filterNamaPemilik = trim($_GET['nama_pemilik'] ?? '');
 
@@ -20,18 +21,29 @@ if (isset($_GET['delete_id']) && isset($_GET['tab'])) {
         exit();
     }
 
-    $sqlDelete = match ($currentTab) {
-        'medical-services' => "UPDATE LayananMedis SET onDelete = 1 WHERE ID = :id",
-        'obat' => "UPDATE ResepObat SET onDelete = 1 WHERE ID = :id",
+    // Determine which table to update based on type
+    $sqlDelete = match ($type) {
+        'medical' => "UPDATE LayananMedis SET onDelete = 1 WHERE ID = :id",
+        'medication' => "UPDATE ResepObat SET onDelete = 1 WHERE ID = :id",
         default => null
     };
 
     if ($sqlDelete) {
+        // Start transaction
         $stmtDelete = oci_parse($conn, $sqlDelete);
         oci_bind_by_name($stmtDelete, ':id', $deleteId);
 
         if (oci_execute($stmtDelete, OCI_COMMIT_ON_SUCCESS)) {
-            $messageText = $currentTab === 'medical-services' 
+            // If deleting medical service, also delete related medications
+            if ($type === 'medical') {
+                $sqlDeleteMeds = "UPDATE ResepObat SET onDelete = 1 WHERE LayananMedis_ID = :id";
+                $stmtDeleteMeds = oci_parse($conn, $sqlDeleteMeds);
+                oci_bind_by_name($stmtDeleteMeds, ':id', $deleteId);
+                oci_execute($stmtDeleteMeds, OCI_COMMIT_ON_SUCCESS);
+                oci_free_statement($stmtDeleteMeds);
+            }
+
+            $messageText = $type === 'medical' 
                 ? 'Layanan Medis berhasil dihapus.' 
                 : 'Obat berhasil dihapus.';
             $_SESSION['success_message'] = $messageText;
@@ -41,12 +53,13 @@ if (isset($_GET['delete_id']) && isset($_GET['tab'])) {
         }
         oci_free_statement($stmtDelete);
     } else {
-        $_SESSION['error_message'] = 'Tab tidak dikenal untuk penghapusan.';
+        $_SESSION['error_message'] = 'Tipe record tidak valid untuk penghapusan.';
     }
 } else {
-    $_SESSION['error_message'] = 'ID atau tab tidak ditemukan.';
+    $_SESSION['error_message'] = 'Parameter yang diperlukan tidak lengkap.';
 }
 
 oci_close($conn);
 header("Location: dashboard.php?tab={$currentTab}&page={$currentPage}&nama_hewan=" . urlencode($filterNamaHewan) . "&nama_pemilik=" . urlencode($filterNamaPemilik));
 exit();
+?>

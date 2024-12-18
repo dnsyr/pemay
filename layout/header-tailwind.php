@@ -24,9 +24,9 @@ $petSalonUri =
 // pet hotel uri
 $petMedicalUri =
   [
-    "/pemay/pages/medicine/medical-services.php",
-    "/pemay/pages/medicine/add-medical-services.php",
-    "/pemay/pages/medicine/update-medical-services.php"
+    "/pemay/pages/medical/dashboard.php",
+    "/pemay/pages/medical/add-medical-services.php",
+    "/pemay/pages/medical/update-medical-services.php"
   ];
 
 // manage users uri
@@ -170,7 +170,7 @@ $isPetServicesActive = (
                 <a href="/pemay/pages/pet-hotel/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petHotelUri)) ? $linkActive : ''; ?>">Pet Hotel</a>
               </li>
               <li>
-                <a href="/pemay/pages/medicine/medical-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?>">Pet Medical</a>
+                <a href="/pemay/pages/pet-medical/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?>">Pet Medical</a>
               </li>
               <li>
                 <a href="/pemay/pages/salon/salon-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petSalonUri)) ? $linkActive : ''; ?>">Pet Salon</a>

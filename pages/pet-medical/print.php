@@ -231,7 +231,7 @@ ob_end_flush();
         <!-- Print Button -->
         <div class="text-center no-print mt-4">
             <button class="btn btn-primary" onclick="window.print()">Cetak Resep</button>
-            <a href="update-medical-services.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary">Kembali</a>
+            <a href="dashboard.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary">Kembali</a>
         </div>
     </div>
 </body>

@@ -62,3 +62,22 @@
 .page-container {
 	padding: 32px 48px;
 }
+input[type="radio"]:checked + span {
+	color: #4F46E5;
+}
+
+input[type="radio"][value="Scheduled"]:checked + span {
+	color: #7C3AED;
+}
+
+input[type="radio"][value="Emergency"]:checked + span {
+	color: #DC2626;
+}
+
+input[type="radio"][value="Finished"]:checked + span {
+	color: #4B5563;
+}
+
+input[type="radio"]:checked ~ label {
+	border: 2px solid currentColor;
+}

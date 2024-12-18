@@ -1,4 +1,6 @@
 <?php
+date_default_timezone_set('Asia/Jakarta');
+
 $db = new Database();
 
 // Ambil data jenis layanan medis untuk checkbox
@@ -36,25 +38,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="action" value="add">
         
         <div class="form-control w-full">
-            <label class="label">
-                <span class="label-text">Status</span>
-            </label>
-            <select class="select select-bordered w-full" id="status" name="status" required>
-                <option value="Emergency">Emergency</option>
-                <option value="Finished">Finished</option>
-                <option value="Scheduled">Scheduled</option>
-            </select>
-        </div>
+    <label class="label">
+        <span class="label-text">Status</span>
+    </label>
+    <div class="flex gap-4">
+        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-violet-100 hover:bg-violet-200">
+            <input type="radio" name="status" value="Scheduled" class="radio hidden" required>
+            <span class="text-sm font-medium">Scheduled</span>
+        </label>
+        
+        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-red-100 hover:bg-red-200">
+            <input type="radio" name="status" value="Emergency" class="radio hidden" required>
+            <span class="text-sm font-medium">Emergency</span>
+        </label>
+        
+        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-gray-100 hover:bg-gray-200">
+            <input type="radio" name="status" value="Finished" class="radio hidden" required>
+            <span class="text-sm font-medium">Finished</span>
+        </label>
+    </div>
+</div>
 
-        <div class="form-control w-full">
-            <label class="label">
-                <span class="label-text">Tanggal</span>
-            </label>
-            <input type="datetime-local" class="input input-bordered w-full" 
-                   id="tanggal" name="tanggal" 
-                   value="<?= date('Y-m-d\TH:i'); ?>" 
-                   required min="<?= date('Y-m-d\TH:i'); ?>">
-        </div>
+<div class="form-control w-full">
+    <label class="label">
+        <span class="label-text">Tanggal</span>
+    </label>
+    <input type="datetime-local" class="input input-bordered w-full" 
+           id="tanggal" name="tanggal" 
+           value="<?= date('Y-m-d\TH:i'); ?>" 
+           step="1"
+           required>
+</div>
 
         <div class="form-control w-full">
             <label class="label">
@@ -202,33 +216,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     let obatList = [];
 
     function toggleJenisLayananSection() {
-        const status = document.getElementById('status').value;
-        const jenisLayananSection = document.getElementById('jenisLayananSection');
-        const totalBiayaSection = document.getElementById('totalBiayaSection');
-        if (status === 'Scheduled') {
-            jenisLayananSection.style.display = 'none';
-            totalBiayaSection.style.display = 'none';
-        } else {
-            jenisLayananSection.style.display = 'block';
-            totalBiayaSection.style.display = 'block';
+    const status = document.querySelector('input[name="status"]:checked')?.value;
+    const jenisLayananSection = document.getElementById('jenisLayananSection');
+    const totalBiayaSection = document.getElementById('totalBiayaSection');
+    const obatPertanyaanSection = document.getElementById('obat_pertanyaan').closest('.form-control');
+    const obatForm = document.getElementById('obatForm');
+    const obatListSection = document.getElementById('obatListSection');
+    const dividerObat = document.querySelector('.divider');
+    
+    if (status === 'Scheduled') {
+        // Sembunyikan hanya bagian obat
+        obatPertanyaanSection.style.display = 'none';
+        obatForm.classList.add('hidden');
+        obatListSection.classList.add('hidden');
+        dividerObat.style.display = 'none';
+        
+        // Reset obat pertanyaan ke 'no'
+        document.getElementById('obat_pertanyaan').value = 'no';
+        obatList = [];
+        updateObatTable();
+    } else {
+        // Tampilkan semua bagian
+        obatPertanyaanSection.style.display = 'block';
+        dividerObat.style.display = 'block';
+        
+        // Cek status obat pertanyaan untuk menampilkan/menyembunyikan form obat
+        if (document.getElementById('obat_pertanyaan').value === 'yes') {
+            obatForm.classList.remove('hidden');
+            obatListSection.classList.remove('hidden');
         }
     }
+    
+    // Jenis Layanan dan Total Biaya selalu ditampilkan
+    jenisLayananSection.style.display = 'block';
+    totalBiayaSection.style.display = 'block';
+}
 
-    function toggleObatForm() {
-        const obatPertanyaan = document.getElementById('obat_pertanyaan').value;
-        const obatForm = document.getElementById('obatForm');
-        const obatListSection = document.getElementById('obatListSection');
+function toggleObatForm() {
+    const obatPertanyaan = document.getElementById('obat_pertanyaan');
+    const obatForm = document.getElementById('obatForm');
+    const obatListSection = document.getElementById('obatListSection');
 
-        if (obatPertanyaan === 'yes') {
+    if (obatPertanyaan && obatForm && obatListSection) {
+        if (obatPertanyaan.value === 'yes') {
+            // Use only classList
             obatForm.classList.remove('hidden');
             obatListSection.classList.remove('hidden');
         } else {
+            // Use only classList
             obatForm.classList.add('hidden');
             obatListSection.classList.add('hidden');
-            obatList = [];
-            updateObatTable();
         }
     }
+}
 
     function addObat() {
         const namaObat = document.getElementById('obat_nama').value;
@@ -294,25 +334,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('input[name="status"][value="Scheduled"]').checked = true;
+        document.querySelectorAll('input[name="status"]').forEach(radio => {
+        radio.addEventListener('change', toggleJenisLayananSection);
+    });
         toggleJenisLayananSection();
         
-        document.getElementById('status').addEventListener('change', toggleJenisLayananSection);
-        
         document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
-            checkbox.addEventListener('change', function() {
-                let total = 0;
-                document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
-                    total += parseFloat(checkedBox.getAttribute('data-biaya'));
-                });
-                document.getElementById('total_biaya').value = total;
-            });
+        checkbox.addEventListener('change', function() {
+            calculateTotalBiaya();
         });
-
-        const tanggalInput = document.getElementById('tanggal');
-        const now = new Date();
-        const mindate = now.toISOString().slice(0, 16);
-        tanggalInput.setAttribute('min', mindate);
     });
+
+    function calculateTotalBiaya() {
+        let total = 0;
+        document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
+            total += parseFloat(checkedBox.getAttribute('data-biaya'));
+        });
+        document.getElementById('total_biaya').value = total;
+    }
+
+    toggleJenisLayananSection();
+    
+    const tanggalInput = document.getElementById('tanggal');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    tanggalInput.value = formattedDateTime;
+    tanggalInput.min = formattedDateTime;
+});
     function printResep() {
     // Print hanya bisa dilakukan setelah layanan medis disimpan
     alert('Silakan simpan layanan medis terlebih dahulu untuk mencetak resep.');
