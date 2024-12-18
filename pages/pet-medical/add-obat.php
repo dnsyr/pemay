@@ -49,19 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $nama = $_POST['nama'];
     $frekuensi = $_POST['frekuensi'];
     $instruksi = $_POST['instruksi'];
-    $harga = $_POST['harga'];
     $layananMedisId = $_POST['layanan_medis_id'];
     $kategoriObatId = $_POST['kategori_obat_id'];
 
     // Insert data obat
-    $sql = "INSERT INTO Obat (Dosis, Nama, Frekuensi, Instruksi, Harga, LayananMedis_ID, KategoriObat_ID) 
-            VALUES (:dosis, :nama, :frekuensi, :instruksi, :harga, :layanan_medis_id, :kategori_obat_id)";
+    $sql = "INSERT INTO ResepObat (Dosis, Nama, Frekuensi, Instruksi, LayananMedis_ID, KategoriObat_ID) 
+            VALUES (:dosis, :nama, :frekuensi, :instruksi, :layanan_medis_id, :kategori_obat_id)";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':dosis', $dosis);
     oci_bind_by_name($stmt, ':nama', $nama);
     oci_bind_by_name($stmt, ':frekuensi', $frekuensi);
     oci_bind_by_name($stmt, ':instruksi', $instruksi);
-    oci_bind_by_name($stmt, ':harga', $harga);
     oci_bind_by_name($stmt, ':layanan_medis_id', $layananMedisId);
     oci_bind_by_name($stmt, ':kategori_obat_id', $kategoriObatId);
 
@@ -81,8 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <head>
     <meta charset="UTF-8">
     <title>Tambah Obat</title>
-    <link rel="stylesheet" href="../../public/css/index.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -114,11 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <div class="mb-3">
                 <label for="instruksi" class="form-label">Instruksi</label>
                 <textarea class="form-control" id="instruksi" name="instruksi" required></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="harga" class="form-label">Harga</label>
-                <input type="number" class="form-control" id="harga" name="harga" required>
             </div>
 
             <div class="mb-3">

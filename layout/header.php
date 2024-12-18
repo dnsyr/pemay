@@ -24,9 +24,9 @@ $petSalonUri =
 // pet hotel uri
 $petMedicalUri =
   [
-    "/pemay/pages/medicine/medical-services.php",
-    "/pemay/pages/medicine/add-medical-services.php",
-    "/pemay/pages/medicine/update-medical-services.php"
+    "/pemay/pages/pet-medical/dashboard.php",
+    "/pemay/pages/pet-medical/add-medical-services.php",
+    "/pemay/pages/pet-medical/update-medical-services.php"
   ];
 
 // manage users uri
@@ -156,7 +156,7 @@ $isPetServicesActive = (
 
               <!-- Pet Medical Menu Item -->
               <li>
-                <a class="dropdown-item <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/medicine/medical-services.php">Pet Medical</a>
+                <a class="dropdown-item <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/pet-medical/dashboard.php">Pet Medical</a>
               </li>
             </ul>
           </li>

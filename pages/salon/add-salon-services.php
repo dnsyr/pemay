@@ -8,7 +8,7 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
 include '../../config/connection.php';
 include '../staff/header.php';
 
-$pegawaiId = intval($_SESSION['employee_id']); // Ambil ID pegawai dari session
+$pegawaiId = trim($_SESSION['employee_id']); // Ambil ID pegawai dari session
 
 // Ambil data jenis layanan salon untuk ditampilkan sebagai checkbox
 $sql = "SELECT * FROM JenisLayananSalon";

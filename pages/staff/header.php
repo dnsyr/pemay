@@ -66,6 +66,9 @@ $petSalonUri =
                     <li class="nav-item">
                         <a class="nav-link <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/salon/salon-services.php">Salon</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (in_array($currentUri, $petSalonUri)) ? 'active' : ''; ?>" href="/pemay/pages/pet-transaction/pet-transaction.php">Transaction</a>
+                    </li>
                 </ul>
             </div>
 
