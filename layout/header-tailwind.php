@@ -17,16 +17,16 @@ $petHotelUri =
 // pet salon uri
 $petSalonUri =
   [
-    "/pemay/pages/salon/salon-services.php",
-    "/pemay/pages/salon/add-salon-services.php",
-    "/pemay/pages/salon/update-salon-services.php"
+    "/pemay/pages/pet-salon/salon-services.php",
+    "/pemay/pages/pet-salon/add-salon-services.php",
+    "/pemay/pages/pet-salon/update-salon-services.php"
   ];
 // pet hotel uri
 $petMedicalUri =
   [
-    "/pemay/pages/medical/dashboard.php",
-    "/pemay/pages/medical/add-medical-services.php",
-    "/pemay/pages/medical/update-medical-services.php"
+    "/pemay/pages/pet-medical/dashboard.php",
+    "/pemay/pages/pet-medical/add-medical-services.php",
+    "/pemay/pages/pet-medical/update-medical-services.php"
   ];
 
 // manage users uri
