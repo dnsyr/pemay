@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST[
 }
 
 require_once '../../config/database.php';
+require_once '../../config/connection.php';
+
 $db = new Database();
 $pegawaiId = $_SESSION['employee_id'] ?? null;
 

@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
 
                 <input type="radio" name="status" value="Finished" class="hidden" id="finished" required>
-                <label for="finished" class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EFEFEF] hover:bg-[#EFEFEF]/80 cursor-pointer border border-[#363636]">
+                <label for="finished" class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-green-500 hover:bg-green-400 text-white cursor-pointer border border-[#363636]">
                     <div class="w-2 h-2 rounded-full border-2 border-[#363636]"></div>
                     Finished
                 </label>
@@ -229,7 +229,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn btn-primary w-full">Save</button>
     </form>
 </div>
-
 <script>
     let obatList = [];
 

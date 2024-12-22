@@ -1,28 +1,39 @@
 <?php
 session_start();
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
-    header("Location: ../../auth/restricted.php");
+    header('Content-Type: application/json');
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }
 
 require_once '../../config/database.php';
+require_once '../../config/connection.php';
 
 try {
-    // Gunakan koneksi OCI langsung
-    $conn = oci_connect('C##PET', '12345', '//localhost:1521/xe');
-    if (!$conn) {
-        throw new Exception(oci_error()['message']);
-    }
-
+    // Debug received data
+    error_log("POST data received: " . print_r($_POST, true));
+    
     // Validate input
     $id = trim($_POST['id'] ?? '');
     $status = trim($_POST['status'] ?? '');
     $tanggal = trim($_POST['tanggal'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $jenisLayanan = $_POST['jenis_layanan'] ?? [];
-    $totalBiaya = floatval($_POST['total_biaya'] ?? 0);
-    $obatPertanyaan = $_POST['obat_pertanyaan'] ?? 'no';
-    $obatList = json_decode($_POST['obat_list'] ?? '[]', true);
+    $totalBiaya = 0; // Initialize total biaya
+
+    // Calculate total biaya from selected services
+    if (!empty($jenisLayanan)) {
+        $db = new Database();
+        $placeholders = implode(',', array_fill(0, count($jenisLayanan), '?'));
+        $query = "SELECT SUM(Biaya) as TotalBiaya FROM JenisLayananMedis WHERE ID IN ($placeholders)";
+        $db->query($query);
+        foreach ($jenisLayanan as $index => $value) {
+            $db->bind($index + 1, $value);
+        }
+        $result = $db->single();
+        $totalBiaya = floatval($result['TOTALBIAYA'] ?? 0);
+    }
 
     // Debug output
     error_log("Received data - Total Biaya: " . $totalBiaya);
@@ -85,16 +96,23 @@ try {
 
     // Handle obat
     if ($status !== 'Scheduled') {
+        // Soft delete existing obat
+        $sql = "UPDATE ResepObat SET onDelete = 1 WHERE LayananMedis_ID = :layanan_id";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ":layanan_id", $id);
+        if (!oci_execute($stmt, OCI_NO_AUTO_COMMIT)) {
+            $e = oci_error($stmt);
+            throw new Exception("Error soft delete obat: " . $e['message']);
+        }
+
         // Tambahkan obat baru jika ada
-        $obatBaru = json_decode($_POST['obat_list'] ?? '[]', true);
-        if (!empty($obatBaru)) {
-            foreach ($obatBaru as $obat) {
-                // Validate obat data
-                if (empty($obat['nama']) || empty($obat['dosis']) || 
-                    empty($obat['frekuensi']) || empty($obat['instruksi']) || 
-                    empty($obat['kategori_id'])) {
-                    throw new Exception('Data obat tidak lengkap');
-                }
+        $obatList = json_decode($_POST['obat_list'] ?? '[]', true);
+        error_log("Received obat list: " . print_r($obatList, true));
+        
+        if (!empty($obatList)) {
+            foreach ($obatList as $obat) {
+                // Skip if no nama (empty row)
+                if (empty($obat['nama'])) continue;
 
                 // Generate ID untuk resep obat menggunakan SYS_GUID
                 $db = new Database();
@@ -135,13 +153,8 @@ try {
     oci_commit($conn);
     
     // Send JSON response for AJAX requests
-    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'message' => 'Data berhasil diupdate']);
-        exit();
-    }
-    
-    header("Location: dashboard.php?message=" . urlencode("Data berhasil diupdate"));
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'message' => 'Data berhasil diupdate']);
     exit();
 
 } catch (Exception $e) {
@@ -151,15 +164,9 @@ try {
     }
     error_log("Error updating medical service: " . $e->getMessage());
     
-    // Send JSON response for AJAX requests
-    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-        header('Content-Type: application/json');
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        exit();
-    }
-    
-    header("Location: dashboard.php?error=" . urlencode($e->getMessage()));
+    header('Content-Type: application/json');
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     exit();
 }
 ?>
