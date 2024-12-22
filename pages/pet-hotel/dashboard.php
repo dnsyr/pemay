@@ -5,7 +5,7 @@ require_once '../../config/database.php';
 include '../../handlers/pet-hotel-and-cage.php';
 
 $pageTitle = 'Pet Hotel';
-include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
 
 $pegawaiID = $_SESSION['employee_id'];
 

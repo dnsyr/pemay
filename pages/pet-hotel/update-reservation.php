@@ -1,11 +1,12 @@
 <?php
 session_start();
 ob_start();
+include '../../config/connection.php';
 include '../../config/database.php';
 include '../../handlers/pet-hotel-and-cage.php';
 
 $pageTitle = 'Update Reservation';
-include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
 
 if (isset($_GET['id'])) {
   $reservationID = $_GET['id'];

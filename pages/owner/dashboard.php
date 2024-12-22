@@ -1,13 +1,16 @@
 <?php
 session_start();
+include '../../config/connection.php';
+include '../../config/database.php';
+
+$pageTitle = 'owner Dashboard';
+include '../../layout/header-tailwind.php';
+
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'owner') {
   header("Location: ../../auth/restricted.php");
   exit();
 }
 
-$pageTitle = 'Owner Dashboard';
-// include '../../layout/header.php';
-include '../../layout/header-tailwind.php';
 ?>
 
 <!DOCTYPE html>

@@ -1,5 +1,12 @@
 <?php
 session_start();
+ob_start();
+include '../../config/connection.php';
+require_once '../../config/database.php';
+
+$pageTitle = 'Vet Dashboard';
+include '../../layout/header-tailwind.php';
+
 
 // Cek sesi user dan posisi
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {

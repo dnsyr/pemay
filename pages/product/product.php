@@ -3,7 +3,7 @@ session_start();
 include '../../config/connection.php';
 
 $pageTitle = 'Manage Product';
-include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
