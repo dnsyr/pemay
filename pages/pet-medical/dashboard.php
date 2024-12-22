@@ -19,6 +19,41 @@ require_once '../../layout/header-tailwind.php';
 <script src="handlers/delete-handler.js"></script>
 <script src="handlers/tab-handler.js"></script>
 
+<style>
+    /* Style untuk mengatur warna background dan teks */
+    .bg-custom {
+        background-color: white !important;
+    }
+    
+    .text-custom {
+        color: black !important;
+    }
+    
+    /* Override untuk input, select, dan textarea */
+    input, select, textarea {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    /* Override untuk table */
+    table, th, td {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    /* Override untuk header tabel */
+    thead tr th {
+        background-color: #D4F0EA !important;
+        color: #363636 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Override untuk label dan teks */
+    label, span, p, h1, h2, h3, h4, h5, h6 {
+        color: black !important;
+    }
+</style>
+
 <?php
 $pageTitle = 'Pet Service Management';
 $db = new Database();
@@ -350,25 +385,26 @@ if ($tab === 'obat') {
                 <?php else: ?>
                     <div class="overflow-x-auto">
                         <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171]">
-                            <table class="table table-zebra bg-white w-full">
+                            <table class="table w-full">
+                                <!-- Header tabel -->
                                 <thead>
-                                    <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
-                                        <th class="border-b border-[#363636] text-center">No.</th>
-                                        <th class="border-b border-[#363636]">Tanggal</th>
-                                        <th class="border-b border-[#363636]">Nama Hewan</th>
-                                        <th class="border-b border-[#363636]">Spesies</th>
-                                        <th class="border-b border-[#363636]">Nama Pemilik</th>
-                                        <th class="border-b border-[#363636]">No. Telpon</th>
-                                        <th class="border-b border-[#363636]">Jenis Layanan</th>
-                                        <th class="border-b border-[#363636]">Total Biaya</th>
-                                        <th class="border-b border-[#363636]">Status</th>
-                                        <th class="border-b border-[#363636] text-center">Aksi</th>
+                                    <tr>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636] text-center">No.</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Tanggal</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Nama Hewan</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Spesies</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Nama Pemilik</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">No. Telpon</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Jenis Layanan</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Total Biaya</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Status</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636] text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php $nomor = $offset + 1; ?>
                                     <?php foreach ($layananMedis as $layanan): ?>
-                                        <tr>
+                                        <tr class="text-[#363636]">
                                             <td class="text-center"><?= $nomor++; ?></td>
                                             <td><?= formatTimestamp($layanan['TANGGAL']); ?></td>
                                             <td><?= htmlentities($layanan['NAMAHEWAN']); ?></td>
@@ -396,7 +432,7 @@ if ($tab === 'obat') {
                                                         </button>
                                                     <?php else: ?>
                                                         <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none"
-                                                                onclick="openUpdateDrawer('<?= $layanan['ID'] ?>')">
+                                                                onclick="openUpdateDrawer('<?= $layanan['ID'] ?>', '<?= $layanan['TANGGAL'] ?>')">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                     <?php endif; ?>

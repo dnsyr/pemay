@@ -5,11 +5,11 @@
     <input id="update-medical-drawer" type="checkbox" class="drawer-toggle" /> 
     <div class="drawer-side z-50">
         <label for="update-medical-drawer" class="drawer-overlay"></label>
-        <div class="p-4 w-[600px] min-h-full bg-base-200 text-base-content">
+        <div class="p-4 w-[600px] min-h-full bg-white text-base-content">
             <div id="update-form-content">
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-lg">Update Medical Service</h3>
+                        <h3 class="font-bold text-lg text-black">Update Medical Service</h3>
                         <label for="update-medical-drawer" class="btn btn-sm btn-circle">✕</label>
                     </div>
                     
@@ -19,28 +19,28 @@
                         <!-- Status Section -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-semibold">Status</span>
+                                <span class="label-text font-semibold text-black">Status</span>
                             </label>
                             <div class="flex gap-4">
-                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#E4E1F9] hover:bg-[#E4E1F9]/80 cursor-pointer border border-[#363636]">
+                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#E4E1F9] hover:bg-[#E4E1F9]/80 cursor-pointer border border-[#363636] text-black">
                                     <input type="radio" name="status" value="Scheduled" class="hidden" required>
                                     <div class="radio-dot w-2 h-2 rounded-full border-2 border-[#363636] transition-colors"></div>
                                     Scheduled
                                 </label>
                                 
-                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#FFE4E4] hover:bg-[#FFE4E4]/80 cursor-pointer border border-[#363636]">
+                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#FFE4E4] hover:bg-[#FFE4E4]/80 cursor-pointer border border-[#363636] text-black">
                                     <input type="radio" name="status" value="Emergency" class="hidden" required>
                                     <div class="radio-dot w-2 h-2 rounded-full border-2 border-[#363636] transition-colors"></div>
                                     Emergency
                                 </label>
                                 
-                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EFEFEF] hover:bg-[#EFEFEF]/80 cursor-pointer border border-[#363636]">
+                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EFEFEF] hover:bg-[#EFEFEF]/80 cursor-pointer border border-[#363636] text-black">
                                     <input type="radio" name="status" value="Finished" class="hidden" required>
                                     <div class="radio-dot w-2 h-2 rounded-full border-2 border-[#363636] transition-colors"></div>
                                     Finished
                                 </label>
                                 
-                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EFEFEF] hover:bg-[#EFEFEF]/80 cursor-pointer border border-[#363636]">
+                                <label class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EFEFEF] hover:bg-[#EFEFEF]/80 cursor-pointer border border-[#363636] text-black">
                                     <input type="radio" name="status" value="Canceled" class="hidden" required>
                                     <div class="radio-dot w-2 h-2 rounded-full border-2 border-[#363636] transition-colors"></div>
                                     Canceled
@@ -54,7 +54,8 @@
                                 <span class="label-text font-semibold">Date</span>
                             </label>
                             <input type="datetime-local" name="tanggal" id="tanggal"
-                                   class="input input-bordered w-full" required>
+                                   class="input input-bordered w-full bg-white text-black" required
+                                   onkeydown="return false">
                         </div>
 
                         <!-- Description Section -->
@@ -142,7 +143,7 @@
                                         <label class="label">
                                             <span class="label-text">Kategori</span>
                                         </label>
-                                        <select id="kategoriObat" class="select select-bordered w-full">
+                                        <select id="kategoriObat" class="select2 select select-bordered w-full bg-white text-black">
                                             <option value="">Pilih Kategori</option>
                                             <!-- Will be populated by AJAX -->
                                         </select>
