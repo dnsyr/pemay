@@ -1,8 +1,6 @@
 <?php
 session_start();
-include '../../config/connection.php'; // Pastikan path ini benar
-$pageTitle = 'Manage Pet Transactions';
-include '../../layout/header.php';
+require_once '../../config/database.php';
 
 // Cek apakah user sudah login
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
@@ -10,840 +8,398 @@ if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true)
     exit();
 }
 
-// Tentukan tab aktif berdasarkan parameter URL
-$activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'produk';
+$pageTitle = 'Pet Transactions Management';
+include '../../layout/header-tailwind.php';
 
-// Inisialisasi variabel berdasarkan tab aktif
-$searchTerm = '';
-$selectedPegawai = '';
-$selectedPemilikHewan = '';
-$startDate = '';
-$endDate = '';
-$selectedProducts = [];
+// Inisialisasi database
+$db = new Database();
 
-// Pengaturan Pagination
-$itemsPerPage = 10; // Sesuaikan jika diperlukan
+// Get active tab
+$activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'product';
+
+// Filter parameters
+$startDate = isset($_GET['start_date']) ? $_GET['start_date'] : '';
+$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$itemsPerPage = 6;
 $offset = ($page - 1) * $itemsPerPage;
 
-// Handle form submission untuk filter (hanya untuk tab 'produk')
-if ($_SERVER["REQUEST_METHOD"] == "POST" && $activeTab === 'produk') {
-    $searchTerm = isset($_POST['search']) ? trim($_POST['search']) : '';
-    $selectedPegawai = isset($_POST['pegawai']) ? $_POST['pegawai'] : '';
-    $selectedPemilikHewan = isset($_POST['pemilik_hewan']) ? $_POST['pemilik_hewan'] : '';
-    $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : '';
-    $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : '';
-    $selectedProducts = isset($_POST['product_filter']) ? $_POST['product_filter'] : [];
+// Base query for product transactions
+$baseQueryProduct = "SELECT 
+    PJ.ID, 
+    TO_CHAR(PJ.TANGGALTRANSAKSI, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    PJ.TOTALBIAYA as TOTALHARGA,
+    PH.NAMA as PEMILIK_NAMA,
+    LISTAGG(PR.NAMA, ', ') WITHIN GROUP (ORDER BY PR.NAMA) as PRODUK_INFO
+FROM PENJUALAN PJ
+LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
+LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
+LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
+WHERE PJ.onDelete = 0";
+
+// Base query for medical transactions
+$baseQueryMedical = "SELECT 
+    PM.ID,
+    TO_CHAR(PM.TANGGAL, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    PM.TOTALBIAYA as TOTALHARGA,
+    PH.NAMA as PEMILIK_NAMA,
+    H.NAMA as HEWAN_NAMA,
+    LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
+FROM LAYANANMEDIS PM
+LEFT JOIN Hewan H ON PM.HEWAN_ID = H.ID
+LEFT JOIN PemilikHewan PH ON H.PEMILIKHEWAN_ID = PH.ID
+LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
+LEFT JOIN JenisLayananMedis L ON TL.COLUMN_VALUE = L.ID
+WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0";
+
+// Add date filters if provided
+$params = [];
+if ($startDate) {
+    $baseQueryProduct .= " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')";
+    $baseQueryMedical .= " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')";
+    $params[':start_date'] = $startDate;
+}
+if ($endDate) {
+    $baseQueryProduct .= " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')";
+    $baseQueryMedical .= " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')";
+    $params[':end_date'] = $endDate;
 }
 
-// Handle permintaan pembatalan (hanya untuk tab 'produk')
-if (isset($_GET['cancel_id']) && $activeTab === 'produk') {
-    $cancel_id = $_GET['cancel_id'];
+// Add group by clause
+$baseQueryProduct .= " GROUP BY PJ.ID, PJ.TANGGALTRANSAKSI, PJ.TOTALBIAYA, PH.NAMA";
+$baseQueryMedical .= " GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA";
 
-    // Panggil prosedur tersimpan DeletePenjualan
-    $sqlCancel = "BEGIN DeletePenjualan(:id); END;";
-    $stidCancel = oci_parse($conn, $sqlCancel);
-    oci_bind_by_name($stidCancel, ":id", $cancel_id);
-
-    if (oci_execute($stidCancel, OCI_NO_AUTO_COMMIT)) {
-        // Commit transaksi setelah pembatalan berhasil
-        if (oci_commit($conn)) {
-            echo "<script>alert('Pet transaction canceled successfully! Stock has been restored.'); window.location.href='pet-transaction.php?tab=" . urlencode($activeTab) . "';</script>";
-        } else {
-            $e = oci_error($conn);
-            echo "<script>alert('Failed to commit cancellation: " . htmlentities($e['message']) . "');</script>";
-            oci_rollback($conn);
-        }
-    } else {
-        $e = oci_error($stidCancel);
-        echo "<script>alert('Failed to cancel pet transaction: " . htmlentities($e['message']) . "');</script>";
-        oci_rollback($conn);
-    }
-    oci_free_statement($stidCancel);
+// Get total items based on active tab
+if ($activeTab === 'product') {
+    $countQuery = "SELECT COUNT(*) as TOTAL FROM (
+        SELECT PJ.ID
+        FROM PENJUALAN PJ
+        LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
+        LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
+        LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
+        WHERE PJ.onDelete = 0
+        " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+        " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        GROUP BY PJ.ID, PJ.TANGGALTRANSAKSI, PJ.TOTALBIAYA, PH.NAMA
+    )";
+    $baseQuery = $baseQueryProduct;
+} else if ($activeTab === 'medical') {
+    $countQuery = "SELECT COUNT(*) as TOTAL FROM (
+        SELECT PM.ID
+        FROM LAYANANMEDIS PM
+        LEFT JOIN Hewan H ON PM.HEWAN_ID = H.ID
+        LEFT JOIN PemilikHewan PH ON H.PEMILIKHEWAN_ID = PH.ID
+        LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
+        LEFT JOIN JenisLayananMedis L ON TL.COLUMN_VALUE = L.ID
+        WHERE PM.STATUS = 'Complete' AND PM.onDelete = 0
+        " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+        " . ($endDate ? " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA
+    )";
+    $baseQuery = $baseQueryMedical;
 }
 
-// Fetch list Pegawai untuk filter (hanya untuk tab 'produk')
-$pegawaiList = [];
-$pegawaiQuery = "SELECT ID, NAMA FROM Pegawai WHERE onDelete = 0 ORDER BY NAMA";
-$pegawaiStid = oci_parse($conn, $pegawaiQuery);
-if (oci_execute($pegawaiStid)) {
-    while ($row = oci_fetch_assoc($pegawaiStid)) {
-        $pegawaiList[] = $row;
-    }
-} else {
-    $e = oci_error($pegawaiStid);
-    echo "<script>alert('Failed to fetch Pegawai: " . htmlentities($e['message']) . "');</script>";
+// Count total rows for pagination
+$db->query($countQuery);
+foreach ($params as $key => $value) {
+    $db->bind($key, $value);
 }
-oci_free_statement($pegawaiStid);
+$totalItems = $db->single()['TOTAL'];
+$totalPages = ceil($totalItems / $itemsPerPage);
 
-// Fetch list Pemilik Hewan untuk filter (hanya untuk tab 'produk')
-$pemilikHewanList = [];
-$pemilikHewanQuery = "SELECT ID, NAMA FROM PemilikHewan ORDER BY NAMA";
-$pemilikHewanStid = oci_parse($conn, $pemilikHewanQuery);
-if (oci_execute($pemilikHewanStid)) {
-    while ($row = oci_fetch_assoc($pemilikHewanStid)) {
-        $pemilikHewanList[] = $row;
-    }
-} else {
-    $e = oci_error($pemilikHewanStid);
-    echo "<script>alert('Failed to fetch Pemilik Hewan: " . htmlentities($e['message']) . "');</script>";
+// Add order by and pagination
+$query = $baseQuery . " ORDER BY " . ($activeTab === 'product' ? 'PJ.TANGGALTRANSAKSI' : 'PM.TANGGAL') . " DESC OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
+$db->query($query);
+foreach ($params as $key => $value) {
+    $db->bind($key, $value);
 }
-oci_free_statement($pemilikHewanStid);
+$db->bind(':offset', $offset);
+$db->bind(':limit', $itemsPerPage);
 
-// Inisialisasi transaksi dan variabel pagination
-$transactions = [];
-$totalItems = 0;
-$totalPages = 1;
-
-// Handle logika untuk tab 'produk'
-if ($activeTab === 'produk') {
-    // Siapkan wildcard pencarian
-    $searchWildcard = '%' . $searchTerm . '%';
-
-    // Bangun query utama dengan filter
-    $searchQuery = " WHERE PJ.onDelete = 0"; // Tampilkan hanya transaksi aktif
-
-    // Jika ada kata kunci pencarian, tambahkan ke query (pencarian berdasarkan ID Transaksi atau Nama Pegawai)
-    if ($searchTerm) {
-        $searchQuery .= " AND (UPPER(PJ.ID) LIKE UPPER(:searchTerm) OR UPPER(P.NAMA) LIKE UPPER(:searchTerm))";
-    }
-
-    // Jika rentang tanggal disediakan, filter berdasarkan tanggal
-    if ($startDate) {
-        $searchQuery .= " AND PJ.TANGGALTRANSAKSI >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')";
-    }
-    if ($endDate) {
-        $searchQuery .= " AND PJ.TANGGALTRANSAKSI <= TO_TIMESTAMP(:endDate, 'YYYY-MM-DD') + INTERVAL '1' DAY";
-    }
-
-    // Jika Pegawai dipilih, filter berdasarkan Pegawai_ID
-    if ($selectedPegawai) {
-        $searchQuery .= " AND PJ.PEGAWAI_ID = :pegawai_id";
-    }
-
-    // Jika Pemilik Hewan dipilih, filter berdasarkan PemilikHewan_ID
-    if ($selectedPemilikHewan) {
-        $searchQuery .= " AND PJ.PEMILIKHEWAN_ID = :pemilik_hewan_id";
-    }
-
-    // Jika Produk dipilih, filter berdasarkan Produk
-    if (!empty($selectedProducts)) {
-        // Buat placeholder dinamis untuk produk
-        $productPlaceholders = [];
-        foreach ($selectedProducts as $index => $prodId) {
-            $placeholder = ":prod" . $index;
-            $productPlaceholders[] = $placeholder;
-        }
-        $placeholdersString = implode(',', $productPlaceholders);
-        $searchQuery .= " AND EXISTS (
-                            SELECT 1 FROM TABLE(PJ.PRODUK) COLUMN_VALUE 
-                            WHERE COLUMN_VALUE IN (" . $placeholdersString . ")
-                        )";
-    }
-
-    // Query utama dengan LISTAGG dan COLUMN_VALUE
-    $sql = "SELECT 
-                PJ.ID, 
-                PJ.TANGGALTRANSAKSI, 
-                PJ.onDelete,
-                (SELECT LISTAGG(COLUMN_VALUE, ', ') WITHIN GROUP (ORDER BY COLUMN_VALUE) 
-                 FROM TABLE(PJ.PRODUK)) AS PRODUK
-            FROM Penjualan PJ
-            LEFT JOIN Pegawai P ON PJ.PEGAWAI_ID = P.ID
-            LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID" . 
-            $searchQuery . 
-            " ORDER BY PJ.TANGGALTRANSAKSI DESC " . 
-            " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
-
-    $stid = oci_parse($conn, $sql);
-
-    // Bind parameter
-    if ($searchTerm) {
-        oci_bind_by_name($stid, ":searchTerm", $searchWildcard);
-    }
-    if ($startDate) {
-        oci_bind_by_name($stid, ":startDate", $startDate);
-    }
-    if ($endDate) {
-        oci_bind_by_name($stid, ":endDate", $endDate);
-    }
-    if ($selectedPegawai) {
-        oci_bind_by_name($stid, ":pegawai_id", $selectedPegawai);
-    }
-    if ($selectedPemilikHewan) {
-        oci_bind_by_name($stid, ":pemilik_hewan_id", $selectedPemilikHewan);
-    }
-
-    // Bind pagination
-    oci_bind_by_name($stid, ":offset", $offset, -1, SQLT_INT);
-    oci_bind_by_name($stid, ":itemsPerPage", $itemsPerPage, -1, SQLT_INT);
-
-    // Bind produk jika ada
-    if (!empty($selectedProducts)) {
-        foreach ($selectedProducts as $index => $prodId) {
-            $placeholder = ":prod" . $index;
-            oci_bind_by_name($stid, $placeholder, $selectedProducts[$index]);
-        }
-    }
-
-    // Eksekusi query utama
-    if (oci_execute($stid)) {
-        while ($row = oci_fetch_assoc($stid)) {
-            // Konversi string PRODUK menjadi array ID produk
-            $produkIds = explode(', ', $row['PRODUK']);
-            $produkArray = [];
-
-            foreach ($produkIds as $prodId) {
-                $produkArray[] = [
-                    'product_id' => $prodId,
-                    'nama'       => '', // Akan diisi nanti
-                    'harga'      => 0,  // Akan diisi nanti
-                    'quantity'   => 1,  // Placeholder; sesuaikan jika ada data quantity
-                    'subtotal'   => 0   // Akan diisi nanti
-                ];
-            }
-
-            // Sertakan status onDelete (opsional)
-            $row['onDelete'] = $row['ONDELETE']; // Sesuaikan dengan sensitivitas huruf
-            $row['PRODUK'] = $produkArray;
-            $transactions[] = $row;
-        }
-    } else {
-        $e = oci_error($stid);
-        echo "<script>alert('Failed to fetch transactions: " . htmlentities($e['message']) . "');</script>";
-    }
-    oci_free_statement($stid);
-
-    // Kumpulkan semua ID produk unik
-    $allProductIds = [];
-    foreach ($transactions as $transaction) {
-        foreach ($transaction['PRODUK'] as $prod) {
-            $allProductIds[] = $prod['product_id'];
-        }
-    }
-    $allProductIds = array_unique($allProductIds);
-
-    // Ambil detail semua produk dalam satu query
-    $productMap = [];
-    if (!empty($allProductIds)) {
-        $productPlaceholders = [];
-        foreach ($allProductIds as $index => $prodId) {
-            $placeholder = ":prod_map" . $index;
-            $productPlaceholders[] = $placeholder;
-        }
-        $placeholdersString = implode(',', $productPlaceholders);
-        $productDetailsQuery = "SELECT ID, NAMA, HARGA FROM Produk WHERE ID IN (" . $placeholdersString . ")";
-        $productDetailsStid = oci_parse($conn, $productDetailsQuery);
-
-        // Bind parameter produk
-        foreach ($allProductIds as $index => $prodId) {
-            $placeholder = ":prod_map" . $index;
-            oci_bind_by_name($productDetailsStid, $placeholder, $allProductIds[$index]);
-        }
-
-        // Eksekusi query detail produk
-        if (oci_execute($productDetailsStid)) {
-            while ($prodRow = oci_fetch_assoc($productDetailsStid)) {
-                $productMap[$prodRow['ID']] = [
-                    'nama'  => $prodRow['NAMA'],
-                    'harga' => $prodRow['HARGA']
-                ];
-            }
-        } else {
-            $e = oci_error($productDetailsStid);
-            echo "<script>alert('Failed to fetch product details: " . htmlentities($e['message']) . "');</script>";
-        }
-        oci_free_statement($productDetailsStid);
-    }
-
-    // Kaitkan detail produk dengan transaksi
-    foreach ($transactions as &$transaction) {
-        foreach ($transaction['PRODUK'] as &$prod) {
-            if (isset($productMap[$prod['product_id']])) {
-                $prod['nama'] = $productMap[$prod['product_id']]['nama'];
-                $prod['harga'] = $productMap[$prod['product_id']]['harga'];
-                $prod['subtotal'] = $prod['harga'] * $prod['quantity'];
-            } else {
-                $prod['nama'] = 'Unknown Product';
-                $prod['harga'] = 0;
-                $prod['subtotal'] = 0;
-            }
-        }
-    }
-
-    // Hitung total item untuk pagination
-    $countSql = "SELECT COUNT(*) AS TOTAL 
-                 FROM Penjualan PJ
-                 LEFT JOIN Pegawai P ON PJ.PEGAWAI_ID = P.ID
-                 LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID" . $searchQuery;
-
-    $countStid = oci_parse($conn, $countSql);
-
-    // Bind parameter untuk count
-    if ($searchTerm) {
-        oci_bind_by_name($countStid, ":searchTerm", $searchWildcard);
-    }
-    if ($startDate) {
-        oci_bind_by_name($countStid, ":startDate", $startDate);
-    }
-    if ($endDate) {
-        oci_bind_by_name($countStid, ":endDate", $endDate);
-    }
-    if ($selectedPegawai) {
-        oci_bind_by_name($countStid, ":pegawai_id", $selectedPegawai);
-    }
-    if ($selectedPemilikHewan) {
-        oci_bind_by_name($countStid, ":pemilik_hewan_id", $selectedPemilikHewan);
-    }
-
-    // Bind produk jika ada
-    if (!empty($selectedProducts)) {
-        foreach ($selectedProducts as $index => $prodId) {
-            $placeholder = ":prod_map" . $index;
-            oci_bind_by_name($countStid, $placeholder, $prodId);
-        }
-    }
-
-    // Eksekusi query count
-    if (oci_execute($countStid)) {
-        $countRow = oci_fetch_assoc($countStid);
-        $totalItems = $countRow['TOTAL'];
-        $totalPages = ceil($totalItems / $itemsPerPage);
-    }
-    oci_free_statement($countStid);
-}
-
-// ===========================
-// Handle View untuk Tab 'Medis'
-// ===========================
-
-if ($activeTab === 'medis') {
-    // Karena logika untuk 'medis' akan ditangani kemudian, kita hanya menyiapkan view-nya saja
-    // Data akan diisi nanti saat logika backend sudah siap
-    // Anda bisa menambahkan form filter dan tabel sesuai kebutuhan
-    // Berikut adalah contoh sederhana berdasarkan kode yang Anda berikan
-
-    // Fetch list Hewan dan Pemilik Hewan untuk filter
-    $hewanOptions = [];
-    $hewanQuery = "SELECT DISTINCT h.NAMA FROM Hewan h WHERE h.onDelete = 0 ORDER BY h.NAMA";
-    $hewanStid = oci_parse($conn, $hewanQuery);
-    if (oci_execute($hewanStid)) {
-        while ($row = oci_fetch_assoc($hewanStid)) {
-            $hewanOptions[] = $row['NAMA'];
-        }
-    }
-    oci_free_statement($hewanStid);
-
-    $pemilikOptions = [];
-    $pemilikQuery = "SELECT DISTINCT ph.NAMA FROM PemilikHewan ph WHERE ph.onDelete = 0 ORDER BY ph.NAMA";
-    $pemilikStid = oci_parse($conn, $pemilikQuery);
-    if (oci_execute($pemilikStid)) {
-        while ($row = oci_fetch_assoc($pemilikStid)) {
-            $pemilikOptions[] = $row['NAMA'];
-        }
-    }
-    oci_free_statement($pemilikStid);
-}
-
-// ===========================
-// Handle View untuk Tab 'Salon'
-// ===========================
-
-if ($activeTab === 'salon') {
-    // Karena logika untuk 'salon' akan ditangani kemudian, kita hanya menyiapkan view-nya saja
-    // Data akan diisi nanti saat logika backend sudah siap
-    // Anda bisa menambahkan form filter dan tabel sesuai kebutuhan
-    // Berikut adalah contoh sederhana berdasarkan kode yang Anda berikan
-
-    // Fetch list Hewan dan Pemilik Hewan untuk filter
-    // Jika sudah di-fetch sebelumnya, gunakan variabel yang sama
-    // Tidak perlu melakukan query ulang
-}
+$transactions = $db->resultSet();
 ?>
-<!DOCTYPE html>
-<html lang="id">
 
-<head>
-    <meta charset="UTF-8">
-    <title><?php echo htmlentities($pageTitle); ?></title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <style>
-        /* Optional: Style select2 elements to match Bootstrap */
-        .select2-container .select2-selection--single {
-            height: 38px;
-            padding: 6px 12px;
-        }
+<div class="pb-6 px-12">
+    <div class="flex justify-between mb-6">
+        <h2 class="text-3xl font-bold text-[#363636]">Pet Transaction Management</h2>
+    </div>
 
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 26px;
-        }
+    <!-- Main Content -->
+    <div class="flex flex-col">
+        <!-- Tabs -->
+        <div class="flex w-fit">
+            <a href="?tab=product" class="px-8 py-2 text-center <?= $activeTab === 'product' ? 'bg-[#D4F0EA] border-x border-t border-[#363636]' : 'bg-white border-x border-t border-[#363636]' ?> rounded-t-lg -ml-[1px] first:ml-0">Product Sales</a>
+            <a href="?tab=medical" class="px-8 py-2 text-center <?= $activeTab === 'medical' ? 'bg-[#D4F0EA] border-x border-t border-[#363636]' : 'bg-white border-x border-t border-[#363636]' ?> rounded-t-lg -ml-[1px]">Medical Services</a>
+            <a href="?tab=salon" class="px-8 py-2 text-center <?= $activeTab === 'salon' ? 'bg-[#D4F0EA] border-x border-t border-[#363636]' : 'bg-white border-x border-t border-[#363636]' ?> rounded-t-lg -ml-[1px]">Salon Services</a>
+            <a href="?tab=hotel" class="px-8 py-2 text-center <?= $activeTab === 'hotel' ? 'bg-[#D4F0EA] border-x border-t border-[#363636]' : 'bg-white border-x border-t border-[#363636]' ?> rounded-t-lg -ml-[1px]">Hotel Services</a>
+        </div>
 
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 36px;
-        }
+        <!-- Content Area -->
+        <div class="border border-[#363636] rounded-b-2xl p-6 -mt-[1px]">
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-lg text-[#363636] font-semibold">Product Sales Transactions</p>
+                
+                <!-- Filter Form -->
+                <form class="flex gap-4 items-end" id="filterForm">
+                    <input type="hidden" name="tab" value="<?= $activeTab ?>">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Start Date</span>
+                        </label>
+                        <input type="date" name="start_date" id="start_date" value="<?= $startDate ?>" class="input input-bordered">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">End Date</span>
+                        </label>
+                        <input type="date" name="end_date" id="end_date" value="<?= $endDate ?>" class="input input-bordered">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <?php if ($startDate || $endDate): ?>
+                        <a href="?tab=<?= $activeTab ?>" class="btn btn-ghost">Reset</a>
+                    <?php endif; ?>
+                </form>
+            </div>
 
-        .select2-container .select2-selection--multiple {
-            min-height: 38px;
-        }
-
-        .table-secondary {
-            background-color: #e9ecef;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container mt-5">
-        <h2>Pet Transactions Management</h2>
-
-        <!-- Navigation Tabs -->
-        <ul class="nav nav-tabs" id="transactionTabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($activeTab === 'produk') ? 'active' : ''; ?>" href="pet-transaction.php?tab=produk">Product Sales</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($activeTab === 'medis') ? 'active' : ''; ?>" href="pet-transaction.php?tab=medis">Medical Services</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($activeTab === 'salon') ? 'active' : ''; ?>" href="pet-transaction.php?tab=salon">Salon Services</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($activeTab === 'hotel') ? 'active' : ''; ?>" href="pet-transaction.php?tab=hotel">Hotel Services</a>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content" id="transactionTabsContent">
-            <?php if ($activeTab === 'produk'): ?>
-                <div class="tab-pane fade show active" id="produk" role="tabpanel" aria-labelledby="produk-tab">
-                    <a href="./add-product-transaction.php" class="btn btn-success mt-3 mb-3"><i class="fas fa-plus"></i> Add Product Transaction</a>
-
-                    <!-- Filter Form -->
-                    <form method="POST" class="row g-3 mb-4">
-                        <!-- Filter by Product using Select2 -->
-                        <div class="col-md-4">
-                            <label for="product_filter" class="form-label">Filter by Product</label>
-                            <select class="form-control select2" id="product_filter" name="product_filter[]" multiple="multiple">
-                                <?php
-                                // Fetch all products for filter
-                                $productFilterQuery = "SELECT ID, NAMA FROM Produk ORDER BY NAMA";
-                                $productFilterStid = oci_parse($conn, $productFilterQuery);
-                                if (oci_execute($productFilterStid)) {
-                                    while ($row = oci_fetch_assoc($productFilterStid)) {
-                                        // Check if product is selected in filter
-                                        $selected = (in_array($row['ID'], $selectedProducts)) ? 'selected' : '';
-                                        echo '<option value="' . htmlspecialchars($row['ID']) . '" ' . $selected . '>' . htmlspecialchars($row['NAMA']) . '</option>';
-                                    }
-                                } else {
-                                    $e = oci_error($productFilterStid);
-                                    echo "<option disabled>Failed to load products: " . htmlentities($e['message']) . "</option>";
-                                }
-                                oci_free_statement($productFilterStid);
-                                ?>
-                            </select>
-                        </div>
-
-                        <!-- Date Range -->
-                        <div class="col-md-3">
-                            <label for="start_date" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo htmlentities($startDate); ?>">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="end_date" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo htmlentities($endDate); ?>">
-                        </div>
-
-                        <!-- Submit and Reset Buttons -->
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-outline-primary mr-2" type="submit">Filter</button>
-                            <a href="pet-transaction.php?tab=produk" class="btn btn-outline-secondary">Reset</a>
-                        </div>
-                    </form>
-
-                    <!-- Transactions Table -->
-                    <table class="table table-striped">
-                        <thead>
+            <!-- Table Container -->
+            <div class="border border-[#363636] rounded-xl overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr class="bg-[#D4F0EA] text-[#363636]">
+                            <th class="py-4 px-6 text-center border-b border-[#363636]">No.</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Transaction Date</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Customer Name</th>
+                            <?php if ($activeTab === 'medical'): ?>
+                                <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                                <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                            <?php else: ?>
+                                <th class="py-4 px-6 text-left border-b border-[#363636]">Products</th>
+                            <?php endif; ?>
+                            <th class="py-4 px-6 text-right border-b border-[#363636]">Total Cost</th>
+                            <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <?php if (empty($transactions)): ?>
                             <tr>
-                                <th>No</th>
-                                <th>Date</th>
-                                <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Harga</th>
-                                <th>Actions</th>
+                                <td colspan="<?= $activeTab === 'medical' ? '7' : '6' ?>" class="text-center py-4">No transactions found.</td>
                             </tr>
-                        </thead>
-                        <tbody>
+                        <?php else: ?>
                             <?php 
-                            if (!empty($transactions)) {
-                                $no = $offset + 1;
-                                foreach ($transactions as $transaction): 
-                                    $productDetails = $transaction['PRODUK'];
+                            $nomor = ($page - 1) * $itemsPerPage + 1;
+                            foreach ($transactions as $transaction): 
                             ?>
-                                <tr>
-                                    <td><?php echo $no++; ?></td>
-                                    <td><?php echo htmlentities($transaction['TANGGALTRANSAKSI']); ?></td>
-                                    <td>
-                                        <?php 
-                                        foreach ($productDetails as $pd) {
-                                            echo htmlspecialchars($pd['nama']) . '<br>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <?php 
-                                        foreach ($productDetails as $pd) {
-                                            echo htmlspecialchars($pd['quantity']) . '<br>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <?php 
-                                        foreach ($productDetails as $pd) {
-                                            echo 'Rp ' . number_format($pd['harga'], 0, ',', '.') . '<br>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <a href="update-transaction.php?id=<?php echo htmlentities($transaction['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
-                                        <a href="pet-transaction.php?cancel_id=<?php echo htmlentities($transaction['ID']); ?>&tab=produk" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to cancel this transaction?')">Cancel</a>
+                                <tr class="text-[#363636] hover:bg-gray-50 border-b border-[#363636] last:border-b-0">
+                                    <td class="py-4 px-6 text-center"><?= $nomor++ ?></td>
+                                    <td class="py-4 px-6"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['PEMILIK_NAMA']) ?></td>
+                                    <?php if ($activeTab === 'medical'): ?>
+                                        <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                        <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
+                                    <?php else: ?>
+                                        <td class="py-4 px-6"><?= htmlentities($transaction['PRODUK_INFO']) ?></td>
+                                    <?php endif; ?>
+                                    <td class="py-4 px-6 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
+                                    <td class="py-4 px-6">
+                                        <div class="flex gap-3 justify-center items-center">
+                                            <?php if ($activeTab === 'product'): ?>
+                                                <button type="button" class="btn btn-ghost btn-sm" disabled>
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            <?php 
-                                endforeach;
-                            } else { 
-                            ?>
-                                <tr>
-                                    <td colspan="6">No product transactions found.</td>
-                                </tr>
-                            <?php 
-                            } 
-                            ?>
-                        </tbody>
-                    </table>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
 
-                    <!-- Pagination -->
-                    <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination">
-                                <?php 
-                                // Determine the range of pages to display
-                                $range = 2; // Number of pages around the current page
-                                $start = max(1, $page - $range);
-                                $end = min($totalPages, $page + $range);
-
-                                // Previous button
-                                if ($page > 1) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=produk&page=' . ($page - 1) . '">Previous</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-                                }
-
-                                // Page numbers
-                                for ($i = $start; $i <= $end; $i++) {
-                                    $active = ($i == $page) ? 'active' : '';
-                                    echo '<li class="page-item ' . $active . '"><a class="page-link" href="?tab=produk&page=' . $i . '">' . $i . '</a></li>';
-                                }
-
-                                // Next button
-                                if ($page < $totalPages) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=produk&page=' . ($page + 1) . '">Next</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-                                }
-                                ?>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ($activeTab === 'medis'): ?>
-                <div class="tab-pane fade show active" id="medis" role="tabpanel" aria-labelledby="medis-tab">
-                    <h3 class="mt-4">Medical Services</h3>
-                    <!-- Filter Form for Medis -->
-                    <form method="GET" action="pet-transaction.php" class="row g-3 mb-4">
-                        <input type="hidden" name="tab" value="medis">
-                        <!-- Filter by Hewan -->
-                        <div class="col-md-4">
-                            <label for="nama_hewan_medis" class="form-label">Nama Hewan</label>
-                            <select name="nama_hewan" id="nama_hewan_medis" class="form-control select2">
-                                <option value="">Pilih Nama Hewan</option>
-                                <?php foreach ($hewanOptions as $hewan): ?>
-                                    <option value="<?= htmlentities($hewan); ?>" <?= ($hewan === $searchTerm) ? 'selected' : ''; ?>>
-                                        <?= htmlentities($hewan); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Filter by Pemilik Hewan -->
-                        <div class="col-md-4">
-                            <label for="nama_pemilik_medis" class="form-label">Nama Pemilik</label>
-                            <select name="nama_pemilik" id="nama_pemilik_medis" class="form-control select2">
-                                <option value="">Pilih Nama Pemilik</option>
-                                <?php foreach ($pemilikOptions as $pemilik): ?>
-                                    <option value="<?= htmlentities($pemilik); ?>" <?= ($pemilik === $selectedPemilikHewan) ? 'selected' : ''; ?>>
-                                        <?= htmlentities($pemilik); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Date Range -->
-                        <div class="col-md-2">
-                            <label for="start_date_medis" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="start_date_medis" name="start_date" value="<?php echo htmlentities($startDate); ?>">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="end_date_medis" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="end_date_medis" name="end_date" value="<?php echo htmlentities($endDate); ?>">
-                        </div>
-
-                        <!-- Submit and Reset Buttons -->
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-outline-primary mr-2" type="submit">Filter</button>
-                            <a href="pet-transaction.php?tab=medis" class="btn btn-outline-secondary">Reset</a>
-                        </div>
-                    </form>
-
-                    <!-- Transactions Table for Medis -->
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <!-- <th>ID</th> --> <!-- Menghapus kolom ID -->
-                                <th>Date</th>
-                                <th>Total Biaya</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                                <th>Nama Hewan</th>
-                                <th>Nama Pemilik</th>
-                                <!-- <th>Actions</th> --> <!-- Menghapus kolom Actions -->
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            // Karena logika untuk 'medis' belum diimplementasikan, kita hanya menampilkan data jika sudah diisi
-                            if ($activeTab === 'medis') {
-                                if (!empty($transactions)) {
-                                    $no = $offset + 1;
-                                    foreach ($transactions as $medis): 
-                            ?>
-                                        <tr>
-                                            <td><?php echo $no++; ?></td>
-                                            <!-- <td><?php echo htmlentities($medis['ID']); ?></td> --> <!-- Menghapus kolom ID -->
-                                            <td><?php echo htmlentities($medis['TANGGALTRANSAKSI']); ?></td>
-                                            <td>Rp <?php echo number_format($medis['TOTALBIAYA'], 0, ',', '.'); ?></td>
-                                            <td><?php echo htmlentities($medis['Description']); ?></td>
-                                            <td><?php echo htmlentities($medis['Status']); ?></td>
-                                            <td><?php echo htmlentities($medis['NamaHewan']); ?></td>
-                                            <td><?php echo htmlentities($medis['NamaPemilik']); ?></td>
-                                            <!-- <td>
-                                                <a href="update-medis.php?id=<?php echo htmlentities($medis['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
-                                                <a href="pet-transaction.php?cancel_id=<?php echo htmlentities($medis['ID']); ?>&tab=medis" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to cancel this medical transaction?')">Cancel</a>
-                                            </td> --> <!-- Menghapus kolom Actions -->
-                                        </tr>
-                            <?php 
-                                    endforeach;
-                                } else {
-                                    echo '<tr><td colspan="7">No medical transactions found.</td></tr>';
-                                }
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-
-                    <!-- Pagination for Medis -->
-                    <?php if ($activeTab === 'medis' && $totalPages > 1): ?>
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination">
-                                <?php 
-                                // Determine the range of pages to display
-                                $range = 2; // Number of pages around the current page
-                                $start = max(1, $page - $range);
-                                $end = min($totalPages, $page + $range);
-
-                                // Previous button
-                                if ($page > 1) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=medis&page=' . ($page - 1) . '">Previous</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-                                }
-
-                                // Page numbers
-                                for ($i = $start; $i <= $end; $i++) {
-                                    $active = ($i == $page) ? 'active' : '';
-                                    echo '<li class="page-item ' . $active . '"><a class="page-link" href="?tab=medis&page=' . $i . '">' . $i . '</a></li>';
-                                }
-
-                                // Next button
-                                if ($page < $totalPages) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=medis&page=' . ($page + 1) . '">Next</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-                                }
-                                ?>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ($activeTab === 'salon'): ?>
-                <div class="tab-pane fade show active" id="salon" role="tabpanel" aria-labelledby="salon-tab">
-                    <h3 class="mt-4">Salon Services</h3>
-                    <!-- Filter Form for Salon -->
-                    <form method="GET" action="pet-transaction.php" class="row g-3 mb-4">
-                        <input type="hidden" name="tab" value="salon">
-                        <!-- Filter by Hewan -->
-                        <div class="col-md-4">
-                            <label for="nama_hewan_salon" class="form-label">Nama Hewan</label>
-                            <select name="nama_hewan" id="nama_hewan_salon" class="form-control select2">
-                                <option value="">Pilih Nama Hewan</option>
-                                <?php foreach ($hewanOptions as $hewan): ?>
-                                    <option value="<?= htmlentities($hewan); ?>" <?= ($hewan === $searchTerm) ? 'selected' : ''; ?>>
-                                        <?= htmlentities($hewan); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Filter by Pemilik Hewan -->
-                        <div class="col-md-4">
-                            <label for="nama_pemilik_salon" class="form-label">Nama Pemilik</label>
-                            <select name="nama_pemilik" id="nama_pemilik_salon" class="form-control select2">
-                                <option value="">Pilih Nama Pemilik</option>
-                                <?php foreach ($pemilikOptions as $pemilik): ?>
-                                    <option value="<?= htmlentities($pemilik); ?>" <?= ($pemilik === $selectedPemilikHewan) ? 'selected' : ''; ?>>
-                                        <?= htmlentities($pemilik); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Date Range -->
-                        <div class="col-md-2">
-                            <label for="start_date_salon" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="start_date_salon" name="start_date" value="<?php echo htmlentities($startDate); ?>">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="end_date_salon" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="end_date_salon" name="end_date" value="<?php echo htmlentities($endDate); ?>">
-                        </div>
-
-                        <!-- Submit and Reset Buttons -->
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-outline-primary mr-2" type="submit">Filter</button>
-                            <a href="pet-transaction.php?tab=salon" class="btn btn-outline-secondary">Reset</a>
-                        </div>
-                    </form>
-
-                    <!-- Transactions Table for Salon -->
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <!-- <th>ID</th> --> <!-- Menghapus kolom ID -->
-                                <th>Date</th>
-                                <th>Total Biaya</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                                <th>Nama Hewan</th>
-                                <th>Nama Pemilik</th>
-                                <!-- <th>Actions</th> --> <!-- Menghapus kolom Actions -->
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            // Karena logika untuk 'salon' belum diimplementasikan, kita hanya menampilkan data jika sudah diisi
-                            if ($activeTab === 'salon') {
-                                if (!empty($transactions)) {
-                                    $no = $offset + 1;
-                                    foreach ($transactions as $salon): 
-                            ?>
-                                        <tr>
-                                            <td><?php echo $no++; ?></td>
-                                            <!-- <td><?php echo htmlentities($salon['ID']); ?></td> --> <!-- Menghapus kolom ID -->
-                                            <td><?php echo htmlentities($salon['TANGGALTRANSAKSI']); ?></td>
-                                            <td>Rp <?php echo number_format($salon['TOTALBIAYA'], 0, ',', '.'); ?></td>
-                                            <td><?php echo htmlentities($salon['Description']); ?></td>
-                                            <td><?php echo htmlentities($salon['Status']); ?></td>
-                                            <td><?php echo htmlentities($salon['NamaHewan']); ?></td>
-                                            <td><?php echo htmlentities($salon['NamaPemilik']); ?></td>
-                                            <!-- <td>
-                                                <a href="update-salon.php?id=<?php echo htmlentities($salon['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
-                                                <a href="pet-transaction.php?cancel_id=<?php echo htmlentities($salon['ID']); ?>&tab=salon" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to cancel this salon transaction?')">Cancel</a>
-                                            </td> --> <!-- Menghapus kolom Actions -->
-                                        </tr>
-                            <?php 
-                                    endforeach;
-                                } else {
-                                    echo '<tr><td colspan="7">No salon transactions found.</td></tr>';
-                                }
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-
-                    <!-- Pagination for Salon -->
-                    <?php if ($activeTab === 'salon' && $totalPages > 1): ?>
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination">
-                                <?php 
-                                // Determine the range of pages to display
-                                $range = 2; // Number of pages around the current page
-                                $start = max(1, $page - $range);
-                                $end = min($totalPages, $page + $range);
-
-                                // Previous button
-                                if ($page > 1) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=salon&page=' . ($page - 1) . '">Previous</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-                                }
-
-                                // Page numbers
-                                for ($i = $start; $i <= $end; $i++) {
-                                    $active = ($i == $page) ? 'active' : '';
-                                    echo '<li class="page-item ' . $active . '"><a class="page-link" href="?tab=salon&page=' . $i . '">' . $i . '</a></li>';
-                                }
-
-                                // Next button
-                                if ($page < $totalPages) {
-                                    echo '<li class="page-item"><a class="page-link" href="?tab=salon&page=' . ($page + 1) . '">Next</a></li>';
-                                } else {
-                                    echo '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-                                }
-                                ?>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
-                </div>
+            <!-- Pagination -->
+            <?php if ($totalPages > 1): ?>
+            <div class="join flex justify-center mt-4">
+                <a class="join-item btn <?= ($page <= 1) ? 'btn-disabled' : '' ?>"
+                   href="?tab=<?= $activeTab ?>&page=<?= ($page - 1) ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>">«</a>
+                
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <a class="join-item btn <?= ($page === $i) ? 'bg-[#D4F0EA]' : '' ?>"
+                       href="?tab=<?= $activeTab ?>&page=<?= $i ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>"><?= $i ?></a>
+                <?php endfor; ?>
+                
+                <a class="join-item btn <?= ($page >= $totalPages) ? 'btn-disabled' : '' ?>"
+                   href="?tab=<?= $activeTab ?>&page=<?= ($page + 1) ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>">»</a>
+            </div>
             <?php endif; ?>
+        </div>
+    </div>
+</div>
 
-            <!-- Future Tab Panes for Hotel -->
-            <div class="tab-pane fade" id="hotel" role="tabpanel" aria-labelledby="hotel-tab">
-                <!-- Content for Hotel Services -->
-                <p class="mt-3">Hotel Services content goes here.</p>
+<?php if ($activeTab === 'product'): ?>
+    <!-- Floating Add Button -->
+    <div class="fixed bottom-4 right-4">
+        <label for="add_drawer" class="btn btn-circle btn-lg bg-[#B2E0D6] hover:bg-[#9AC7BE] text-[#363636] border-none">
+            <i class="fas fa-plus text-xl"></i>
+        </label>
+    </div>
+
+    <!-- Add Transaction Drawer -->
+    <?php include 'drawer-product.php'; ?>
+<?php endif; ?>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Konfirmasi Hapus</h3>
+        <p>Apakah Anda yakin ingin menghapus transaksi ini? Stok produk akan dikembalikan.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-sm mr-2">Batal</button>
+                <button type="button" onclick="confirmDelete()" class="btn btn-sm btn-error">Hapus</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<!-- Update Transaction Drawer -->
+<div class="drawer drawer-end">
+    <input id="update-product-drawer" type="checkbox" class="drawer-toggle" /> 
+    <div class="drawer-side z-50">
+        <label for="update-product-drawer" class="drawer-overlay"></label>
+        <div class="p-4 w-[600px] min-h-full bg-base-200 text-base-content">
+            <div id="update-form-content">
+                <!-- Form update akan dimuat di sini -->
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Include jQuery and Select2 JS -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+let transactionToDelete = null;
 
-    <!-- Initialize Select2 -->
-    <script>
-        $(document).ready(function() {
-            $('.select2').select2({
-                theme: 'bootstrap4',
-                placeholder: "Select Options",
-                allowClear: true
-            });
+function deleteRecord(id) {
+    transactionToDelete = id;
+    document.getElementById('delete_modal').showModal();
+}
+
+function confirmDelete() {
+    if (!transactionToDelete) return;
+
+    fetch('delete-transaction.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'id=' + encodeURIComponent(transactionToDelete)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Terjadi kesalahan saat menghapus transaksi');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menghapus transaksi');
+    })
+    .finally(() => {
+        document.getElementById('delete_modal').close();
+        transactionToDelete = null;
+    });
+}
+
+// Validasi tanggal
+document.getElementById('start_date').addEventListener('change', function() {
+    const startDate = this.value;
+    const endDateInput = document.getElementById('end_date');
+    
+    // Set minimum end date sama dengan start date
+    endDateInput.min = startDate;
+    
+    // Jika end date sudah dipilih dan lebih kecil dari start date, reset end date
+    if (endDateInput.value && endDateInput.value < startDate) {
+        endDateInput.value = startDate;
+    }
+});
+
+document.getElementById('filterForm').addEventListener('submit', function(e) {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    if (startDate && endDate && endDate < startDate) {
+        e.preventDefault();
+        alert('End date tidak boleh lebih kecil dari start date');
+        return false;
+    }
+});
+
+function loadTransaction(id) {
+    // Add transaction_id to URL without redirecting
+    const url = new URL(window.location.href);
+    url.searchParams.set('transaction_id', id);
+    window.history.pushState({}, '', url);
+    
+    // Show the drawer
+    document.getElementById('update-product-drawer').checked = true;
+    
+    // Load the form content with cache-busting parameter
+    fetch(`update-product-form.php?id=${id}&t=${Date.now()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            document.getElementById('update-form-content').innerHTML = html;
+            // Initialize form after loading
+            if (typeof initializeForm === 'function') {
+                initializeForm();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('update-form-content').innerHTML = 
+                `<div class="alert alert-error">Error loading form: ${error.message}</div>`;
         });
-    </script>
-</body>
+}
 
-</html>
+// Global helper functions for transaction management
+function formatNumber(number) {
+    return new Intl.NumberFormat('id-ID').format(number);
+}
+
+function updateSubtotal($input) {
+    const $row = $input.closest('tr');
+    const price = parseFloat($row.find('td:eq(2)').text().replace(/[^\d]/g, ''));
+    const quantity = parseInt($input.val());
+    const subtotal = price * quantity;
+    $row.find('td:eq(4)').text(`Rp ${formatNumber(subtotal)}`);
+    updateTotal();
+}
+
+function updateTotal() {
+    const subtotals = $('#selected_products tr, #update_selected_products tr').map(function() {
+        return parseFloat($(this).find('td:eq(4)').text().replace(/[^\d]/g, '')) || 0;
+    }).get();
+    const total = subtotals.reduce((sum, subtotal) => sum + subtotal, 0);
+    $('#total_amount, #update_total_amount').text(formatNumber(total));
+}
+
+function renumberRows() {
+    $('#selected_products tr, #update_selected_products tr').each(function(index) {
+        $(this).find('td:first').text(index + 1);
+    });
+}
+
+function removeProduct($button) {
+    $button.closest('tr').remove();
+    updateTotal();
+    renumberRows();
+}
+</script>

@@ -1,28 +1,77 @@
 <?php
+session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'add') {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid request method or action'
+    ]);
     exit;
 }
 
 require_once '../../config/database.php';
 $db = new Database();
-$pegawaiId = $_SESSION['employee_id'];
+$pegawaiId = $_SESSION['employee_id'] ?? null;
+
+if (!$pegawaiId) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Session tidak valid'
+    ]);
+    exit;
+}
+
+// Debug: tampilkan semua data POST
+error_log("POST data: " . print_r($_POST, true));
 
 // Inisialisasi variabel
 $error = null;
 $message = null;
 
+// Validasi input yang diperlukan
+if (!isset($_POST['status']) || !isset($_POST['tanggal']) || !isset($_POST['description']) || !isset($_POST['hewan_id'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Data yang diperlukan tidak lengkap'
+    ]);
+    exit;
+}
+
 // Proses tambah layanan medis
 $status = htmlspecialchars($_POST['status'], ENT_QUOTES);
 $tanggal = htmlspecialchars($_POST['tanggal'], ENT_QUOTES);
 $totalBiaya = floatval($_POST['total_biaya'] ?? 0);
-$description = htmlspecialchars($_POST['description'], ENT_QUOTES);
+$description = htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES);
 $hewan_id = htmlspecialchars($_POST['hewan_id'], ENT_QUOTES);
 $jenisLayananArray = $_POST['jenis_layanan'] ?? [];
 $obatList = json_decode($_POST['obat_list'] ?? '[]', true);
 
+// Debug: tampilkan data yang akan diproses
+error_log("Processed data: " . print_r([
+    'status' => $status,
+    'tanggal' => $tanggal,
+    'totalBiaya' => $totalBiaya,
+    'description' => $description,
+    'hewan_id' => $hewan_id,
+    'jenisLayananArray' => $jenisLayananArray,
+    'obatList' => $obatList
+], true));
+
 // Validasi input
+if (empty($description)) {
+    $error = "Description harus diisi.";
+}
+
 if ($status !== 'Scheduled' && empty($jenisLayananArray)) {
-    $error = "Jenis layanan harus dipilih.";
+    $error = "Jenis layanan harus dipilih untuk status non-scheduled.";
+}
+
+if (empty($hewan_id)) {
+    $error = "Pet harus dipilih.";
 }
 
 if (empty($error)) {
@@ -30,7 +79,7 @@ if (empty($error)) {
         $db->beginTransaction();
 
         // Format array jenis layanan untuk procedure
-        $jenisLayananString = $status !== 'Scheduled' 
+        $jenisLayananString = !empty($jenisLayananArray) 
             ? "ArrayJenisLayananMedis(" . implode(',', array_map(fn($id) => "'".addslashes($id)."'", $jenisLayananArray)) . ")"
             : "ArrayJenisLayananMedis()";
 
@@ -59,6 +108,10 @@ if (empty($error)) {
         $db->bind(':pegawai_id', $pegawaiId);
         $result = $db->single();
         $layananMedisId = $result['ID'];
+
+        if (!$layananMedisId) {
+            throw new Exception("Gagal mendapatkan ID layanan medis");
+        }
 
         // Jika ada obat yang perlu ditambahkan
         if (!empty($obatList)) {
@@ -95,14 +148,13 @@ if (empty($error)) {
         $db->commit();
         $message = "Layanan medis berhasil ditambahkan.";
 
-        // Redirect ke dashboard dengan pesan sukses
-        if (!empty($obatList)) {
-            // Jika ada obat, redirect ke halaman print resep
-            header("Location: print.php?id=" . urlencode($layananMedisId));
-        } else {
-            // Jika tidak ada obat, kembali ke dashboard
-            header("Location: dashboard.php?tab=medical-services&message=" . urlencode($message));
-        }
+        // Return response dalam format JSON
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'id' => $layananMedisId,
+            'message' => $message
+        ]);
         exit;
 
     } catch (Exception $e) {
@@ -110,15 +162,22 @@ if (empty($error)) {
         $error = "Terjadi kesalahan: " . $e->getMessage();
         error_log("Error in add-medical-services.php: " . $e->getMessage());
         
-        // Redirect dengan pesan error
-        header("Location: dashboard.php?tab=medical-services&error=" . urlencode($error));
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => $error
+        ]);
         exit;
     }
 }
 
-// Jika ada error, redirect kembali dengan pesan error
+// Jika ada error validasi, return dalam format JSON
 if ($error) {
-    header("Location: dashboard.php?tab=medical-services&error=" . urlencode($error));
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'message' => $error
+    ]);
     exit;
 }
 ?>
