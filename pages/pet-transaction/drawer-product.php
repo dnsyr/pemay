@@ -9,6 +9,19 @@ if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true)
 
 // Initialize database connection
 $db = new Database();
+
+// Fetch categories for filter
+$db->query("SELECT * FROM KategoriProduk WHERE ONDELETE = 0 ORDER BY NAMA");
+$categoriesProduk = $db->resultSet();
+
+// Fetch KategoriObat
+$db->query("SELECT * FROM KategoriObat WHERE ONDELETE = 0 ORDER BY NAMA");
+$categoriesObat = $db->resultSet();
+
+// Get current datetime in Indonesia/Jakarta timezone
+date_default_timezone_set('Asia/Jakarta');
+$currentDateTime = new DateTime();
+$minDateTime = $currentDateTime->format('Y-m-d\TH:i');
 ?>
 
 <!-- Add Transaction Drawer -->
@@ -20,14 +33,26 @@ $db = new Database();
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-bold text-lg text-[#363636]">Add Transaction</h3>
                 <label for="add_drawer" class="btn btn-sm btn-circle">✕</label>
-                </div>
+            </div>
 
             <form method="POST" class="space-y-6" id="transactionForm" action="add-product-transaction.php">
+                <!-- Transaction Date -->
+                <div class="form-control">
+                    <label for="transaction_date" class="label font-semibold">Transaction Date</label>
+                    <input type="datetime-local" 
+                           id="transaction_date" 
+                           name="transaction_date" 
+                           class="input input-bordered w-full" 
+                           min="<?php echo $minDateTime; ?>" 
+                           value="<?php echo $minDateTime; ?>" 
+                           required>
+                </div>
+
                 <!-- Customer Selection -->
                 <div class="form-control">
                     <label for="customer_id" class="label font-semibold">Customer</label>
-                    <select name="customer_id" id="customer_id" class="select select-bordered w-full" required>
-                        <option value="">Pilih Customer</option>
+                    <select name="customer_id" id="customer_id" class="select2 select select-bordered w-full">
+                        <option value="">Non-Member</option>
                         <?php 
                         $db->query("SELECT ID, NAMA FROM PemilikHewan WHERE onDelete = 0 ORDER BY NAMA");
                         $customers = $db->resultSet();
@@ -42,48 +67,28 @@ $db = new Database();
                 <div class="form-control">
                     <label class="label font-semibold">Cari & Tambah Produk</label>
                     <div class="grid grid-cols-2 gap-4 mb-4">
-                        <!-- Kategori Produk Selection -->
-                        <div class="form-control">
-                            <select name="kategori_produk" id="kategori_produk" class="select select-bordered w-full">
-                                <option value="">Pilih Kategori Produk</option>
-                                <?php
-                                $db->query("SELECT ID, NAMA FROM KategoriProduk WHERE onDelete = 0 ORDER BY NAMA");
-                                $kategoriProdukList = $db->resultSet();
-                                foreach ($kategoriProdukList as $kp): ?>
-                                    <option value="<?php echo htmlentities($kp['ID']); ?>">
-                                        <?php echo htmlentities($kp['NAMA']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <!-- Category Type Selection -->
+                        <select name="category_type" class="select2 select select-bordered w-full">
+                            <option value="">Pilih Tipe Kategori</option>
+                            <option value="produk">Produk</option>
+                            <option value="obat">Obat</option>
+                        </select>
 
-                        <!-- Kategori Obat Selection -->
-                        <div class="form-control">
-                            <select name="kategori_obat" id="kategori_obat" class="select select-bordered w-full">
-                                <option value="">Pilih Kategori Obat</option>
-                        <?php
-                                $db->query("SELECT ID, NAMA FROM KategoriObat WHERE onDelete = 0 ORDER BY NAMA");
-                                $kategoriObatList = $db->resultSet();
-                                foreach ($kategoriObatList as $ko): ?>
-                                    <option value="<?php echo htmlentities($ko['ID']); ?>">
-                                        <?php echo htmlentities($ko['NAMA']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <!-- Category Selection -->
+                        <select name="category" class="select2 select select-bordered w-full" disabled>
+                            <option value="">Pilih Kategori</option>
+                        </select>
                     </div>
 
-                    <!-- Product Search -->
-                    <div class="mb-4">
-                        <select name="search_product" id="search_product" class="select select-bordered w-full">
-                            <option value="">Cari Produk</option>
-                            </select>
-                        </div>
+                    <!-- Product Selection -->
+                    <select name="product" class="select2 select select-bordered w-full mb-4" disabled>
+                        <option value="">Pilih Produk</option>
+                    </select>
 
-                    <!-- Selected Products -->
+                    <!-- Selected Products Table -->
                     <div class="overflow-x-auto">
                         <label class="label font-semibold">Produk Terpilih</label>
-                        <table class="table w-full" id="productTable">
+                        <table class="table w-full">
                             <thead>
                                 <tr class="bg-[#D4F0EA]">
                                     <th class="text-left">Nama Produk</th>
@@ -93,7 +98,7 @@ $db = new Database();
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="selectedProductsBody">
+                            <tbody id="selected_products">
                                 <!-- Selected products will be shown here -->
                             </tbody>
                         </table>
@@ -103,12 +108,12 @@ $db = new Database();
                 <!-- Total -->
                 <div class="form-control">
                     <label class="label font-semibold">Total Biaya</label>
-                    <div class="text-xl font-bold">Rp <span id="total_biaya">0</span></div>
+                    <div class="text-xl font-bold">Rp <span id="total_amount">0</span></div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="flex gap-4">
-                    <button type="submit" name="submit" class="btn bg-[#D4F0EA] hover:bg-[#B2E0D6] text-[#363636] border-[#363636]">
+                    <button type="submit" class="btn bg-[#D4F0EA] hover:bg-[#B2E0D6] text-[#363636] border-[#363636]">
                         Simpan Transaksi
                     </button>
                     <label for="add_drawer" class="btn btn-outline">Batal</label>
@@ -118,272 +123,309 @@ $db = new Database();
     </div>
 </div>
 
-<!-- Include Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<!-- Include Select2 JS -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<style>
-.select2-container {
-    width: 100% !important;
-    z-index: 10000;
-}
-.select2-dropdown {
-    z-index: 10001;
-}
-.drawer-side {
-    z-index: 9999;
-}
-.select2-container .select2-selection--single {
-    height: 40px !important;
-    padding: 6px 8px;
-    border-radius: 0.5rem;
-    border-color: hsl(var(--bc) / 0.2);
-    background-color: #fff;
-}
-.select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 38px !important;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 28px !important;
-    padding-left: 0;
-}
-.select2-search__field {
-    padding: 8px !important;
-    border-radius: 0.375rem !important;
-}
-.select2-container--default .select2-search--dropdown .select2-search__field {
-    border: 1px solid hsl(var(--bc) / 0.2);
-}
-.select2-results__option {
-    padding: 8px !important;
-}
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: #D4F0EA;
-    color: #363636;
-}
-</style>
-
 <script>
-let selectedProducts = new Map(); // To store selected products
-
-function updateTotal() {
+// Definisikan fungsi hitungTotal di awal script
+function hitungTotal() {
+    console.log('Menghitung total...');
     let total = 0;
-    selectedProducts.forEach(product => {
-        total += product.HARGA * product.quantity;
+    
+    // Iterasi setiap baris produk
+    $('#selected_products tr').each(function() {
+        const priceText = $(this).find('.product-price').text();
+        const quantity = parseInt($(this).find('input[type="number"]').val()) || 0;
+        
+        // Ekstrak angka dari format "Rp X.XXX.XXX"
+        const price = parseInt(priceText.replace(/[^\d]/g, '')) || 0;
+        
+        const subtotal = price * quantity;
+        console.log('Price:', price, 'Quantity:', quantity, 'Subtotal:', subtotal);
+        
+        // Update subtotal untuk baris ini
+        $(this).find('.product-subtotal').text(`Rp ${formatNumber(subtotal)}`);
+        
+        total += subtotal;
     });
     
-    const totalElement = document.getElementById('total_biaya');
-    if (totalElement) {
-        totalElement.textContent = total.toLocaleString('id-ID');
+    console.log('Total akhir:', total);
+    $('#total_amount').text(formatNumber(total));
+}
+
+function formatNumber(number) {
+    return new Intl.NumberFormat('id-ID').format(number);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if jQuery is loaded
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded!');
+        return;
     }
-}
 
-function addProduct(product) {
-    selectedProducts.set(product.ID, {
-        ...product,
-        quantity: 1
-    });
-    updateSelectedProductsTable();
-}
-
-function removeProduct(productId) {
-    selectedProducts.delete(productId);
-    updateSelectedProductsTable();
-}
-
-function updateQuantity(productId, newQuantity) {
-    const product = selectedProducts.get(productId);
-    if (product) {
-        product.quantity = parseInt(newQuantity);
-        selectedProducts.set(productId, product);
-        updateTotal();
-    }
-}
-
-function updateSelectedProductsTable() {
-    let html = '';
-    selectedProducts.forEach((product, id) => {
-        html += `
-            <tr>
-                <td>${product.NAMA}</td>
-                <td class="text-right">Rp ${parseInt(product.HARGA).toLocaleString('id-ID')}</td>
-                <td class="text-center">${product.JUMLAH}</td>
-                <td class="text-center">
-                    <input type="number" name="quantity[${id}]" 
-                           class="input input-bordered w-20 quantity-input" 
-                           min="1" value="${product.quantity}" 
-                           max="${product.JUMLAH}"
-                           data-harga="${product.HARGA}"
-                           onchange="updateQuantity('${id}', this.value)">
-                    <input type="hidden" name="produk[]" value="${id}">
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-error" onclick="removeProduct('${id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    if (html === '') {
-        html = '<tr><td colspan="5" class="text-center py-4">Belum ada produk yang dipilih.</td></tr>';
-    }
-    
-    document.getElementById('selectedProductsBody').innerHTML = html;
-    updateTotal();
-}
-
-function initSelect2() {
-    // Initialize basic select2
-    $('#customer_id').select2({
-        dropdownParent: $('.drawer-side'),
-        placeholder: "Pilih Customer",
-        allowClear: true,
-        width: '100%'
+    // Event delegation for quantity changes
+    $(document).on('input', '.quantity-input', function() {
+        console.log('Quantity changed');
+        hitungTotal();
     });
 
-    $('#kategori_produk').select2({
-        dropdownParent: $('.drawer-side'),
-        placeholder: "Pilih Kategori Produk",
-        allowClear: true,
-        width: '100%'
+    // Event delegation for remove buttons
+    $(document).on('click', '.remove-product', function() {
+        console.log('Removing product row');
+        $(this).closest('tr').remove();
+        renumberRows();
+        hitungTotal();
     });
 
-    $('#kategori_obat').select2({
-        dropdownParent: $('.drawer-side'),
-        placeholder: "Pilih Kategori Obat",
-        allowClear: true,
-        width: '100%'
+    // Initialize Select2 when drawer is opened
+    const drawer = document.getElementById('add_drawer');
+    const initSelect2 = () => {
+        console.log('Initializing Select2...');
+        
+        // Destroy existing Select2 instances if any
+        $('#customer_id').select2('destroy');
+        $('select[name="category_type"]').select2('destroy');
+        $('select[name="category"]').select2('destroy');
+        $('select[name="product"]').select2('destroy');
+        
+        // Reinitialize Select2
+        $('#customer_id').select2({
+            dropdownParent: document.querySelector('.drawer-side'),
+            width: '100%'
+        });
+
+        $('select[name="category_type"]').select2({
+            dropdownParent: document.querySelector('.drawer-side'),
+            width: '100%'
+        });
+
+        $('select[name="category"]').select2({
+            dropdownParent: document.querySelector('.drawer-side'),
+            width: '100%'
+        });
+
+        $('select[name="product"]').select2({
+            dropdownParent: document.querySelector('.drawer-side'),
+            width: '100%'
+        });
+    };
+
+    // Add event listener for drawer
+    drawer.addEventListener('change', function(e) {
+        if (e.target.checked) {
+            // Wait for drawer animation to complete
+            setTimeout(initSelect2, 300);
+        }
     });
 
-    // Initialize product search select2
-    $('#search_product').select2({
-        dropdownParent: $('.drawer-side'),
-        placeholder: "Cari Produk",
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: 'get-products.php',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return {
-                    search: params.term || '',
-                    kategori_produk: $('#kategori_produk').val() || '',
-                    kategori_obat: $('#kategori_obat').val() || ''
-                };
-            },
-            processResults: function(data) {
-                if (!data.success) {
-                    return { results: [] };
-                }
-                return {
-                    results: data.products.map(function(product) {
-                        return {
-                            id: product.ID,
-                            text: product.NAMA + ' (Stok: ' + product.JUMLAH + ') - Rp ' + parseInt(product.HARGA).toLocaleString('id-ID'),
-                            product: product
-                        };
-                    }).filter(function(item) {
-                        return !selectedProducts.has(item.id);
-                    })
-                };
-            },
-            cache: false
-        },
-        minimumInputLength: 0,
-        language: {
-            noResults: function() {
-                return "Tidak ada produk yang ditemukan";
-            },
-            searching: function() {
-                return "Mencari...";
-            },
-            errorLoading: function() {
-                return "Error memuat data";
+    const categoryTypeSelect = document.querySelector('select[name="category_type"]');
+    const categorySelect = document.querySelector('select[name="category"]');
+    const productSelect = document.querySelector('select[name="product"]');
+    const transactionDateInput = document.getElementById('transaction_date');
+
+    // Set default value for transaction date to current time in Asia/Jakarta
+    const now = new Date();
+    const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+    transactionDateInput.value = jakartaTime.toISOString().slice(0, 16);
+
+    // Validate transaction date
+    transactionDateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value);
+        const now = new Date();
+        
+        if (selectedDate < now) {
+            alert('Tidak dapat memilih waktu yang sudah lewat');
+            const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+            this.value = jakartaTime.toISOString().slice(0, 16);
+        }
+    });
+
+    if (categoryTypeSelect && categorySelect && productSelect) {
+        // Category Type Change Event
+        $(categoryTypeSelect).on('change', function() {
+            const selectedType = this.value;
+            $(categorySelect).prop('disabled', selectedType === '').trigger('change');
+            $(productSelect).prop('disabled', true).trigger('change');
+            
+            // Clear and update options
+            $(categorySelect).empty().append('<option value="">Pilih Kategori</option>');
+            $(productSelect).empty().append('<option value="">Pilih Produk</option>');
+
+            if (selectedType === 'produk') {
+                <?php foreach ($categoriesProduk as $category): ?>
+                    $(categorySelect).append(new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>'));
+                <?php endforeach; ?>
+            } else if (selectedType === 'obat') {
+                <?php foreach ($categoriesObat as $category): ?>
+                    $(categorySelect).append(new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>'));
+                <?php endforeach; ?>
             }
-        }
-    }).on('select2:select', function(e) {
-        if (e.params.data && e.params.data.product) {
-            addProduct(e.params.data.product);
-            $(this).val(null).trigger('change');
-        }
-    });
+            
+            $(categorySelect).prop('disabled', false).trigger('change');
+        });
 
-    // Reset other category when one is selected
-    $('#kategori_produk').on('change', function() {
-        if ($(this).val()) {
-            $('#kategori_obat').val(null).trigger('change');
-        }
-        $('#search_product').val(null).trigger('change');
-    });
+        // Category Change Event
+        $(categorySelect).on('change', function() {
+            const selectedCategory = this.value;
+            const selectedType = categoryTypeSelect.value;
+            
+            $(productSelect).prop('disabled', !selectedCategory).trigger('change');
+            $(productSelect).empty().append('<option value="">Pilih Produk</option>');
 
-    $('#kategori_obat').on('change', function() {
-        if ($(this).val()) {
-            $('#kategori_produk').val(null).trigger('change');
-        }
-        $('#search_product').val(null).trigger('change');
-    });
-}
-
-// Initialize when drawer opens
-$('#add_drawer').on('change', function() {
-    if (this.checked) {
-        setTimeout(function() {
-            try {
-                initSelect2();
-                console.log('Select2 initialized successfully');
-            } catch (error) {
-                console.error('Error initializing Select2:', error);
-            }
-        }, 100);
-    }
-});
-
-// Also initialize on document ready
-$(document).ready(function() {
-    updateTotal();
-    if ($('#add_drawer').prop('checked')) {
-        initSelect2();
-    }
-
-    // Handle form submission
-    $('#transactionForm').on('submit', function(e) {
-        e.preventDefault();
-
-        if (selectedProducts.size === 0) {
-            alert('Pilih setidaknya satu produk!');
-            return false;
-        }
-
-        // Submit form using AJAX
-        $.ajax({
-            url: $(this).attr('action'),
-            type: 'POST',
-            data: $(this).serialize(),
-            success: function(response) {
-                try {
-                    const data = JSON.parse(response);
-                    if (data.success) {
-                        // Close drawer
-                        document.getElementById('add_drawer').checked = false;
-                        // Refresh page to show new data
-                        window.location.reload();
-                    } else {
-                        alert(data.message || 'Terjadi kesalahan saat menyimpan transaksi');
+            if (selectedCategory) {
+                // Use get-products.php instead
+                fetch(`get-products.php?category_id=${selectedCategory}&category_type=${selectedType}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-                } catch (e) {
-                    console.error('Error parsing response:', e);
-                    alert('Terjadi kesalahan saat menyimpan transaksi');
-                }
-            },
-            error: function() {
-                alert('Terjadi kesalahan saat menyimpan transaksi');
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to fetch products');
+                    }
+                    
+                    data.products.forEach(product => {
+                        const option = new Option(
+                            `${product.NAMA} - Rp${parseInt(product.HARGA).toLocaleString('id-ID')} (Stock: ${product.JUMLAH})`,
+                            product.ID
+                        );
+                        option.dataset.productInfo = JSON.stringify(product);
+                        $(productSelect).append(option);
+                    });
+                    $(productSelect).prop('disabled', false).trigger('change');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat mengambil data produk: ' + error.message);
+                });
             }
         });
+
+        // Product Change Event
+        $(productSelect).on('change', function() {
+            const selectedProduct = this.value;
+            if (selectedProduct) {
+                const selectedOption = this.options[this.selectedIndex];
+                const productInfo = JSON.parse(selectedOption.dataset.productInfo);
+                
+                addProduct(productInfo.ID, productInfo.NAMA, productInfo.HARGA);
+                
+                $(this).val('').trigger('change');
+            }
+        });
+    }
+});
+
+function addProduct(productId, productName, productPrice) {
+    console.log('Adding product:', { productId, productName, productPrice });
+    
+    // Check if product already exists
+    if ($(`#selected_products tr[data-product-id="${productId}"]`).length) {
+        alert('Produk sudah ditambahkan');
+        return;
+    }
+
+    const $tbody = $('#selected_products');
+    const rowCount = $tbody.find('tr').length;
+    
+    const row = `
+        <tr data-product-id="${productId}">
+            <td>${productName}</td>
+            <td class="text-right product-price">Rp ${formatNumber(productPrice)}</td>
+            <td class="text-center">
+                <input type="number" 
+                       name="quantity[${productId}]" 
+                       class="input input-bordered w-20 text-center quantity-input" 
+                       value="1" 
+                       min="1"
+                       onchange="hitungTotal()">
+                <input type="hidden" name="produk[]" value="${productId}">
+                <input type="hidden" name="harga[${productId}]" value="${productPrice}">
+            </td>
+            <td class="text-right product-subtotal">Rp ${formatNumber(productPrice)}</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-error btn-sm remove-product">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+
+    $tbody.append(row);
+    hitungTotal();
+}
+
+function renumberRows() {
+    $('#selected_products tr').each(function(index) {
+        $(this).find('td:first').text(index + 1);
+    });
+}
+
+// Prevent form from submitting normally
+document.getElementById('transactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validate if products are selected
+    const products = document.querySelectorAll('#selected_products tr');
+    if (products.length === 0) {
+        alert('Silakan pilih minimal satu produk');
+        return;
+    }
+    
+    // Get form data
+    const formData = new FormData(this);
+    
+    // Add total amount to form data
+    const totalAmount = document.getElementById('total_amount').textContent.replace(/\./g, '');
+    formData.append('total_amount', totalAmount);
+    
+    // If no customer selected, set to null
+    if (!formData.get('customer_id')) {
+        formData.set('customer_id', null);
+    }
+    
+    // Submit form using fetch with proper headers
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text().then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Invalid JSON:', text);
+                throw new Error('Invalid server response');
+            }
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Transaksi berhasil disimpan');
+            location.reload();
+        } else {
+            throw new Error(data.message || 'Terjadi kesalahan saat menyimpan transaksi');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Terjadi kesalahan saat menyimpan transaksi');
     });
 });
-</script> 
+</script>
+
+<!-- Add custom styles for Select2 in drawer -->
+<style>
+.select2-container {
+    z-index: 9999;
+}
+.select2-dropdown {
+    z-index: 10000;
+}
+</style> 

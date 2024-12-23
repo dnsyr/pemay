@@ -74,7 +74,14 @@ if (in_array($currentUri, $petHotelUri) ||
     $isPetServicesActive = true;
 }
 
-$managementsActiveClass = $isManagementsActive ? $linkActive : '';
+$managementsActive = strpos($currentUri, 'product.php') !== false || 
+                    strpos($currentUri, 'category.php') !== false ||
+                    strpos($currentUri, 'pet-transaction.php') !== false;
+
+$managementsActiveClass = $managementsActive ? 
+    'bg-[#D4F0EA] text-[#363636] font-semibold px-4 py-2 rounded-lg' : 
+    'text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC] px-4 py-2 rounded-lg';
+
 $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 ?>
 
@@ -155,6 +162,9 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
               </li>
               <li>
                 <a href="/pemay/pages/customer/customer.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
+              </li>
+              <li>
+                <a href="/pemay/pages/pet-transaction/pet-transaction.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === 'pet-transaction.php') ? $linkActive : ''; ?>">Transaction</a>
               </li>
             </ul>
           </div>

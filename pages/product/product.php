@@ -78,8 +78,8 @@ $sql = "SELECT P.*,
                KP.Nama AS KATEGORIPRODUKNAMA, 
                KO.Nama AS KATEGORIOBATNAMA
         FROM Produk P
-        LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID
-        LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID" . 
+        LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
+        LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0" . 
         $searchQuery . 
         " ORDER BY P.JUMLAH ASC OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 
@@ -95,21 +95,20 @@ foreach ($params as $param => $value) {
 $stocks = $db->resultSet();
 
 // Fetch categories for filter
-// Fetch KategoriProduk
 $categoriesProduk = [];
-$db->query("SELECT * FROM KategoriProduk ORDER BY Nama");
+$db->query("SELECT * FROM KategoriProduk WHERE ONDELETE = 0 ORDER BY Nama");
 $categoriesProduk = $db->resultSet();
 
 // Fetch KategoriObat
 $categoriesObat = [];
-$db->query("SELECT * FROM KategoriObat ORDER BY Nama");
+$db->query("SELECT * FROM KategoriObat WHERE ONDELETE = 0 ORDER BY Nama");
 $categoriesObat = $db->resultSet();
 
 // Count total items for pagination
 $totalSql = "SELECT COUNT(*) AS TOTAL 
              FROM Produk P
-             LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID
-             LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID" . $searchQuery;
+             LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
+             LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0" . $searchQuery;
 
 $db->query($totalSql);
 foreach ($params as $param => $value) {
@@ -235,7 +234,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                                             ?>
                                         </td>
                                         <td class="<?= $index === count($stocks) - 1 ? 'rounded-br-xl' : '' ?>">
-                                            <div class="flex gap-3 justify-center items-center">
+                                            <div class="flex gap-3">
                                                 <!-- Update Button -->
                                                 <button type="button" class="drawer-btn btn btn-warning btn-sm" onclick="handleUpdateBtn('<?php echo $stock['ID']; ?>')">
                                                     <i class="fas fa-edit"></i>
@@ -432,13 +431,11 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 
                 if (selectedType === 'produk') {
                     <?php foreach ($categoriesProduk as $category): ?>
-                        const option = new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>');
-                        categorySelect.add(option);
+                        categorySelect.add(new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>'));
                     <?php endforeach; ?>
                 } else if (selectedType === 'obat') {
                     <?php foreach ($categoriesObat as $category): ?>
-                        const option = new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>');
-                        categorySelect.add(option);
+                        categorySelect.add(new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>'));
                     <?php endforeach; ?>
                 }
             });
