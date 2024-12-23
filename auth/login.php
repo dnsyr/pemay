@@ -53,10 +53,13 @@ if (!isset($_SESSION['captcha'])) {
 
 <body class="min-h-screen py-11 px-20">
   <div class="bg-[#E5E0DA] min-h-full flex w-full p-[1.5rem]">
-    <div class="bg-white rounded-[2rem] min-h-[80vh] w-[55%] py-8 px-12">
+    <div class="bg-white rounded-[2rem] min-h-[80vh] w-[55%] pt-8 px-12">
       <div class="flex flex-col gap-3 text-[#363636]">
         <p class="text-md font-semibold">Welcome to</p>
         <p class="text-2xl font-bold">Petshop Management System</p>
+      </div>
+      <div class="w-full h-auto mt-5">
+        <img class="w-full h-full" src="/pemay/public/img/pemay-logo.png" alt="pemay-logo">
       </div>
     </div>
     <div class="flex flex-col items-center justify-center w-[45%]">
@@ -98,7 +101,7 @@ if (!isset($_SESSION['captcha'])) {
 
           <div class="flex justify-between mt-3">
             <img src="generate-captcha.php" class="rounded-xl max-w-[50%] border border-[#565656]" alt="CAPTCHA">
-            <button class="btn bg-[#FCFCFC] w-[50%] rounded-full text-[#565656] text-xl text-extrabold italic hover:bg-[#565656] hover:text-[#FCFCFC]" type="submit">Login</button>
+            <button class="btn bg-[#FAF3E0] w-[50%] rounded-full text-[#565656] text-xl text-extrabold italic hover:bg-[#565656] hover:text-[#FCFCFC]" type="submit">Login</button>
           </div>
 
           <!-- Alert -->

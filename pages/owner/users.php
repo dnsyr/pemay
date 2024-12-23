@@ -43,7 +43,7 @@ ob_end_flush();
 <body>
   <div class="pb-6 px-12 text-[#363636]">
     <div class="flex justify-between mb-6">
-      <h2 class="text-3xl font-bold">Manage Employees</h2>
+      <h2 class="text-3xl font-bold italic">Manage Employees</h2>
 
       <!-- Alert -->
       <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
@@ -116,7 +116,7 @@ ob_end_flush();
     <div role="tablist" class="tabs tabs-lifted relative z-0">
       <input type="radio" name="my_tabs_2" role="tab" checked class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636]" aria-label="Employees" />
       <div role="tabpanel" class="tab-content  bg-[#FCFCFC] border-base-300 rounded-box p-6">
-        <p class="text-lg text-[#363636] font-semibold">Registered Employees</p>
+        <p class="text-lg text-[#363636] font-semibold italic">Registered Employees</p>
 
         <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171] mt-3">
           <table class="table border-collapse">
@@ -142,7 +142,7 @@ ob_end_flush();
                     <div class="flex gap-3 justify-center items-center">
                       <button
                         type="button"
-                        class="drawer-btn btn btn-warning btn-sm"
+                        class="btn btn-warning btn-sm"
                         onclick="handleUpdateBtn('<?php echo $user['USERNAME']; ?>')">
                         <i class="fas fa-edit"></i>
                       </button>
