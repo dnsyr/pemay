@@ -10,7 +10,10 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'vet') {
 }
 
 // Include the database connection
-include '../../config/connection.php';
+require_once '../../config/database.php';
+require_once '../../config/connection.php';
+
+$db = new Database();
 
 // Check if 'id' is provided in the URL
 if (isset($_GET['id'])) {

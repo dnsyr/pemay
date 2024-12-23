@@ -96,6 +96,17 @@ $isPetServicesActive = (
 
   <!-- Custom JS -->
   <script src="/pemay/public/js/drawer.js?v=<?php echo time(); ?>"></script>
+
+  <!-- Include Select2 CSS and JS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+        $('.select2').select2();
+    });
+  </script>
 </head>
 
 <body class="min-h-screen">

@@ -38,51 +38,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="action" value="add">
         
         <div class="form-control w-full">
-    <label class="label">
-        <span class="label-text">Status</span>
-    </label>
-    <div class="flex gap-4">
-        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-violet-100 hover:bg-violet-200">
-            <input type="radio" name="status" value="Scheduled" class="radio hidden" required>
-            <span class="text-sm font-medium">Scheduled</span>
-        </label>
-        
-        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-red-100 hover:bg-red-200">
-            <input type="radio" name="status" value="Emergency" class="radio hidden" required>
-            <span class="text-sm font-medium">Emergency</span>
-        </label>
-        
-        <label class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer bg-gray-100 hover:bg-gray-200">
-            <input type="radio" name="status" value="Finished" class="radio hidden" required>
-            <span class="text-sm font-medium">Finished</span>
-        </label>
-    </div>
-</div>
-
-<div class="form-control w-full">
-    <label class="label">
-        <span class="label-text">Tanggal</span>
-    </label>
-    <input type="datetime-local" class="input input-bordered w-full" 
-           id="tanggal" name="tanggal" 
-           value="<?= date('Y-m-d\TH:i'); ?>" 
-           step="1"
-           required>
-</div>
-
-        <div class="form-control w-full">
             <label class="label">
-                <span class="label-text">Deskripsi</span>
+                <span class="label-text font-semibold">Status</span>
             </label>
-            <textarea class="textarea textarea-bordered h-24" 
-                      id="description" name="description" required></textarea>
+            <div class="flex gap-4">
+                <input type="radio" name="status" value="Scheduled" class="hidden" id="scheduled" required>
+                <label for="scheduled" class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#E4E1F9] hover:bg-[#E4E1F9]/80 cursor-pointer border border-[#363636]">
+                    <div class="w-2 h-2 rounded-full border-2 border-[#363636]"></div>
+                    Scheduled
+                </label>
+                
+                <input type="radio" name="status" value="Emergency" class="hidden" id="emergency" required>
+                <label for="emergency" class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#FFE4E4] hover:bg-[#FFE4E4]/80 cursor-pointer border border-[#363636]">
+                    <div class="w-2 h-2 rounded-full border-2 border-[#363636]"></div>
+                    Emergency
+                </label>
+
+                <input type="radio" name="status" value="Finished" class="hidden" id="finished" required>
+                <label for="finished" class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-green-500 hover:bg-green-400 text-white cursor-pointer border border-[#363636]">
+                    <div class="w-2 h-2 rounded-full border-2 border-[#363636]"></div>
+                    Finished
+                </label>
+            </div>
         </div>
 
         <div class="form-control w-full">
             <label class="label">
-                <span class="label-text">Hewan</span>
+                <span class="label-text font-semibold">Date</span>
             </label>
-            <select class="select select-bordered w-full" id="hewan_id" name="hewan_id" required>
+            <input type="datetime-local" class="input input-bordered w-full" 
+                   id="tanggal" name="tanggal" 
+                   value="<?= date('Y-m-d\TH:i'); ?>" 
+                   step="1"
+                   required>
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text font-semibold">Description</span>
+            </label>
+            <textarea class="textarea textarea-bordered h-24" 
+                      id="description" name="description" 
+                      placeholder="Enter medical service description..."
+                      required></textarea>
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text font-semibold">Pet</span>
+            </label>
+            <select class="select2 select select-bordered w-full" id="hewan_id" name="hewan_id" required data-placeholder="Select pet">
+                <option value=""></option>
                 <?php foreach ($hewanList as $hewan): ?>
                     <option value="<?= htmlentities($hewan['ID']); ?>">
                         <?= htmlentities($hewan['NAMAHEWAN'] . ' (' . $hewan['SPESIES'] . ') - ' . $hewan['NAMAPEMILIK']); ?>
@@ -93,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div id="jenisLayananSection">
             <label class="label">
-                <span class="label-text">Jenis Layanan</span>
+                <span class="label-text font-semibold">Service Types</span>
             </label>
             <div class="space-y-2">
                 <?php foreach ($jenisLayananMedis as $layanan): ?>
@@ -104,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    value="<?= htmlentities($layanan['ID']); ?>" 
                                    data-biaya="<?= htmlentities($layanan['BIAYA']); ?>">
                             <span class="label-text"><?= htmlentities($layanan['NAMA']); ?> 
-                                - Biaya: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?></span>
+                                - Cost: Rp <?= number_format($layanan['BIAYA'], 0, ',', '.'); ?></span>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -113,60 +119,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div id="totalBiayaSection" class="form-control w-full">
             <label class="label">
-                <span class="label-text">Total Biaya</span>
+                <span class="label-text font-semibold">Total Cost</span>
             </label>
             <input type="number" class="input input-bordered w-full" 
                    id="total_biaya" name="total_biaya" readonly>
         </div>
 
-        <div class="divider">Informasi Obat</div>
+        <div class="divider">Medication Information</div>
 
         <div class="form-control w-full">
             <label class="label">
-                <span class="label-text">Apakah memerlukan obat?</span>
+                <span class="label-text font-semibold">Need Medication?</span>
             </label>
-            <select class="select select-bordered w-full" 
-                    id="obat_pertanyaan" name="obat_pertanyaan" required onchange="toggleObatForm()">
-                <option value="no">Tidak</option>
-                <option value="yes">Ya</option>
+            <select class="select2 select select-bordered w-full" 
+                    id="obat_pertanyaan" name="obat_pertanyaan" required 
+                    onchange="toggleObatForm()" data-placeholder="Select option">
+                <option value=""></option>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
             </select>
         </div>
 
         <div id="obatForm" class="hidden space-y-4">
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Nama Obat</span>
+                    <span class="label-text font-semibold">Medicine Name</span>
                 </label>
-                <input type="text" class="input input-bordered w-full" id="obat_nama" name="obat_nama">
+                <input type="text" class="input input-bordered w-full" 
+                       id="obat_nama" name="obat_nama"
+                       placeholder="Enter medicine name">
             </div>
 
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Dosis</span>
+                    <span class="label-text font-semibold">Dosage</span>
                 </label>
-                <input type="text" class="input input-bordered w-full" id="obat_dosis" name="obat_dosis">
+                <input type="text" class="input input-bordered w-full" 
+                       id="obat_dosis" name="obat_dosis"
+                       placeholder="Enter dosage (e.g., 2 tablets)">
             </div>
 
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Frekuensi</span>
+                    <span class="label-text font-semibold">Frequency</span>
                 </label>
-                <input type="text" class="input input-bordered w-full" id="obat_frekuensi" name="obat_frekuensi">
+                <input type="text" class="input input-bordered w-full" 
+                       id="obat_frekuensi" name="obat_frekuensi"
+                       placeholder="Enter frequency (e.g., 3 times a day)">
             </div>
 
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Instruksi</span>
+                    <span class="label-text font-semibold">Instructions</span>
                 </label>
-                <textarea class="textarea textarea-bordered" id="obat_instruksi" name="obat_instruksi"></textarea>
+                <textarea class="textarea textarea-bordered" 
+                          id="obat_instruksi" name="obat_instruksi"
+                          placeholder="Enter medication instructions..."></textarea>
             </div>
 
             <div class="form-control w-full">
                 <label class="label">
-                    <span class="label-text">Kategori Obat</span>
+                    <span class="label-text font-semibold">Medicine Category</span>
                 </label>
-                <select class="select select-bordered w-full" id="kategori_obat_id" name="kategori_obat_id">
-                    <option value="">-- Pilih Kategori Obat --</option>
+                <select class="select2 select select-bordered w-full" 
+                        id="kategori_obat_id" name="kategori_obat_id"
+                        data-placeholder="Select medicine category">
+                    <option value=""></option>
                     <?php foreach ($kategoriObatList as $kategori): ?>
                         <option value="<?= htmlentities($kategori['ID']); ?>">
                             <?= htmlentities($kategori['NAMA']); ?>
@@ -175,21 +193,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </select>
             </div>
 
-            <button type="button" class="btn btn-secondary" onclick="addObat()">Tambah Obat</button>
+            <button type="button" class="btn btn-secondary" onclick="addObat()">Add Medicine</button>
         </div>
 
         <!-- Tabel Daftar Obat -->
         <div id="obatListSection" class="hidden">
-            <div class="divider">Daftar Obat</div>
+            <div class="divider">Medicine List</div>
             <table class="table table-zebra w-full">
                 <thead>
                     <tr>
-                        <th>Nama Obat</th>
-                        <th>Dosis</th>
-                        <th>Frekuensi</th>
-                        <th>Instruksi</th>
-                        <th>Kategori</th>
-                        <th>Aksi</th>
+                        <th>Medicine Name</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                        <th>Instructions</th>
+                        <th>Category</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="obatTableBody">
@@ -199,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Tambahkan tombol print resep -->
     <div class="mt-4" id="printButtonSection">
         <button type="button" class="btn btn-secondary" onclick="printResep()" disabled>
-            Print Resep
+            Print Recipe
         </button>
     </div>
             <!-- Hidden input untuk menyimpan data obat -->
@@ -208,10 +226,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="divider"></div>
         
-        <button type="submit" class="btn btn-primary w-full">Simpan</button>
+        <button type="submit" class="btn btn-primary w-full">Save</button>
     </form>
 </div>
-
 <script>
     let obatList = [];
 
@@ -225,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const dividerObat = document.querySelector('.divider');
     
     if (status === 'Scheduled') {
-        // Sembunyikan hanya bagian obat
+        // Sembunyikan hanya bsagian obat
         obatPertanyaanSection.style.display = 'none';
         obatForm.classList.add('hidden');
         obatListSection.classList.add('hidden');
@@ -334,10 +351,51 @@ function toggleObatForm() {
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Select2
+        $('.select-bordered').select2({
+            width: '100%',
+            placeholder: $(this).data('placeholder'),
+            allowClear: true,
+            theme: 'classic'
+        });
+
+        // Initialize status buttons
+        const statusInputs = document.querySelectorAll('input[name="status"]');
+        const statusLabels = document.querySelectorAll('label[for^="scheduled"], label[for^="emergency"], label[for^="finished"]');
+
+        // Function to update circle state
+        function updateCircles() {
+            statusInputs.forEach(input => {
+                const label = document.querySelector(`label[for="${input.id}"]`);
+                if (label) {
+                    const circle = label.querySelector('div');
+                    if (circle) {
+                        if (input.checked) {
+                            circle.classList.add('bg-[#363636]');
+                        } else {
+                            circle.classList.remove('bg-[#363636]');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add click event to each label
+        statusLabels.forEach(label => {
+            label.addEventListener('click', function(e) {
+                e.preventDefault();
+                const input = document.getElementById(this.getAttribute('for'));
+                if (input) {
+                    input.checked = true;
+                    updateCircles();
+                    toggleJenisLayananSection();
+                }
+            });
+        });
+
+        // Set initial state
         document.querySelector('input[name="status"][value="Scheduled"]').checked = true;
-        document.querySelectorAll('input[name="status"]').forEach(radio => {
-        radio.addEventListener('change', toggleJenisLayananSection);
-    });
+        updateCircles();
         toggleJenisLayananSection();
         
         document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
@@ -369,7 +427,6 @@ function toggleObatForm() {
     tanggalInput.min = formattedDateTime;
 });
     function printResep() {
-    // Print hanya bisa dilakukan setelah layanan medis disimpan
     alert('Silakan simpan layanan medis terlebih dahulu untuk mencetak resep.');
 }
 </script>
