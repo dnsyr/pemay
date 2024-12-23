@@ -9,7 +9,7 @@ require_once '../../config/database.php';
 
 try {
     if (!isset($_POST['obat_id'])) {
-        throw new Exception('ID obat tidak ditemukan');
+        throw new Exception('Medicine ID not found');
     }
 
     $obatId = $_POST['obat_id'];
@@ -28,7 +28,7 @@ try {
     $row = oci_fetch_assoc($stmt);
     
     if (!$row) {
-        throw new Exception('Data obat tidak ditemukan');
+        throw new Exception('Medicine data not found');
     }
     
     $layananId = $row['LAYANANMEDIS_ID'];
@@ -40,7 +40,7 @@ try {
     
     if (!oci_execute($stmt, OCI_NO_AUTO_COMMIT)) {
         $e = oci_error($stmt);
-        throw new Exception('Gagal menghapus obat: ' . $e['message']);
+        throw new Exception('Failed to delete medicine: ' . $e['message']);
     }
 
     // Commit the transaction
@@ -51,7 +51,7 @@ try {
     oci_close($conn);
 
     // Redirect back to update form
-    header("Location: dashboard.php?layanan_id=" . $layananId . "&message=" . urlencode("Obat berhasil dihapus"));
+    header("Location: dashboard.php?layanan_id=" . $layananId . "&message=" . urlencode("Medicine successfully deleted"));
     exit();
 
 } catch (Exception $e) {

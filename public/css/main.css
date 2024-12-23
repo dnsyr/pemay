@@ -1,21 +1,48 @@
-/* Style untuk tab yang active */
-.tab[aria-checked="true"] {
-    background-color: #D4F0EA !important;
-    color: #363636 !important;
-    border-bottom-color: #D4F0EA !important;
+
+/* Style untuk tab panel */
+.tab-content {
+    background-color: white !important;
+    border: 1px solid #363636 !important;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1) !important;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
 }
 
-/* Style untuk tab yang inactive */
-.tab:not([aria-checked="true"]) {
-    background-color: #FFF8DC !important; /* Warna kuning pucat */
-    color: #363636 !important;
-    border-bottom-color: #FFF8DC !important;
+/* Style untuk tabs container */
+[role="tablist"] {
+    border-color: #363636 !important;
+}
+
+.tab {
+    border-color: #363636 !important;
 }
 
 /* Memastikan tabel dan kontennya tetap putih di dark mode */
 .table {
     background-color: white !important;
     color: #363636 !important;
+}
+
+/* Style untuk alignment tabel - dengan spesifisitas lebih tinggi */
+table.table thead th,
+table.table tbody td {
+    text-align: left !important;
+    padding: 8px !important;
+}
+
+/* Khusus untuk kolom nomor dan action dengan spesifisitas lebih tinggi */
+table.table thead th:first-child,
+table.table tbody td:first-child,
+table.table thead th:last-child,
+table.table tbody td:last-child {
+    text-align: center !important;
+}
+
+/* Khusus untuk badges tetap di tengah */
+table.table td .badge {
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 .tab-content {
@@ -87,11 +114,8 @@
     color: #6B7280 !important;
 }
 
-/* Center align all table cells */
 .table th,
 .table td {
-    text-align: center !important;
-    vertical-align: middle !important;
     padding: 8px !important;
 }
 

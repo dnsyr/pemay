@@ -16,7 +16,7 @@ if (isset($_GET['id']) && isset($_GET['type']) && isset($_GET['tab'])) {
     $filterNamaPemilik = trim($_GET['nama_pemilik'] ?? '');
 
     if (!preg_match('/^[a-f0-9\-]{36}$/i', $deleteId)) {
-        $_SESSION['error_message'] = 'Format ID tidak valid.';
+        $_SESSION['error_message'] = 'Invalid ID format.';
         header("Location: dashboard.php?tab={$currentTab}&page={$currentPage}&nama_hewan=" . urlencode($filterNamaHewan) . "&nama_pemilik=" . urlencode($filterNamaPemilik));
         exit();
     }
@@ -44,19 +44,19 @@ if (isset($_GET['id']) && isset($_GET['type']) && isset($_GET['tab'])) {
             }
 
             $messageText = $type === 'medical' 
-                ? 'Layanan Medis berhasil dihapus.' 
-                : 'Obat berhasil dihapus.';
+                ? 'Medical service successfully deleted.' 
+                : 'Medicine successfully deleted.';
             $_SESSION['success_message'] = $messageText;
         } else {
             $error = oci_error($stmtDelete);
-            $_SESSION['error_message'] = 'Gagal menghapus: ' . htmlentities($error['message']);
+            $_SESSION['error_message'] = 'Failed to delete: ' . htmlentities($error['message']);
         }
         oci_free_statement($stmtDelete);
     } else {
-        $_SESSION['error_message'] = 'Tipe record tidak valid untuk penghapusan.';
+        $_SESSION['error_message'] = 'Invalid record type for deletion.';
     }
 } else {
-    $_SESSION['error_message'] = 'Parameter yang diperlukan tidak lengkap.';
+    $_SESSION['error_message'] = 'Required parameters are incomplete.';
 }
 
 oci_close($conn);

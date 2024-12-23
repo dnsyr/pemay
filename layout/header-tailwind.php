@@ -50,7 +50,7 @@ $categoryUri = [
 ];
 
 // manage customer uri
-$customerUri = ["/pemay/pages/category/category.php"];
+$customerUri = ["/pemay/pages/customer/customer.php"];
 
 // reports uri
 $reportUri = "/pemay/pages/owner/reports.php";
@@ -58,18 +58,35 @@ $reportUri = "/pemay/pages/owner/reports.php";
 $role = $_SESSION['posisi'];
 $linkActive = 'underline-offset-[5px] underline decoration-[#565656] decoration-2';
 
-$isManagementsActive = (
+$isManagementsActive = false;
+if (
   in_array($currentUri, $usersUri) ||
   in_array($currentUri, $productUris) ||
   in_array($currentUri, $categoryUri) ||
   in_array($currentUri, $customerUri)
-) ? $linkActive : '';
+) {
+  $isManagementsActive = true;
+}
 
-$isPetServicesActive = (
+// Perbaikan logika untuk active state Pet Services
+$isPetServicesActive = false;
+if (
   in_array($currentUri, $petHotelUri) ||
   in_array($currentUri, $petSalonUri) ||
   in_array($currentUri, $petMedicalUri)
-) ? $linkActive : '';
+) {
+  $isPetServicesActive = true;
+}
+
+$managementsActive = strpos($currentUri, 'product.php') !== false ||
+  strpos($currentUri, 'category.php') !== false ||
+  strpos($currentUri, 'pet-transaction.php') !== false;
+
+$managementsActiveClass = $managementsActive ?
+  'bg-[#D4F0EA] text-[#363636] font-semibold px-4 py-2 rounded-lg' :
+  'text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC] px-4 py-2 rounded-lg';
+
+$petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 ?>
 
 <!DOCTYPE html>

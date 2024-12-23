@@ -5,10 +5,10 @@ ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'add') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid request method or action'
+        'message' => 'Invalid request method'
     ]);
     exit;
 }
@@ -22,28 +22,28 @@ $pegawaiId = $_SESSION['employee_id'] ?? null;
 if (!$pegawaiId) {
     echo json_encode([
         'success' => false,
-        'message' => 'Session tidak valid'
+        'message' => 'Invalid session'
     ]);
     exit;
 }
 
-// Debug: tampilkan semua data POST
+// Debug: log all POST data
 error_log("POST data: " . print_r($_POST, true));
 
-// Inisialisasi variabel
+// Initialize variables
 $error = null;
 $message = null;
 
-// Validasi input yang diperlukan
+// Validate required inputs
 if (!isset($_POST['status']) || !isset($_POST['tanggal']) || !isset($_POST['description']) || !isset($_POST['hewan_id'])) {
     echo json_encode([
         'success' => false,
-        'message' => 'Data yang diperlukan tidak lengkap'
+        'message' => 'Required data is incomplete'
     ]);
     exit;
 }
 
-// Proses tambah layanan medis
+// Process medical service addition
 $status = htmlspecialchars($_POST['status'], ENT_QUOTES);
 $tanggal = htmlspecialchars($_POST['tanggal'], ENT_QUOTES);
 $totalBiaya = floatval($_POST['total_biaya'] ?? 0);
@@ -51,8 +51,9 @@ $description = htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES);
 $hewan_id = htmlspecialchars($_POST['hewan_id'], ENT_QUOTES);
 $jenisLayananArray = $_POST['jenis_layanan'] ?? [];
 $obatList = json_decode($_POST['obat_list'] ?? '[]', true);
+$saveAction = $_POST['action'] ?? 'save';
 
-// Debug: tampilkan data yang akan diproses
+// Debug: log processed data
 error_log("Processed data: " . print_r([
     'status' => $status,
     'tanggal' => $tanggal,
@@ -60,39 +61,40 @@ error_log("Processed data: " . print_r([
     'description' => $description,
     'hewan_id' => $hewan_id,
     'jenisLayananArray' => $jenisLayananArray,
-    'obatList' => $obatList
+    'obatList' => $obatList,
+    'saveAction' => $saveAction
 ], true));
 
-// Validasi input
+// Validate input
 if (empty($description)) {
-    $error = "Description harus diisi.";
+    $error = "Description is required.";
 }
 
 if ($status !== 'Scheduled' && empty($jenisLayananArray)) {
-    $error = "Jenis layanan harus dipilih untuk status non-scheduled.";
+    $error = "Service type must be selected for non-scheduled status.";
 }
 
 if (empty($hewan_id)) {
-    $error = "Pet harus dipilih.";
+    $error = "Pet must be selected.";
 }
 
 if (empty($error)) {
     try {
         $db->beginTransaction();
 
-        // Format array jenis layanan untuk procedure
+        // Format service type array for procedure
         $jenisLayananString = !empty($jenisLayananArray) 
             ? "ArrayJenisLayananMedis(" . implode(',', array_map(fn($id) => "'".addslashes($id)."'", $jenisLayananArray)) . ")"
             : "ArrayJenisLayananMedis()";
 
-        // Format tanggal untuk Oracle TIMESTAMP
+        // Format date for Oracle TIMESTAMP
         $tanggalObj = DateTime::createFromFormat('Y-m-d\TH:i', $tanggal);
         if ($tanggalObj === false) {
-            throw new Exception("Format tanggal tidak valid");
+            throw new Exception("Invalid date format");
         }
         $tanggalFormatted = $tanggalObj->format('Y-m-d H:i:s.u');
 
-        // Eksekusi CreateLayananMedis
+        // Execute CreateLayananMedis
         $sql = "BEGIN CreateLayananMedis(TO_TIMESTAMP(:tanggal, 'YYYY-MM-DD HH24:MI:SS.FF'), :totalBiaya, :description, :status, $jenisLayananString, :pegawai_id, :hewan_id); END;";
         
         $db->query($sql);
@@ -112,25 +114,25 @@ if (empty($error)) {
         $layananMedisId = $result['ID'];
 
         if (!$layananMedisId) {
-            throw new Exception("Gagal mendapatkan ID layanan medis");
+            throw new Exception("Failed to get medical service ID");
         }
 
-        // Jika ada obat yang perlu ditambahkan
+        // If there are medicines to add
         if (!empty($obatList)) {
             foreach ($obatList as $obat) {
-                // Generate ID untuk resep obat menggunakan SYS_GUID
+                // Generate ID for medicine prescription using SYS_GUID
                 $db->query("SELECT RAWTOHEX(SYS_GUID()) as new_id FROM dual");
                 $result = $db->single();
                 $guidHex = $result['NEW_ID'];
                 
-                // Format GUID dengan strip
+                // Format GUID with dashes
                 $obatId = substr($guidHex, 0, 8) . '-' . 
                          substr($guidHex, 8, 4) . '-' . 
                          substr($guidHex, 12, 4) . '-' . 
                          substr($guidHex, 16, 4) . '-' . 
                          substr($guidHex, 20);
 
-                // Insert resep obat
+                // Insert medicine prescription
                 $sqlObat = "INSERT INTO ResepObat (ID, LayananMedis_ID, Nama, Dosis, Frekuensi, Instruksi, KategoriObat_ID, Harga, onDelete) 
                            VALUES (:id, :layanan_medis_id, :nama, :dosis, :frekuensi, :instruksi, :kategori_obat_id, 0, 0)";
                 
@@ -148,20 +150,25 @@ if (empty($error)) {
         }
 
         $db->commit();
-        $message = "Layanan medis berhasil ditambahkan.";
+        $message = "Medical service has been successfully added.";
 
-        // Return response dalam format JSON
+        // Return response in JSON format with appropriate redirect
+        $redirectUrl = ($saveAction === 'save_and_print') 
+            ? "/pemay/pages/pet-medical/print.php?id=" . $layananMedisId
+            : "dashboard.php?message=" . urlencode($message);
+
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true,
             'id' => $layananMedisId,
-            'message' => $message
+            'message' => $message,
+            'redirect' => $redirectUrl
         ]);
         exit;
 
     } catch (Exception $e) {
         $db->rollBack();
-        $error = "Terjadi kesalahan: " . $e->getMessage();
+        $error = "An error occurred: " . $e->getMessage();
         error_log("Error in add-medical-services.php: " . $e->getMessage());
         
         header('Content-Type: application/json');
@@ -173,7 +180,7 @@ if (empty($error)) {
     }
 }
 
-// Jika ada error validasi, return dalam format JSON
+// If there's a validation error, return in JSON format
 if ($error) {
     header('Content-Type: application/json');
     echo json_encode([

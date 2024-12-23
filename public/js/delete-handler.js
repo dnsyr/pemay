@@ -1,6 +1,6 @@
 // Handler untuk delete record
 function deleteRecord(id, type) {
-    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+    if (confirm('Are u sure want to delete this record?')) {
         const currentPage = document.querySelector('input[name="page"]')?.value || 1;
         const namaHewan = document.querySelector('select[name="nama_hewan"]')?.value || '';
         const namaPemilik = document.querySelector('select[name="nama_pemilik"]')?.value || '';

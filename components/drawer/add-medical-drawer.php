@@ -13,7 +13,7 @@
                         <label for="my-drawer" class="btn btn-sm btn-circle">✕</label>
                     </div>
                     
-                    <form method="POST" action="add-medical-services.php" class="space-y-4" id="addMedicalForm">
+                    <form method="POST" action="/pemay/pages/pet-medical/add-medical-services.php" class="space-y-4" id="addMedicalForm">
                         <!-- Status Section -->
                         <div class="form-control w-full">
                             <label class="label">
@@ -127,11 +127,11 @@
                                 <table class="table w-full bg-white">
                                     <thead class="bg-white">
                                         <tr>
-                                            <th class="text-black">Nama Obat</th>
-                                            <th class="text-black">Dosis</th>
-                                            <th class="text-black">Frekuensi</th>
-                                            <th class="text-black">Kategori</th>
-                                            <th class="text-black">Aksi</th>
+                                            <th class="text-black">Medicine Name</th>
+                                            <th class="text-black">Dosage</th>
+                                            <th class="text-black">Frequency</th>
+                                            <th class="text-black">Category</th>
+                                            <th class="text-black">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="addObatTableBody" class="bg-white">
@@ -151,28 +151,28 @@
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text text-black">Nama Obat</span>
+                                        <span class="label-text text-black">Medicine Name</span>
                                     </label>
-                                    <input type="text" id="addNamaObat" class="input input-bordered bg-white text-black" placeholder="Masukkan nama obat">
+                                    <input type="text" id="addNamaObat" class="input input-bordered bg-white text-black" placeholder="Enter medicine name">
                                 </div>
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text text-black">Dosis</span>
+                                        <span class="label-text text-black">Dosage</span>
                                     </label>
-                                    <input type="text" id="addDosisObat" class="input input-bordered bg-white text-black" placeholder="Masukkan dosis">
+                                    <input type="text" id="addDosisObat" class="input input-bordered bg-white text-black" placeholder="Enter dosage">
                                 </div>
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text text-black">Frekuensi</span>
+                                        <span class="label-text text-black">Frequency</span>
                                     </label>
-                                    <input type="text" id="addFrekuensiObat" class="input input-bordered bg-white text-black" placeholder="Masukkan frekuensi">
+                                    <input type="text" id="addFrekuensiObat" class="input input-bordered bg-white text-black" placeholder="Enter frequency">
                                 </div>
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text text-black">Kategori</span>
+                                        <span class="label-text text-black">Category</span>
                                     </label>
                                     <select id="addKategoriObat" class="select2 select select-bordered bg-white text-black">
-                                        <option value="">Pilih Kategori</option>
+                                        <option value="">Select Category</option>
                                         <?php
                                         $db = new Database();
                                         $db->query("SELECT ID, Nama FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama");
@@ -187,9 +187,9 @@
                             </div>
                             <div class="form-control mb-4">
                                 <label class="label">
-                                    <span class="label-text text-black">Instruksi</span>
+                                    <span class="label-text text-black">Instructions</span>
                                 </label>
-                                <textarea id="addInstruksiObat" class="textarea textarea-bordered bg-white text-black" placeholder="Masukkan instruksi"></textarea>
+                                <textarea id="addInstruksiObat" class="textarea textarea-bordered bg-white text-black" placeholder="Enter instructions"></textarea>
                             </div>
                             <div class="flex justify-end gap-2">
                                 <button type="button" class="btn btn-ghost" onclick="hideObatForm()">Cancel</button>
@@ -201,7 +201,8 @@
 
                         <div class="flex justify-end gap-2 mt-6">
                             <label for="my-drawer" class="btn btn-ghost">Cancel</label>
-                            <button type="submit" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">Save</button>
+                            <button type="submit" name="action" value="save" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">Save</button>
+                            <button type="submit" name="action" value="save_and_print" id="saveAndPrintBtn" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]" disabled>Save and Print</button>
                         </div>
                     </form>
                 </div>
@@ -214,6 +215,16 @@
 /* Style for radio button dots */
 input[type="radio"]:checked + .radio-dot {
     background-color: #363636;
+}
+
+/* Style for disabled buttons */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+
+button:not(:disabled) {
+    cursor: pointer !important;
 }
 
 /* Style for status labels */
@@ -323,6 +334,14 @@ function updateObatList() {
         });
     });
     document.getElementById('addObatListData').value = JSON.stringify(obatList);
+    
+    // Enable/disable Save and Print button based on obat list
+    const saveAndPrintBtn = document.getElementById('saveAndPrintBtn');
+    if (obatList.length > 0) {
+        saveAndPrintBtn.removeAttribute('disabled');
+    } else {
+        saveAndPrintBtn.setAttribute('disabled', 'disabled');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -367,5 +386,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set tanggal minimum saat halaman dimuat
     setMinDateTime();
+
+    // Inisialisasi status tombol Save and Print
+    const saveAndPrintBtn = document.getElementById('saveAndPrintBtn');
+    saveAndPrintBtn.setAttribute('disabled', 'disabled');
 });
 </script> 
