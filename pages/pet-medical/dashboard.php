@@ -18,9 +18,8 @@ require_once '../../layout/header-tailwind.php';
 <link rel="stylesheet" href="/pemay/public/css/main.css">
 
 <!-- Include JavaScript handlers -->
-<script src="/pemay/public/js/handlers/drawer-handlers.js"></script>
-<script src="/pemay/public/js/handlers/delete-handler.js"></script>
-<script src="/pemay/public/js/handlers/tab-handler.js"></script>
+<script src="/pemay/public/js/drawer-handlers.js"></script>
+<script src="/pemay/public/js/delete-handler.js"></script>
 
 <style>
     /* Style untuk mengatur warna background dan teks */
@@ -54,6 +53,18 @@ require_once '../../layout/header-tailwind.php';
     /* Override untuk label dan teks */
     label, span, p, h1, h2, h3, h4, h5, h6 {
         color: black !important;
+    }
+        /* Style untuk tab */
+        .tab.tab-active {
+        background-color: #D4F0EA !important;
+        border-color: #363636 !important;
+        color: #363636 !important;
+    }
+
+    .tab:not(.tab-active) {
+        background-color: #FFF8E7 !important;
+        border-color: #FFF8E7 !important;
+        color: #363636 !important;
     }
 </style>
 
@@ -374,12 +385,11 @@ if ($tab === 'obat') {
     <!-- Tab Navigation -->
     <div role="tablist" class="tabs tabs-lifted">
         <!-- Medical Services Tab -->
-        <input type="radio" name="my_tabs_2" role="tab" 
-               class="tab" 
-               aria-label="Medical Services"
-               value="medical-services"
-               <?= $tab === 'medical-services' ? 'checked' : '' ?>>
-        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+        <a href="dashboard.php?tab=medical-services" 
+           class="tab <?= $tab === 'medical-services' ? 'tab-active' : '' ?>">
+           Medical Services
+        </a>
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 <?= $tab === 'medical-services' ? 'block' : 'hidden' ?>">
             <!-- Medical Services Content -->
             <div class="flex flex-col gap-4">
                 <!-- Medical Services Table -->
@@ -459,13 +469,11 @@ if ($tab === 'obat') {
         </div>
 
         <!-- Medications Tab -->
-        <input type="radio" name="my_tabs_2" role="tab" 
-               class="tab" 
-               aria-label="Medications"
-               value="obat"
-               onclick="window.location.href='?tab=obat'"
-               <?= $tab === 'obat' ? 'checked' : '' ?>>
-        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+        <a href="dashboard.php?tab=obat"
+           class="tab <?= $tab === 'obat' ? 'tab-active' : '' ?>">
+           Medications
+        </a>
+        <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 <?= $tab === 'obat' ? 'block' : 'hidden' ?>">
             <!-- Medications Content -->
             <div class="flex flex-col gap-4">
                 <!-- Medications Table -->
@@ -594,3 +602,12 @@ if ($isVet) {
         </div>
     </div>
 </dialog>
+
+<!-- Script untuk menutup drawer saat ada pesan sukses -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('.alert-success')) {
+            document.getElementById('my-drawer').checked = false;
+        }
+    });
+</script>

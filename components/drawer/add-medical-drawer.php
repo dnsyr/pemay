@@ -13,7 +13,7 @@
                         <label for="my-drawer" class="btn btn-sm btn-circle">✕</label>
                     </div>
                     
-                    <form method="POST" action="add-medical-services.php" class="space-y-4" id="addMedicalForm">
+                    <form method="POST" action="/pemay/pages/pet-medical/add-medical-services.php" class="space-y-4" id="addMedicalForm">
                         <!-- Status Section -->
                         <div class="form-control w-full">
                             <label class="label">
@@ -202,7 +202,7 @@
                         <div class="flex justify-end gap-2 mt-6">
                             <label for="my-drawer" class="btn btn-ghost">Cancel</label>
                             <button type="submit" name="action" value="save" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">Save</button>
-                            <button type="submit" name="action" value="save_and_print" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">Save and Print</button>
+                            <button type="submit" name="action" value="save_and_print" id="saveAndPrintBtn" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]" disabled>Save and Print</button>
                         </div>
                     </form>
                 </div>
@@ -215,6 +215,16 @@
 /* Style for radio button dots */
 input[type="radio"]:checked + .radio-dot {
     background-color: #363636;
+}
+
+/* Style for disabled buttons */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+
+button:not(:disabled) {
+    cursor: pointer !important;
 }
 
 /* Style for status labels */
@@ -324,6 +334,14 @@ function updateObatList() {
         });
     });
     document.getElementById('addObatListData').value = JSON.stringify(obatList);
+    
+    // Enable/disable Save and Print button based on obat list
+    const saveAndPrintBtn = document.getElementById('saveAndPrintBtn');
+    if (obatList.length > 0) {
+        saveAndPrintBtn.removeAttribute('disabled');
+    } else {
+        saveAndPrintBtn.setAttribute('disabled', 'disabled');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -368,5 +386,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set tanggal minimum saat halaman dimuat
     setMinDateTime();
+
+    // Inisialisasi status tombol Save and Print
+    const saveAndPrintBtn = document.getElementById('saveAndPrintBtn');
+    saveAndPrintBtn.setAttribute('disabled', 'disabled');
 });
 </script> 

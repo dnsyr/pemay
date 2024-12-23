@@ -50,7 +50,7 @@ $categoryUri = [
 ];
 
 // manage customer uri
-$customerUri = ["/pemay/pages/category/category.php"];
+$customerUri = ["/pemay/pages/customer/customer.php"];
 
 // reports uri
 $reportUri = "/pemay/pages/owner/reports.php";
