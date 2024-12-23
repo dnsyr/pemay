@@ -1,25 +1,22 @@
 <?php
 session_start();
-ob_start(); // Tambahkan output buffering
-require_once '../../config/database.php';
-require_once '../../layout/header-tailwind.php';
+ob_start();
 
-$db = new Database();
-$success_message = '';
-$error_message = '';
+// Cek jika form disubmit dan redirect ke customer.php
+if (isset($_POST['add'])) {
+    require_once '../../config/database.php';
+    $db = new Database();
+    
+    $nama = $_POST['nama'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $nomorTelpon = $_POST['nomortelpon'] ?? '';
 
-// Ambil data customer untuk ditampilkan di tabel
-$searchCustomer = isset($_GET['search_customer']) ? $_GET['search_customer'] : '';
-$queryCustomer = "SELECT * FROM PEMILIKHEWAN WHERE LOWER(NAMA) LIKE LOWER(:search)";
-$db->query($queryCustomer);
-$db->bind(':search', '%' . $searchCustomer . '%');
-$customers = $db->resultSet();
-
-// Proses penambahan data
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
-    $nama = $_POST['nama'];
-    $email = $_POST['email'];
-    $nomorTelpon = $_POST['nomorTelpon'];
+    // Validasi input
+    if (empty($nama) || empty($email) || empty($nomorTelpon)) {
+        $_SESSION['error_message'] = 'Semua field harus diisi!';
+        header("Location: add-customer.php");
+        exit();
+    }
 
     // Cek apakah email sudah ada
     $queryCheckEmail = "SELECT COUNT(*) AS COUNT_EMAIL FROM PEMILIKHEWAN WHERE EMAIL = :email";
@@ -28,29 +25,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
     $result = $db->single();
 
     if ($result['COUNT_EMAIL'] > 0) {
-        $error_message = 'Email sudah terdaftar!';
-    } else {
-        $queryInsert = "INSERT INTO PEMILIKHEWAN (NAMA, EMAIL, NOMORTELPON) VALUES (:nama, :email, :nomor_telpon)";
+        $_SESSION['error_message'] = 'Email sudah terdaftar!';
+        header("Location: add-customer.php");
+        exit();
+    }
+
+    try {
+        // Generate UUID
+        $uuid = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex(random_bytes(16)), 4));
+        
+        $queryInsert = "INSERT INTO PEMILIKHEWAN (ID, NAMA, EMAIL, NOMORTELPON) VALUES (:id, :nama, :email, :nomortelpon)";
         $db->query($queryInsert);
+        $db->bind(':id', $uuid);
         $db->bind(':nama', $nama);
         $db->bind(':email', $email);
-        $db->bind(':nomor_telpon', $nomorTelpon);
-
-        try {
-            $db->execute();
-            $success_message = 'Data pelanggan berhasil ditambahkan!';
-            echo "<script>
-                    alert('Data pelanggan berhasil ditambahkan!');
-                    window.location.href = 'customer.php';
-                  </script>";
+        $db->bind(':nomortelpon', $nomorTelpon);
+        
+        if ($db->execute()) {
+            $_SESSION['success_message'] = 'Data pelanggan berhasil ditambahkan!';
+            header("Location: customer.php");
             exit();
-        } catch (PDOException $e) {
-            $error_message = 'Gagal menambahkan data: ' . $e->getMessage();
+        } else {
+            throw new Exception("Gagal menambahkan data");
         }
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = 'Gagal menambahkan data: ' . $e->getMessage();
+        header("Location: add-customer.php");
+        exit();
     }
 }
 
-ob_end_flush(); // Flush the output buffer
+// Load header dan database untuk tampilan
+require_once '../../config/database.php';
+require_once '../../layout/header-tailwind.php';
+
+$db = new Database();
+
+// Ambil data customer untuk ditampilkan di tabel
+$searchCustomer = isset($_GET['search_customer']) ? $_GET['search_customer'] : '';
+$queryCustomer = "SELECT * FROM PEMILIKHEWAN WHERE LOWER(NAMA) LIKE LOWER(:search)";
+$db->query($queryCustomer);
+$db->bind(':search', '%' . $searchCustomer . '%');
+$customers = $db->resultSet();
 ?>
 
 <!DOCTYPE html>
@@ -62,22 +78,24 @@ ob_end_flush(); // Flush the output buffer
       <h2 class="text-3xl font-bold">Manage Customers</h2>
 
       <!-- Alert Messages -->
-      <?php if ($success_message): ?>
+      <?php if (isset($_SESSION['success_message'])): ?>
         <div role="alert" class="alert alert-success py-2 px-7 rounded-full w-fit">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span><?php echo $success_message; ?></span>
+          <span><?php echo htmlspecialchars($_SESSION['success_message']); ?></span>
         </div>
+        <?php unset($_SESSION['success_message']); ?>
       <?php endif; ?>
 
-      <?php if ($error_message): ?>
+      <?php if (isset($_SESSION['error_message'])): ?>
         <div role="alert" class="alert alert-error py-2 px-7 rounded-full w-fit">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span><?php echo $error_message; ?></span>
+          <span><?php echo htmlspecialchars($_SESSION['error_message']); ?></span>
         </div>
+        <?php unset($_SESSION['error_message']); ?>
       <?php endif; ?>
     </div>
 
@@ -152,21 +170,24 @@ ob_end_flush(); // Flush the output buffer
               <label for="nama" class="label">
                 <span class="label-text text-[#363636]">Name</span>
               </label>
-              <input type="text" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" name="nama" placeholder="Enter customer name" required>
+              <input type="text" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" 
+                name="nama" id="nama" placeholder="Enter customer name" required>
             </div>
 
             <div class="form-control">
               <label for="email" class="label">
                 <span class="label-text text-[#363636]">Email</span>
               </label>
-              <input type="email" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" name="email" placeholder="Enter customer email" required>
+              <input type="email" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" 
+                name="email" id="email" placeholder="Enter customer email" required>
             </div>
 
             <div class="form-control">
               <label for="nomortelpon" class="label">
                 <span class="label-text text-[#363636]">Phone Number</span>
               </label>
-              <input type="text" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" name="nomortelpon" placeholder="Enter customer phone number" required>
+              <input type="tel" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" 
+                name="nomortelpon" id="nomortelpon" placeholder="Enter customer phone number" required>
             </div>
 
             <div class="divider divider-neutral"></div>

@@ -1,87 +1,79 @@
 <?php
-session_start();
 require_once '../../config/database.php';
-require_once '../../layout/header-tailwind.php';
 
-$db = new Database();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+    $db = new Database();
+    $id = $_POST['id'];
+    
+    try {
+        // Mulai transaksi
+        $db->beginTransaction();
 
-// Mendapatkan ID hewan dari parameter URL
-if (!isset($_GET['id'])) {
-    die("ID hewan tidak ditemukan.");
-}
+        // Ambil data hewan untuk pesan notifikasi
+        $queryGet = "SELECT * FROM HEWAN WHERE ID = :id";
+        $db->query($queryGet);
+        $db->bind(':id', $id);
+        $pet = $db->single();
 
-$id = $_GET['id'];
-
-// Hapus data hewan berdasarkan ID
-$query = "DELETE FROM HEWAN WHERE ID = :id";
-$db->query($query);
-$db->bind(':id', $id);
-
-try {
-    $db->execute();
-    echo "<script>alert('Data berhasil dihapus!'); window.location.href = 'customer.php';</script>";
-} catch (PDOException $e) {
-    echo "<script>alert('Gagal menghapus data: " . $e->getMessage() . "'); window.location.href = 'customer.php';</script>";
+        if (!$pet) {
+            throw new Exception("Data hewan tidak ditemukan.");
+        }
+        
+        // Soft delete data hewan (update ONDELETE menjadi 1)
+        $queryDelete = "UPDATE HEWAN SET ONDELETE = 1 WHERE ID = :id";
+        $db->query($queryDelete);
+        $db->bind(':id', $id);
+        
+        if ($db->execute()) {
+            // Verifikasi update berhasil
+            $queryCheck = "SELECT ONDELETE FROM HEWAN WHERE ID = :id";
+            $db->query($queryCheck);
+            $db->bind(':id', $id);
+            $result = $db->single();
+            
+            if ($result && isset($result['ONDELETE']) && $result['ONDELETE'] == 1) {
+                // Commit transaksi jika berhasil
+                $db->commit();
+                $_SESSION['success_message'] = "Hewan " . htmlspecialchars($pet['NAMA']) . " berhasil dihapus!";
+            } else {
+                throw new Exception("Gagal mengubah status ONDELETE.");
+            }
+        } else {
+            throw new Exception("Gagal menghapus data hewan.");
+        }
+    } catch (Exception $e) {
+        // Rollback transaksi jika terjadi error
+        $db->rollBack();
+        $_SESSION['error_message'] = "Error: " . $e->getMessage();
+    }
+    
+    echo "<script>window.location.href = 'customer.php';</script>";
+    exit();
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hapus Hewan</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 50px auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        h2 {
-            color: #333;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .btn {
-            padding: 12px 30px;
-            font-size: 16px;
-            color: white;
-            background-color: #f44336;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 20px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn:hover {
-            background-color: #d32f2f;
-        }
-        .btn-cancel {
-            background-color: #4CAF50;
-            margin-left: 10px;
-        }
-        .btn-cancel:hover {
-            background-color: #388e3c;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Apakah Anda yakin ingin menghapus data hewan ini?</h2>
-        <a href="delete-pet.php?id=<?php echo $_GET['id']; ?>" class="btn">Hapus</a>
-        <a href="customer.php" class="btn btn-cancel">Batal</a>
+<!-- Modal untuk konfirmasi delete pet -->
+<dialog id="modalDeletePet" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box bg-[#FCFCFC]">
+    <h3 class="font-bold text-lg text-[#363636]">Hapus Hewan</h3>
+    <p class="py-4 text-[#363636]">Apakah Anda yakin ingin menghapus data hewan ini?</p>
+    <div class="modal-action">
+      <form method="POST" action="delete-pet.php">
+        <input type="hidden" id="deletePet" name="id" value="">
+        <button type="submit" class="btn btn-error">Hapus</button>
+        <button type="button" class="btn btn-ghost" onclick="modalDeletePet.close()">Batal</button>
+      </form>
     </div>
-</body>
-</html>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<script>
+// Fungsi untuk mengisi nilai ID dan menampilkan modal
+function showDeletePetModal(id) {
+    document.getElementById('deletePet').value = id;
+    document.getElementById('modalDeletePet').showModal();
+}
+</script>

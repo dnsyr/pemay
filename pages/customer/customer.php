@@ -14,7 +14,7 @@ $customers = $db->resultSet();
 
 // Pencarian hewan
 $searchPet = isset($_GET['search_pet']) ? $_GET['search_pet'] : '';
-$queryPet = "SELECT * FROM HEWAN WHERE LOWER(NAMA) LIKE LOWER(:search)";
+$queryPet = "SELECT * FROM HEWAN WHERE LOWER(NAMA) LIKE LOWER(:search) AND (ONDELETE = 0 OR ONDELETE IS NULL)";
 $db->query($queryPet);
 $db->bind(':search', '%' . $searchPet . '%');
 $pets = $db->resultSet();
@@ -54,7 +54,7 @@ $petOffset = ($petPage - 1) * $limit;
 // Query untuk menghitung total data hewan
 $countPetQuery = "SELECT COUNT(*) as TOTAL FROM HEWAN h 
                   LEFT JOIN PEMILIKHEWAN p ON h.PEMILIKHEWAN_ID = p.ID 
-                  WHERE LOWER(h.NAMA) LIKE LOWER(:search)";
+                  WHERE LOWER(h.NAMA) LIKE LOWER(:search) AND (h.ONDELETE = 0 OR h.ONDELETE IS NULL)";
 $db->query($countPetQuery);
 $db->bind(':search', '%' . $searchPet . '%');
 $totalPetResult = $db->single();
@@ -69,7 +69,7 @@ $queryPet = "SELECT * FROM (
                     h.TINGGI, h.LEBAR 
                     FROM HEWAN h 
                     LEFT JOIN PEMILIKHEWAN p ON h.PEMILIKHEWAN_ID = p.ID 
-                    WHERE LOWER(h.NAMA) LIKE LOWER(:search)
+                    WHERE LOWER(h.NAMA) LIKE LOWER(:search) AND (h.ONDELETE = 0 OR h.ONDELETE IS NULL)
                     ORDER BY h.ID
                 ) a WHERE ROWNUM <= :end_row
             ) WHERE rnum > :start_row";
@@ -147,9 +147,9 @@ $pets = $db->resultSet();
                       <a href="edit-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
                         <i class="fas fa-edit"></i>
                       </a>
-                      <a href="delete-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-error btn-sm" onclick="return confirm('Yakin ingin menghapus pelanggan ini?')">
+                      <button onclick="showDeleteCustomerModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
                         <i class="fas fa-trash-alt"></i>
-                      </a>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -228,9 +228,9 @@ $pets = $db->resultSet();
                       <a href="edit-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
                         <i class="fas fa-edit"></i>
                       </a>
-                      <a href="delete-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-error btn-sm" onclick="return confirm('Yakin ingin menghapus data ini?')">
+                      <button onclick="showDeletePetModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
                         <i class="fas fa-trash-alt"></i>
-                      </a>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -286,6 +286,12 @@ $pets = $db->resultSet();
     </div>
   </div>
 
+  <?php 
+  // Include modal files before scripts
+  require_once 'delete-customer.php';
+  require_once 'delete-pet.php';
+  ?>
+
   <script>
     // Script untuk menangani tab yang aktif
     const tabs = document.querySelectorAll('input[name="my_tabs_2"]');
@@ -306,6 +312,23 @@ $pets = $db->resultSet();
 
     // Set tampilan awal
     addPetBtn.style.display = 'none';
+
+    // Auto open drawer when page loads
+    window.onload = function() {
+      document.getElementById('drawerAddCustomer').checked = true;
+    }
+
+    // Function to show delete customer modal
+    function showDeleteCustomerModal(id) {
+      document.getElementById('deleteCustomer').value = id;
+      document.getElementById('modalDeleteCustomer').showModal();
+    }
+
+    // Function to show delete pet modal
+    function showDeletePetModal(id) {
+      document.getElementById('deletePet').value = id;
+      document.getElementById('modalDeletePet').showModal();
+    }
   </script>
 </body>
 </html>
