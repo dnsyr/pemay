@@ -21,112 +21,239 @@ $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'product';
 $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$itemsPerPage = 10;
+$itemsPerPage = 6;
 $offset = ($page - 1) * $itemsPerPage;
 
-// Base query for product transactions
-$baseQueryProduct = "SELECT 
-    PJ.ID, 
-    TO_CHAR(PJ.TANGGALTRANSAKSI, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
-    PJ.TOTALBIAYA as TOTALHARGA,
-    PH.NAMA as PEMILIK_NAMA,
-    PR.NAMA as PRODUK_NAMA,
-    COUNT(*) as QUANTITY
-FROM PENJUALAN PJ
-LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
-LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
-LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
-WHERE PJ.onDelete = 0
-GROUP BY PJ.ID, PJ.TANGGALTRANSAKSI, PJ.TOTALBIAYA, PH.NAMA, PR.NAMA";
-
-// Base query for medical transactions
-$baseQueryMedical = "SELECT 
-    PM.ID,
-    TO_CHAR(PM.TANGGAL, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
-    PM.TOTALBIAYA as TOTALHARGA,
-    PH.NAMA as PEMILIK_NAMA,
-    H.NAMA as HEWAN_NAMA,
-    LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
-FROM LAYANANMEDIS PM
-LEFT JOIN Hewan H ON PM.HEWAN_ID = H.ID
-LEFT JOIN PemilikHewan PH ON H.PEMILIKHEWAN_ID = PH.ID
-LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
-LEFT JOIN JenisLayananMedis L ON TL.COLUMN_VALUE = L.ID
-WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0";
-
-// Add date filters if provided
+// Initialize parameters array for binding
 $params = [];
 if ($startDate) {
-    $baseQueryProduct .= " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')";
-    $baseQueryMedical .= " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')";
     $params[':start_date'] = $startDate;
 }
 if ($endDate) {
-    $baseQueryProduct .= " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')";
-    $baseQueryMedical .= " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')";
     $params[':end_date'] = $endDate;
 }
 
-// Remove the additional GROUP BY clause since it's already in the base query
-$baseQueryProduct .= "";
-$baseQueryMedical .= " GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA";
+// Base query for product transactions
+$baseQueryProduct = "WITH ProductCounts AS (
+    SELECT 
+        PJ.ID as PENJUALAN_ID,
+        PJ.TANGGALTRANSAKSI,
+        PJ.TOTALBIAYA,
+        PH.NAMA as PEMILIK_NAMA,
+        PR.NAMA as NAMA_PRODUK,
+        COUNT(*) as JUMLAH
+    FROM PENJUALAN PJ
+    LEFT JOIN PEMILIKHEWAN PH ON PJ.PEMILIKHEWAN_ID = PH.ID
+    LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
+    LEFT JOIN PRODUK PR ON TP.COLUMN_VALUE = PR.ID
+    WHERE PJ.onDelete = 0
+    " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+    " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+    GROUP BY PJ.ID, PJ.TANGGALTRANSAKSI, PJ.TOTALBIAYA, PH.NAMA, PR.NAMA
+)
+SELECT 
+    PC.PENJUALAN_ID as ID,
+    TO_CHAR(PC.TANGGALTRANSAKSI, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    PC.TOTALBIAYA as TOTALHARGA,
+    PC.PEMILIK_NAMA,
+    LISTAGG(PC.NAMA_PRODUK || ' (x' || PC.JUMLAH || ')', ', ') 
+    WITHIN GROUP (ORDER BY PC.NAMA_PRODUK) as PRODUK_INFO,
+    SUM(PC.JUMLAH) as TOTAL_QUANTITY
+FROM ProductCounts PC
+GROUP BY PC.PENJUALAN_ID, PC.TANGGALTRANSAKSI, PC.TOTALBIAYA, PC.PEMILIK_NAMA";
+
+// Base query for medical transactions
+$baseQueryMedical = "WITH ServiceInfo AS (
+    SELECT 
+        PM.ID,
+        PM.TANGGAL,
+        PM.TOTALBIAYA,
+        PH.NAMA as PEMILIK_NAMA,
+        H.NAMA as HEWAN_NAMA,
+        LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
+    FROM LAYANANMEDIS PM
+    LEFT JOIN HEWAN H ON PM.HEWAN_ID = H.ID
+    LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
+    LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
+    LEFT JOIN JENISLAYANANMEDIS L ON TL.COLUMN_VALUE = L.ID
+    WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0
+    " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+    " . ($endDate ? " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+    GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA
+)
+SELECT 
+    ID,
+    TO_CHAR(TANGGAL, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    TOTALBIAYA as TOTALHARGA,
+    PEMILIK_NAMA,
+    HEWAN_NAMA,
+    LAYANAN_INFO
+FROM ServiceInfo";
+
+// Base query for salon transactions
+$baseQuerySalon = "WITH ServiceInfo AS (
+    SELECT 
+        LS.ID,
+        LS.TANGGAL,
+        LS.TOTALBIAYA,
+        PH.NAMA as PEMILIK_NAMA,
+        H.NAMA as HEWAN_NAMA,
+        LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
+    FROM LAYANANSALON LS
+    LEFT JOIN HEWAN H ON LS.HEWAN_ID = H.ID
+    LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
+    LEFT JOIN TABLE(LS.JENISLAYANAN) TL ON 1=1
+    LEFT JOIN JENISLAYANANSALON L ON TL.COLUMN_VALUE = L.ID
+    WHERE LS.STATUS = 'Complete' AND LS.onDelete = 0
+    " . ($startDate ? " AND TRUNC(LS.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+    " . ($endDate ? " AND TRUNC(LS.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+    GROUP BY LS.ID, LS.TANGGAL, LS.TOTALBIAYA, PH.NAMA, H.NAMA
+)
+SELECT 
+    ID,
+    TO_CHAR(TANGGAL, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    TOTALBIAYA as TOTALHARGA,
+    PEMILIK_NAMA,
+    HEWAN_NAMA,
+    LAYANAN_INFO
+FROM ServiceInfo";
+
+// Base query for hotel transactions
+$baseQueryHotel = "WITH HotelInfo AS (
+    SELECT 
+        LH.ID,
+        LH.CHECKIN,
+        LH.CHECKOUT,
+        LH.TOTALBIAYA,
+        PH.NAMA as PEMILIK_NAMA,
+        H.NAMA as HEWAN_NAMA,
+        K.NOMOR as KANDANG_NOMOR,
+        K.UKURAN as KANDANG_UKURAN
+    FROM LAYANANHOTEL LH
+    LEFT JOIN HEWAN H ON LH.HEWAN_ID = H.ID
+    LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
+    LEFT JOIN KANDANG K ON LH.KANDANG_ID = K.ID
+    WHERE LH.STATUS = 'Complete' AND LH.onDelete = 0
+    " . ($startDate ? " AND TRUNC(LH.CHECKIN) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+    " . ($endDate ? " AND TRUNC(LH.CHECKIN) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+)
+SELECT 
+    ID,
+    TO_CHAR(CHECKIN, 'DD Mon YYYY, HH24:MI') as TANGGALTRANSAKSI,
+    TOTALBIAYA as TOTALHARGA,
+    PEMILIK_NAMA,
+    HEWAN_NAMA,
+    KANDANG_NOMOR,
+    KANDANG_UKURAN,
+    TO_CHAR(CHECKOUT, 'DD Mon YYYY, HH24:MI') as CHECKOUT
+FROM HotelInfo";
 
 // Get total items based on active tab
 if ($activeTab === 'product') {
-    $countQuery = "SELECT COUNT(*) as TOTAL FROM (
-        SELECT DISTINCT PJ.ID
-        FROM PENJUALAN PJ
-        LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
-        LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
-        LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
-        WHERE PJ.onDelete = 0
-        " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
-        " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
-    )";
+    $countQuery = "SELECT COUNT(DISTINCT PC.PENJUALAN_ID) as TOTAL
+        FROM (
+            SELECT 
+                PJ.ID as PENJUALAN_ID,
+                PJ.TANGGALTRANSAKSI
+            FROM PENJUALAN PJ
+            WHERE PJ.onDelete = 0
+            " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+            " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        ) PC";
     $baseQuery = $baseQueryProduct;
 } else if ($activeTab === 'medical') {
-    $countQuery = "SELECT COUNT(*) as TOTAL FROM (
-        SELECT PM.ID
-        FROM LAYANANMEDIS PM
-        LEFT JOIN Hewan H ON PM.HEWAN_ID = H.ID
-        LEFT JOIN PemilikHewan PH ON H.PEMILIKHEWAN_ID = PH.ID
-        LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
-        LEFT JOIN JenisLayananMedis L ON TL.COLUMN_VALUE = L.ID
-        WHERE PM.STATUS = 'Complete' AND PM.onDelete = 0
-        " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
-        " . ($endDate ? " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
-        GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA
-    )";
+    $countQuery = "SELECT COUNT(DISTINCT SI.ID) as TOTAL
+        FROM (
+            SELECT 
+                PM.ID,
+                PM.TANGGAL
+            FROM LAYANANMEDIS PM
+            WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0
+            " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+            " . ($endDate ? " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        ) SI";
     $baseQuery = $baseQueryMedical;
+} else if ($activeTab === 'hotel') {
+    $countQuery = "SELECT COUNT(DISTINCT HI.ID) as TOTAL
+        FROM (
+            SELECT 
+                LH.ID,
+                LH.CHECKIN
+            FROM LAYANANHOTEL LH
+            WHERE LH.STATUS = 'Complete' AND LH.onDelete = 0
+            " . ($startDate ? " AND TRUNC(LH.CHECKIN) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+            " . ($endDate ? " AND TRUNC(LH.CHECKIN) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        ) HI";
+    $baseQuery = $baseQueryHotel;
+} else if ($activeTab === 'salon') {
+    $countQuery = "SELECT COUNT(DISTINCT SI.ID) as TOTAL
+        FROM (
+            SELECT 
+                LS.ID,
+                LS.TANGGAL
+            FROM LAYANANSALON LS
+            WHERE LS.STATUS = 'Complete' AND LS.onDelete = 0
+            " . ($startDate ? " AND TRUNC(LS.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+            " . ($endDate ? " AND TRUNC(LS.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+        ) SI";
+    $baseQuery = $baseQuerySalon;
 }
 
 // Count total rows for pagination
-$db->query($countQuery);
-foreach ($params as $key => $value) {
-    $db->bind($key, $value);
+$totalItems = 0;
+$totalPages = 1;
+
+if (!empty($countQuery)) {
+    $db->query($countQuery);
+    if ($startDate) {
+        $db->bind(':start_date', $startDate);
+    }
+    if ($endDate) {
+        $db->bind(':end_date', $endDate);
+    }
+    $result = $db->single();
+    $totalItems = $result ? $result['TOTAL'] : 0;
+    $totalPages = max(1, ceil($totalItems / $itemsPerPage));
 }
-$totalItems = $db->single()['TOTAL'];
-$totalPages = ceil($totalItems / $itemsPerPage);
 
 // Add order by and pagination
-$query = $baseQuery . " ORDER BY " . ($activeTab === 'product' ? 'PJ.TANGGALTRANSAKSI' : 'PM.TANGGAL') . " DESC OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
-$db->query($query);
-foreach ($params as $key => $value) {
-    $db->bind($key, $value);
-}
-$db->bind(':offset', $offset);
-$db->bind(':limit', $itemsPerPage);
+if (!empty($baseQuery)) {
+    $query = $baseQuery;
+    if ($activeTab === 'product') {
+        $query .= " ORDER BY TANGGALTRANSAKSI DESC";
+    } else if ($activeTab === 'medical' || $activeTab === 'salon') {
+        $query .= " ORDER BY TANGGAL DESC";
+    } else if ($activeTab === 'hotel') {
+        $query .= " ORDER BY CHECKIN DESC";
+    }
+    $query .= " OFFSET :offset ROWS FETCH NEXT :items_per_page ROWS ONLY";
 
-$transactions = $db->resultSet();
+    // Execute main query with all parameters
+    $db->query($query);
+    // Bind filter parameters first
+    if ($startDate) {
+        $db->bind(':start_date', $startDate);
+    }
+    if ($endDate) {
+        $db->bind(':end_date', $endDate);
+    }
+    // Bind pagination parameters
+    $db->bind(':offset', $offset);
+    $db->bind(':items_per_page', $itemsPerPage);
+    
+    $transactions = $db->resultSet();
+} else {
+    $transactions = [];
+}
 
 // Fetch categories for filter
 $categoriesProduk = [];
-$db->query("SELECT * FROM KategoriProduk WHERE ONDELETE = 0 ORDER BY NAMA");
+$db->query("SELECT * FROM KATEGORIPRODUK WHERE ONDELETE = 0 ORDER BY NAMA");
 $categoriesProduk = $db->resultSet();
 
 // Fetch KategoriObat
 $categoriesObat = [];
-$db->query("SELECT * FROM KategoriObat WHERE ONDELETE = 0 ORDER BY NAMA");
+$db->query("SELECT * FROM KATEGORIOBAT WHERE ONDELETE = 0 ORDER BY NAMA");
 $categoriesObat = $db->resultSet();
 ?>
 
@@ -184,18 +311,27 @@ $categoriesObat = $db->resultSet();
                                 <?php if ($activeTab === 'medical'): ?>
                                     <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
                                     <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                                <?php elseif ($activeTab === 'hotel'): ?>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Cage Info</th>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Check Out</th>
+                                <?php elseif ($activeTab === 'salon'): ?>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
                                 <?php else: ?>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Product</th>
-                                    <th class="py-4 px-6 text-center border-b border-[#363636]">Quantity</th>
+                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Products</th>
+                                    <th class="py-4 px-6 text-center border-b border-[#363636]">Total Items</th>
                                 <?php endif; ?>
                                 <th class="py-4 px-6 text-right border-b border-[#363636]">Total Cost</th>
-                                <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
+                                <?php if ($activeTab === 'product'): ?>
+                                    <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
                             <?php if (empty($transactions)): ?>
                                 <tr>
-                                    <td colspan="<?= $activeTab === 'medical' ? '7' : '7' ?>" class="text-center py-4">No transactions found.</td>
+                                    <td colspan="<?= $activeTab === 'medical' ? '6' : ($activeTab === 'hotel' ? '7' : '7') ?>" class="text-center py-4">No transactions found.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php 
@@ -209,43 +345,78 @@ $categoriesObat = $db->resultSet();
                                         <?php if ($activeTab === 'medical'): ?>
                                             <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
                                             <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
+                                        <?php elseif ($activeTab === 'hotel'): ?>
+                                            <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                            <td class="py-4 px-6">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
+                                            <td class="py-4 px-6"><?= $transaction['CHECKOUT'] ?></td>
+                                        <?php elseif ($activeTab === 'salon'): ?>
+                                            <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                            <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
                                         <?php else: ?>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['PRODUK_NAMA']) ?></td>
-                                            <td class="py-4 px-6 text-center"><?= $transaction['QUANTITY'] ?></td>
+                                            <td class="py-4 px-6"><?= htmlentities($transaction['PRODUK_INFO']) ?></td>
+                                            <td class="py-4 px-6 text-center"><?= $transaction['TOTAL_QUANTITY'] ?></td>
                                         <?php endif; ?>
                                         <td class="py-4 px-6 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
-                                        <td class="py-4 px-6">
-                                            <div class="flex gap-3 justify-center items-center">
-                                                <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <?php if ($activeTab === 'product'): ?>
+                                            <td class="py-4 px-6">
+                                                <div class="flex gap-3 justify-center items-center">
+                                                    <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
-                <?php if ($totalPages > 1): ?>
-                <div class="join flex justify-center mt-4">
-                    <a class="join-item btn <?= ($page <= 1) ? 'btn-disabled' : '' ?>"
-                       href="?tab=<?= $activeTab ?>&page=<?= ($page - 1) ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>">«</a>
-                    
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a class="join-item btn <?= ($page === $i) ? 'bg-[#D4F0EA]' : '' ?>"
-                           href="?tab=<?= $activeTab ?>&page=<?= $i ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>"><?= $i ?></a>
-                    <?php endfor; ?>
-                    
-                    <a class="join-item btn <?= ($page >= $totalPages) ? 'btn-disabled' : '' ?>"
-                       href="?tab=<?= $activeTab ?>&page=<?= ($page + 1) ?>&start_date=<?= urlencode($startDate) ?>&end_date=<?= urlencode($endDate) ?>">��</a>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Pagination Section -->
+<div class="mt-6">
+    <?php if (!empty($transactions)): ?>
+        <div class="flex justify-center">
+            <div class="btn-group">
+                <?php if ($page > 1): ?>
+                    <a href="?tab=<?= $activeTab ?>&page=1<?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
+                       class="btn btn-sm">«</a>
+                    
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $page - 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
+                       class="btn btn-sm">Previous</a>
+                <?php endif; ?>
+                
+                <?php
+                // Calculate range of pages to show
+                $startPage = max(1, min($page - 2, $totalPages - 4));
+                $endPage = min($totalPages, max(5, $page + 2));
+                
+                for ($i = $startPage; $i <= $endPage; $i++):
+                ?>
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $i ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
+                       class="btn btn-sm <?= ($page === $i) ? 'btn-active bg-[#D4F0EA] text-[#363636]' : '' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+                
+                <?php if ($page < $totalPages): ?>
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $page + 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
+                       class="btn btn-sm">Next</a>
+                    
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $totalPages ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
+                       class="btn btn-sm">»</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <div class="text-center mt-2 text-sm text-gray-600">
+            Showing page <?= $page ?> of <?= $totalPages ?> (<?= $totalItems ?> total items)
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php if ($activeTab === 'product'): ?>
@@ -258,21 +429,21 @@ $categoriesObat = $db->resultSet();
 
     <!-- Add Transaction Drawer -->
     <?php include 'drawer-product.php'; ?>
-<?php endif; ?>
 
-<!-- Delete Confirmation Modal -->
-<dialog id="delete_modal" class="modal">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Konfirmasi Hapus</h3>
-        <p>Apakah Anda yakin ingin menghapus transaksi ini? Stok produk akan dikembalikan.</p>
-        <div class="modal-action">
-            <form method="dialog">
-                <button class="btn btn-sm mr-2">Batal</button>
-                <button type="button" onclick="confirmDelete()" class="btn btn-sm btn-error">Hapus</button>
-            </form>
+    <!-- Delete Confirmation Modal -->
+    <dialog id="delete_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">Konfirmasi Hapus</h3>
+            <p>Apakah Anda yakin ingin menghapus transaksi ini? Stok produk akan dikembalikan.</p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-sm mr-2">Batal</button>
+                    <button type="button" onclick="confirmDelete()" class="btn btn-sm btn-error">Hapus</button>
+                </form>
+            </div>
         </div>
-    </div>
-</dialog>
+    </dialog>
+<?php endif; ?>
 
 <script>
 let transactionToDelete = null;
