@@ -1,10 +1,13 @@
 <?php
 ob_start();
 session_start();
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
+if (!isset($_SESSION['username']) || !in_array($_SESSION['posisi'], ['vet', 'owner', 'staff'])) {
     header("Location: ../../auth/restricted.php");
     exit();
 }
+
+// Cek apakah user adalah vet (untuk menentukan akses edit/add)
+$isVet = $_SESSION['posisi'] === 'vet';
 
 require_once '../../config/database.php';
 require_once '../../config/connection.php';
@@ -12,12 +15,12 @@ require_once '../../layout/header-tailwind.php';
 ?>
 
 <!-- Include styles -->
-<link rel="stylesheet" href="styles/main.css">
+<link rel="stylesheet" href="/pemay/public/css/main.css">
 
 <!-- Include JavaScript handlers -->
-<script src="handlers/drawer-handlers.js"></script>
-<script src="handlers/delete-handler.js"></script>
-<script src="handlers/tab-handler.js"></script>
+<script src="/pemay/public/js/handlers/drawer-handlers.js"></script>
+<script src="/pemay/public/js/handlers/delete-handler.js"></script>
+<script src="/pemay/public/js/handlers/tab-handler.js"></script>
 
 <style>
     /* Style untuk mengatur warna background dan teks */
@@ -326,9 +329,9 @@ if ($tab === 'obat') {
             <input type="hidden" name="tab" value="<?= $tab ?>">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="text-sm text-gray-600 mb-1">Nama Hewan</label>
+                    <label class="text-sm text-gray-600 mb-1">Pet Name</label>
                     <select name="nama_hewan" class="select2 select select-bordered w-full bg-white">
-                        <option value="">Filter by pet species</option>
+                        <option value="">Filter by pet name</option>
                         <?php foreach ($hewanOptions as $hewan): ?>
                             <option value="<?= htmlentities($hewan['NAMA']) ?>" 
                                     <?= $hewan['NAMA'] === $filterNamaHewan ? 'selected' : '' ?>>
@@ -338,9 +341,9 @@ if ($tab === 'obat') {
                     </select>
                 </div>
                 <div>
-                    <label class="text-sm text-gray-600 mb-1">Nama Pemilik</label>
+                    <label class="text-sm text-gray-600 mb-1">Owner Name</label>
                     <select name="nama_pemilik" class="select2 select select-bordered w-full bg-white">
-                        <option value="">Filter by pet species</option>
+                        <option value="">Filter by owner name</option>
                         <?php foreach ($pemilikOptions as $pemilik): ?>
                             <option value="<?= htmlentities($pemilik['NAMA']) ?>" 
                                     <?= $pemilik['NAMA'] === $filterNamaPemilik ? 'selected' : '' ?>>
@@ -350,9 +353,9 @@ if ($tab === 'obat') {
                     </select>
                 </div>
                 <div>
-                    <label class="text-sm text-gray-600 mb-1">Status Layanan</label>
+                    <label class="text-sm text-gray-600 mb-1">Service Status</label>
                     <select name="status" class="select2 select select-bordered w-full bg-white">
-                        <option value="">Filter by pet species</option>
+                        <option value="">Filter by status</option>
                         <option value="Emergency" <?= $filterStatus === 'Emergency' ? 'selected' : '' ?>>Emergency</option>
                         <option value="Scheduled" <?= $filterStatus === 'Scheduled' ? 'selected' : '' ?>>Scheduled</option>
                         <option value="Finished" <?= $filterStatus === 'Finished' ? 'selected' : '' ?>>Finished</option>
@@ -381,24 +384,23 @@ if ($tab === 'obat') {
             <div class="flex flex-col gap-4">
                 <!-- Medical Services Table -->
                 <?php if (empty($layananMedis)): ?>
-                    <div class="alert alert-info">Tidak ada data layanan medis untuk ditampilkan.</div>
+                    <div class="alert alert-info">No medical service data to display.</div>
                 <?php else: ?>
                     <div class="overflow-x-auto">
                         <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171]">
-                            <table class="table w-full">
-                                <!-- Header tabel -->
+                            <table class="table table-zebra bg-white w-full">
                                 <thead>
                                     <tr>
                                         <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636] text-center">No.</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Tanggal</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Nama Hewan</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Spesies</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Nama Pemilik</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">No. Telpon</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Jenis Layanan</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Total Biaya</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Date</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Pet Name</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Species</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Owner Name</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Phone No.</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Service Type</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Total Cost</th>
                                         <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636]">Status</th>
-                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636] text-center">Aksi</th>
+                                        <th class="bg-[#D4F0EA] text-[#363636] font-semibold border-b border-[#363636] text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -425,21 +427,25 @@ if ($tab === 'obat') {
                                             </td>
                                             <td>
                                                 <div class="flex gap-2 justify-center">
-                                                    <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
-                                                        <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none" 
-                                                                onclick="alert('Cannot update this record.')">
-                                                            <i class="fas fa-edit"></i>
+                                                    <?php if ($isVet): ?>
+                                                        <?php if ($layanan['STATUS'] === 'Finished' || $layanan['STATUS'] === 'Canceled'): ?>
+                                                            <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none" 
+                                                                    onclick="alert('Cannot update this record.')">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none"
+                                                                    onclick="openUpdateDrawer('<?= $layanan['ID'] ?>', '<?= $layanan['TANGGAL'] ?>')">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                        <button onclick="deleteRecord('<?= $layanan['ID'] ?>', 'medical')" 
+                                                                class="btn btn-sm bg-red-100 hover:bg-red-200 text-red-800 border-none">
+                                                            <i class="fas fa-trash"></i>
                                                         </button>
                                                     <?php else: ?>
-                                                        <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none"
-                                                                onclick="openUpdateDrawer('<?= $layanan['ID'] ?>', '<?= $layanan['TANGGAL'] ?>')">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
+                                                        <span class="text-sm text-gray-500">View Only</span>
                                                     <?php endif; ?>
-                                                    <button onclick="deleteRecord('<?= $layanan['ID'] ?>', 'medical')" 
-                                                            class="btn btn-sm bg-red-100 hover:bg-red-200 text-red-800 border-none">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -464,7 +470,7 @@ if ($tab === 'obat') {
             <div class="flex flex-col gap-4">
                 <!-- Medications Table -->
                 <?php if (empty($obatList)): ?>
-                    <div class="alert alert-info">Tidak ada data obat untuk ditampilkan.</div>
+                    <div class="alert alert-info">No medication data to display.</div>
                 <?php else: ?>
                     <div class="overflow-x-auto">
                         <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171]">
@@ -472,16 +478,16 @@ if ($tab === 'obat') {
                                 <thead>
                                     <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
                                         <th class="border-b border-[#363636] text-center">No.</th>
-                                        <th class="border-b border-[#363636]">Nama Obat</th>
-                                        <th class="border-b border-[#363636]">Dosis</th>
-                                        <th class="border-b border-[#363636]">Frekuensi</th>
-                                        <th class="border-b border-[#363636]">Instruksi</th>
-                                        <th class="border-b border-[#363636]">Tanggal Layanan</th>
-                                        <th class="border-b border-[#363636]">Kategori Obat</th>
-                                        <th class="border-b border-[#363636]">Nama Hewan</th>
-                                        <th class="border-b border-[#363636]">Nama Pemilik</th>
+                                        <th class="border-b border-[#363636]">Medicine Name</th>
+                                        <th class="border-b border-[#363636]">Dosage</th>
+                                        <th class="border-b border-[#363636]">Frequency</th>
+                                        <th class="border-b border-[#363636]">Instructions</th>
+                                        <th class="border-b border-[#363636]">Service Date</th>
+                                        <th class="border-b border-[#363636]">Medicine Category</th>
+                                        <th class="border-b border-[#363636]">Pet Name</th>
+                                        <th class="border-b border-[#363636]">Owner Name</th>
                                         <th class="border-b border-[#363636]">Status</th>
-                                        <th class="border-b border-[#363636] text-center">Aksi</th>
+                                        <th class="border-b border-[#363636] text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -508,21 +514,25 @@ if ($tab === 'obat') {
                                             </td>
                                             <td>
                                                 <div class="flex gap-2 justify-center">
-                                                    <?php if ($obat['STATUS'] === 'Finished' || $obat['STATUS'] === 'Canceled'): ?>
-                                                        <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none" 
-                                                                onclick="alert('Cannot update this record.')">
-                                                            <i class="fas fa-edit"></i>
+                                                    <?php if ($isVet): ?>
+                                                        <?php if ($obat['STATUS'] === 'Finished' || $obat['STATUS'] === 'Canceled'): ?>
+                                                            <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none" 
+                                                                    onclick="alert('Cannot update this record.')">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none"
+                                                                    onclick="openUpdateObatDrawer('<?= $obat['ID'] ?>')">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                        <button onclick="deleteRecord('<?= $obat['ID'] ?>', 'medication')" 
+                                                                class="btn btn-sm bg-red-100 hover:bg-red-200 text-red-800 border-none">
+                                                            <i class="fas fa-trash"></i>
                                                         </button>
                                                     <?php else: ?>
-                                                        <button class="btn btn-sm bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] border-none"
-                                                                onclick="openUpdateObatDrawer('<?= $obat['ID'] ?>')">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
+                                                        <span class="text-sm text-gray-500">View Only</span>
                                                     <?php endif; ?>
-                                                    <button onclick="deleteRecord('<?= $obat['ID'] ?>', 'medication')" 
-                                                            class="btn btn-sm bg-red-100 hover:bg-red-200 text-red-800 border-none">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -555,7 +565,7 @@ if ($tab === 'obat') {
     </div>
 
 <!-- Floating Add Button -->
-<?php if ($tab === 'medical-services'): ?>
+<?php if ($tab === 'medical-services' && $isVet): ?>
     <button onclick="document.getElementById('my-drawer').checked = true"
             class="bg-[#D4F0EA] w-14 h-14 flex justify-center items-center rounded-full fixed bottom-5 right-5 border border-[#363636] shadow-md shadow-[#717171]">
         <i class="fas fa-plus fa-lg"></i>
@@ -564,7 +574,23 @@ if ($tab === 'obat') {
 
 <!-- Include drawers -->
 <?php 
-include 'components/drawers/update-medical-drawer.php';
-include 'components/drawers/update-obat-drawer.php';
-include 'components/drawers/add-medical-drawer.php';
+if ($isVet) {
+    include '../../components/drawer/update-medical-drawer.php';
+    include '../../components/drawer/update-obat-drawer.php';
+    include '../../components/drawer/add-medical-drawer.php';
+}
 ?>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Delete Confirmation</h3>
+        <p>Are you sure you want to delete this record?</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-sm mr-2">Cancel</button>
+                <button type="button" onclick="confirmDelete()" class="btn btn-sm btn-error">Delete</button>
+            </form>
+        </div>
+    </div>
+</dialog>

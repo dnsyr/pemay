@@ -3,27 +3,27 @@ date_default_timezone_set('Asia/Jakarta');
 
 $db = new Database();
 
-// Ambil data jenis layanan medis untuk checkbox
+// Get medical service types for checkboxes
 $db->query("SELECT * FROM JenisLayananMedis WHERE onDelete = 0");
 $jenisLayananMedis = $db->resultSet();
 
-// Ambil data hewan untuk dropdown
+// Get pets for dropdown
 $db->query("SELECT DISTINCT h.ID, h.Nama AS NamaHewan, h.Spesies, ph.Nama AS NamaPemilik
             FROM Hewan h
             JOIN PemilikHewan ph ON h.PemilikHewan_ID = ph.ID
             WHERE h.onDelete = 0 AND ph.onDelete = 0");
 $hewanList = $db->resultSet();
 
-// Ambil Data Kategori Obat
+// Get Medicine Categories
 $db->query("SELECT ID, Nama FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama");
 $kategoriObatList = $db->resultSet();
 
-// Inisialisasi variabel
+// Initialize variables
 $error = null;
 $message = null;
 $messageObat = null;
 
-// Menentukan apakah form obat harus ditampilkan
+// Determine if medicine form should be displayed
 $showObatForm = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['obat_pertanyaan']) && $_POST['obat_pertanyaan'] === 'yes') {
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <div class="p-4 w-full">
-    <!-- Form Layanan Medis -->
+    <!-- Medical Service Form -->
     <form method="POST" class="space-y-4" id="medicalForm">
         <input type="hidden" name="action" value="add">
         
@@ -196,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="button" class="btn btn-secondary" onclick="addObat()">Add Medicine</button>
         </div>
 
-        <!-- Tabel Daftar Obat -->
+        <!-- Medicine List Table -->
         <div id="obatListSection" class="hidden">
             <div class="divider">Medicine List</div>
             <table class="table table-zebra w-full">
@@ -211,81 +211,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
                 </thead>
                 <tbody id="obatTableBody">
-                    <!-- Daftar obat akan ditambahkan di sini via JavaScript -->
+                    <!-- Medicine list will be added here via JavaScript -->
                 </tbody>
             </table>
-            <!-- Tambahkan tombol print resep -->
-    <div class="mt-4" id="printButtonSection">
-        <button type="button" class="btn btn-secondary" onclick="printResep()" disabled>
-            Print Recipe
-        </button>
-    </div>
-            <!-- Hidden input untuk menyimpan data obat -->
+            <!-- Add print recipe button -->
+            <div class="mt-4" id="printButtonSection">
+                <button type="button" class="btn btn-secondary" onclick="printResep()" disabled>
+                    Print Recipe
+                </button>
+            </div>
+            <!-- Hidden input to store medicine data -->
             <input type="hidden" name="obat_list" id="obatListInput" value="[]">
         </div>
 
         <div class="divider"></div>
         
-        <button type="submit" class="btn btn-primary w-full">Save</button>
+        <div class="flex gap-4">
+            <button type="submit" name="action" value="save" class="btn btn-primary flex-1">Save</button>
+            <button type="submit" name="action" value="save_and_print" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636] flex-1">Save and Print</button>
+        </div>
     </form>
 </div>
 <script>
     let obatList = [];
 
     function toggleJenisLayananSection() {
-    const status = document.querySelector('input[name="status"]:checked')?.value;
-    const jenisLayananSection = document.getElementById('jenisLayananSection');
-    const totalBiayaSection = document.getElementById('totalBiayaSection');
-    const obatPertanyaanSection = document.getElementById('obat_pertanyaan').closest('.form-control');
-    const obatForm = document.getElementById('obatForm');
-    const obatListSection = document.getElementById('obatListSection');
-    const dividerObat = document.querySelector('.divider');
-    
-    if (status === 'Scheduled') {
-        // Sembunyikan hanya bsagian obat
-        obatPertanyaanSection.style.display = 'none';
-        obatForm.classList.add('hidden');
-        obatListSection.classList.add('hidden');
-        dividerObat.style.display = 'none';
+        const status = document.querySelector('input[name="status"]:checked')?.value;
+        const jenisLayananSection = document.getElementById('jenisLayananSection');
+        const totalBiayaSection = document.getElementById('totalBiayaSection');
+        const obatPertanyaanSection = document.getElementById('obat_pertanyaan').closest('.form-control');
+        const obatForm = document.getElementById('obatForm');
+        const obatListSection = document.getElementById('obatListSection');
+        const dividerObat = document.querySelector('.divider');
         
-        // Reset obat pertanyaan ke 'no'
-        document.getElementById('obat_pertanyaan').value = 'no';
-        obatList = [];
-        updateObatTable();
-    } else {
-        // Tampilkan semua bagian
-        obatPertanyaanSection.style.display = 'block';
-        dividerObat.style.display = 'block';
-        
-        // Cek status obat pertanyaan untuk menampilkan/menyembunyikan form obat
-        if (document.getElementById('obat_pertanyaan').value === 'yes') {
-            obatForm.classList.remove('hidden');
-            obatListSection.classList.remove('hidden');
-        }
-    }
-    
-    // Jenis Layanan dan Total Biaya selalu ditampilkan
-    jenisLayananSection.style.display = 'block';
-    totalBiayaSection.style.display = 'block';
-}
-
-function toggleObatForm() {
-    const obatPertanyaan = document.getElementById('obat_pertanyaan');
-    const obatForm = document.getElementById('obatForm');
-    const obatListSection = document.getElementById('obatListSection');
-
-    if (obatPertanyaan && obatForm && obatListSection) {
-        if (obatPertanyaan.value === 'yes') {
-            // Use only classList
-            obatForm.classList.remove('hidden');
-            obatListSection.classList.remove('hidden');
-        } else {
-            // Use only classList
+        if (status === 'Scheduled') {
+            // Hide only medicine section
+            obatPertanyaanSection.style.display = 'none';
             obatForm.classList.add('hidden');
             obatListSection.classList.add('hidden');
+            dividerObat.style.display = 'none';
+            
+            // Reset medicine question to 'no'
+            document.getElementById('obat_pertanyaan').value = 'no';
+            obatList = [];
+            updateObatTable();
+        } else {
+            // Show all sections
+            obatPertanyaanSection.style.display = 'block';
+            dividerObat.style.display = 'block';
+            
+            // Check medicine question status to show/hide medicine form
+            if (document.getElementById('obat_pertanyaan').value === 'yes') {
+                obatForm.classList.remove('hidden');
+                obatListSection.classList.remove('hidden');
+            }
+        }
+        
+        // Service Types and Total Cost are always shown
+        jenisLayananSection.style.display = 'block';
+        totalBiayaSection.style.display = 'block';
+    }
+
+    function toggleObatForm() {
+        const obatPertanyaan = document.getElementById('obat_pertanyaan');
+        const obatForm = document.getElementById('obatForm');
+        const obatListSection = document.getElementById('obatListSection');
+
+        if (obatPertanyaan && obatForm && obatListSection) {
+            if (obatPertanyaan.value === 'yes') {
+                obatForm.classList.remove('hidden');
+                obatListSection.classList.remove('hidden');
+            } else {
+                obatForm.classList.add('hidden');
+                obatListSection.classList.add('hidden');
+            }
         }
     }
-}
 
     function addObat() {
         const namaObat = document.getElementById('obat_nama').value;
@@ -297,7 +298,7 @@ function toggleObatForm() {
         const kategoriNama = kategoriSelect.options[kategoriSelect.selectedIndex].text;
 
         if (!namaObat || !dosis || !frekuensi || !instruksi || !kategoriId) {
-            alert('Semua field obat harus diisi');
+            alert('All medicine fields must be filled');
             return;
         }
 
@@ -334,7 +335,7 @@ function toggleObatForm() {
                 <td>${obat.kategori_nama}</td>
                 <td>
                     <button type="button" class="btn btn-error btn-sm" 
-                            onclick="removeObat(${index})">Hapus</button>
+                            onclick="removeObat(${index})">Delete</button>
                 </td>
             `;
         });
@@ -399,34 +400,35 @@ function toggleObatForm() {
         toggleJenisLayananSection();
         
         document.querySelectorAll('input[name="jenis_layanan[]"]').forEach((checkbox) => {
-        checkbox.addEventListener('change', function() {
-            calculateTotalBiaya();
+            checkbox.addEventListener('change', function() {
+                calculateTotalBiaya();
+            });
         });
+
+        function calculateTotalBiaya() {
+            let total = 0;
+            document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
+                total += parseFloat(checkedBox.getAttribute('data-biaya'));
+            });
+            document.getElementById('total_biaya').value = total;
+        }
+
+        toggleJenisLayananSection();
+        
+        const tanggalInput = document.getElementById('tanggal');
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        tanggalInput.value = formattedDateTime;
+        tanggalInput.min = formattedDateTime;
     });
 
-    function calculateTotalBiaya() {
-        let total = 0;
-        document.querySelectorAll('input[name="jenis_layanan[]"]:checked').forEach((checkedBox) => {
-            total += parseFloat(checkedBox.getAttribute('data-biaya'));
-        });
-        document.getElementById('total_biaya').value = total;
-    }
-
-    toggleJenisLayananSection();
-    
-    const tanggalInput = document.getElementById('tanggal');
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    
-    const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-    tanggalInput.value = formattedDateTime;
-    tanggalInput.min = formattedDateTime;
-});
     function printResep() {
-    alert('Silakan simpan layanan medis terlebih dahulu untuk mencetak resep.');
-}
+        alert('Please save the medical service first to print the recipe.');
+    }
 </script>

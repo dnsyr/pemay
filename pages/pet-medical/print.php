@@ -32,7 +32,7 @@ if (isset($_GET['id'])) {
     
         if (!oci_execute($stmt)) {
             $error = oci_error($stmt);
-            die("Terjadi kesalahan saat mengambil data: " . htmlentities($error['message']));
+            die("Error occurred while fetching data: " . htmlentities($error['message']));
         }
     
         $layanan = oci_fetch_assoc($stmt);
@@ -40,7 +40,7 @@ if (isset($_GET['id'])) {
     
         // Check if the medical service exists
         if (!$layanan) {
-            echo "<script>alert('Layanan medis tidak ditemukan.'); window.location.href='dashboard.php';</script>";
+            echo "<script>alert('Medical service not found.'); window.location.href='dashboard.php';</script>";
             exit();
         }
     
@@ -59,15 +59,12 @@ if (isset($_GET['id'])) {
         }
         oci_free_statement($stmtObatList);
     
-        // Fetch Kategori Obat for Display (Optional)
-        // If you need to display more details or for future enhancements
-    
     } else {
-        echo "<script>alert('ID tidak valid!'); window.location.href='dashboard.php';</script>";
+        echo "<script>alert('Invalid ID!'); window.location.href='dashboard.php';</script>";
         exit();
     }
 } else {
-    echo "<script>alert('ID tidak ditemukan!'); window.location.href='dashboard.php';</script>";
+    echo "<script>alert('ID not found!'); window.location.href='dashboard.php';</script>";
     exit();
 }
 
@@ -82,7 +79,7 @@ ob_end_flush();
 
 <head>
     <meta charset="UTF-8">
-    <title>Print Resep - Layanan Medis</title>
+    <title>Print Prescription - Medical Service</title>
     <!-- Bootstrap CSS for styling -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -152,36 +149,36 @@ ob_end_flush();
 <body>
     <div class="prescription-container">
         <div class="prescription-header">
-            <h1>Resep Dokter Hewan</h1>
-            <p>Cukup Selama Hidup Hewan Peliharaan Anda</p>
+            <h1>Veterinary Prescription</h1>
+            <p>Valid for the Lifetime of Your Pet</p>
             <hr>
         </div>
 
         <div class="prescription-details">
-            <h3>Detail Layanan Medis</h3>
+            <h3>Medical Service Details</h3>
             <table class="table table-bordered">
                 <tr>
-                    <th>Tanggal</th>
+                    <th>Date</th>
                     <td><?= htmlentities($layanan['TANGGAL']); ?></td>
                 </tr>
                 <tr>
-                    <th>Nama Hewan</th>
+                    <th>Pet Name</th>
                     <td><?= htmlentities($layanan['NAMAHEWAN']); ?></td>
                 </tr>
                 <tr>
-                    <th>Spesies</th>
+                    <th>Species</th>
                     <td><?= htmlentities($layanan['SPESIES']); ?></td>
                 </tr>
                 <tr>
-                    <th>Nama Pemilik</th>
+                    <th>Owner Name</th>
                     <td><?= htmlentities($layanan['NAMAPEMILIK']); ?></td>
                 </tr>
                 <tr>
-                    <th>Nomor Telepon</th>
+                    <th>Phone Number</th>
                     <td><?= htmlentities($layanan['NOMORTELPON']); ?></td>
                 </tr>
                 <tr>
-                    <th>Deskripsi</th>
+                    <th>Description</th>
                     <td><?= nl2br(htmlentities($layanan['DESCRIPTION'])); ?></td>
                 </tr>
                 <tr>
@@ -192,17 +189,17 @@ ob_end_flush();
         </div>
 
         <div class="prescription-medicine">
-            <h3>Daftar Obat</h3>
+            <h3>Medicine List</h3>
             <?php if (!empty($obatList)): ?>
                 <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th>No.</th>
-                            <th>Nama Obat</th>
-                            <th>Dosis</th>
-                            <th>Frekuensi</th>
-                            <th>Instruksi</th>
-                            <th>Kategori Obat</th>
+                            <th>Medicine Name</th>
+                            <th>Dosage</th>
+                            <th>Frequency</th>
+                            <th>Instructions</th>
+                            <th>Medicine Category</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -219,22 +216,22 @@ ob_end_flush();
                     </tbody>
                 </table>
             <?php else: ?>
-                <p>Barang tidak ada.</p>
+                <p>No items available.</p>
             <?php endif; ?>
         </div>
 
         <div class="prescription-footer mt-4">
             <hr>
-            <p>Terima kasih atas kepercayaan Anda.</p>
-            <p>Dokter Hewan,</p>
+            <p>Thank you for your trust.</p>
+            <p>Veterinarian,</p>
             <br><br><br>
             <p>(____________________)</p>
         </div>
 
         <!-- Print Button -->
         <div class="text-center no-print mt-4">
-            <button class="btn btn-primary" onclick="window.print()">Cetak Resep</button>
-            <a href="dashboard.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary">Kembali</a>
+            <button class="btn btn-primary" onclick="window.print()">Print Prescription</button>
+            <a href="dashboard.php?id=<?= htmlentities($id); ?>" class="btn btn-secondary">Back</a>
         </div>
     </div>
 </body>

@@ -2,7 +2,7 @@
 require_once '../../config/database.php';
 require_once '../../config/connection.php';
 
-// Proses update jika ada POST request
+// Process update if there's a POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $id = $_POST['id'];
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Debug: Log POST data
         error_log("POST Data: " . print_r($_POST, true));
 
-        // Gunakan prepared statement dengan PDO
+        // Use prepared statement with PDO
         $db = new Database();
         $query = "UPDATE ResepObat 
                  SET Nama = :nama, 
@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->bind(':kategori_obat', $kategoriObat);
 
         if ($db->execute()) {
-            // Tampilkan pesan sukses dan redirect setelah 2 detik
-            echo '<div class="alert alert-success">Data obat berhasil diperbarui</div>';
+            // Show success message and redirect after 2 seconds
+            echo '<div class="alert alert-success">Medicine data has been successfully updated</div>';
             echo '<script>
                 setTimeout(function() {
                     window.location.href = "dashboard.php?tab=obat";
@@ -43,28 +43,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </script>';
             exit;
         } else {
-            throw new Exception("Gagal mengupdate data obat");
+            throw new Exception("Failed to update medicine data");
         }
 
     } catch (Exception $e) {
         // Debug: Log error
         error_log("Error updating obat: " . $e->getMessage());
-        // Redirect dengan pesan error
+        // Redirect with error message
         header('Location: dashboard.php?tab=obat&error=' . urlencode($e->getMessage()));
         exit;
     }
 }
 
-// Ambil data obat untuk form
+// Get medicine data for form
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     
-    // Debug: Log ID yang diterima
+    // Debug: Log received ID
     error_log("Received ID: " . $id);
     
     $db = new Database();
     
-    // Ambil data obat dengan join ke KategoriObat
+    // Get medicine data with join to KategoriObat
     $query = "SELECT ro.*, ko.Nama as KategoriNama, lm.Status as LayananStatus
              FROM ResepObat ro 
              JOIN KategoriObat ko ON ro.KategoriObat_ID = ko.ID 
@@ -78,13 +78,13 @@ if (isset($_GET['id'])) {
     $db->bind(':id', $id);
     $obat = $db->single();
     
-    // Debug: Log hasil query
+    // Debug: Log query result
     error_log("Query Result: " . print_r($obat, true));
     
     if ($obat) {
-        // Cek status layanan medis
+        // Check medical service status
         if ($obat['LAYANANSTATUS'] === 'Finished' || $obat['LAYANANSTATUS'] === 'Canceled') {
-            echo "<div class='alert alert-error'>Tidak dapat mengubah data obat untuk layanan yang sudah selesai atau dibatalkan</div>";
+            echo "<div class='alert alert-error'>Cannot modify medicine data for completed or canceled services</div>";
             echo "<script>
                 setTimeout(function() {
                     window.location.href = 'dashboard.php?tab=obat';
@@ -93,13 +93,13 @@ if (isset($_GET['id'])) {
             exit;
         }
         
-        // Ambil daftar kategori obat
+        // Get medicine categories list
         $db->query("SELECT ID, Nama FROM KategoriObat WHERE onDelete = 0 ORDER BY Nama");
         $kategoriObat = $db->resultSet();
         ?>
         <div class="p-4">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg">Update Obat</h3>
+                <h3 class="font-bold text-lg">Update Medicine</h3>
                 <label for="update-obat-drawer" class="btn btn-sm btn-circle">✕</label>
             </div>
             
@@ -107,31 +107,31 @@ if (isset($_GET['id'])) {
                 <input type="hidden" name="id" value="<?= $obat['ID'] ?>">
                 
                 <div class="form-control">
-                    <label class="label font-medium">Nama Obat</label>
+                    <label class="label font-medium">Medicine Name</label>
                     <input type="text" name="nama" value="<?= htmlentities($obat['NAMA']) ?>" 
                            class="input input-bordered w-full" required>
                 </div>
 
                 <div class="form-control">
-                    <label class="label font-medium">Dosis</label>
+                    <label class="label font-medium">Dosage</label>
                     <input type="text" name="dosis" value="<?= htmlentities($obat['DOSIS']) ?>" 
                            class="input input-bordered w-full" required>
                 </div>
 
                 <div class="form-control">
-                    <label class="label font-medium">Frekuensi</label>
+                    <label class="label font-medium">Frequency</label>
                     <input type="text" name="frekuensi" value="<?= htmlentities($obat['FREKUENSI']) ?>" 
                            class="input input-bordered w-full" required>
                 </div>
 
                 <div class="form-control">
-                    <label class="label font-medium">Instruksi</label>
+                    <label class="label font-medium">Instructions</label>
                     <textarea name="instruksi" class="textarea textarea-bordered w-full" 
                               required><?= htmlentities($obat['INSTRUKSI']) ?></textarea>
                 </div>
 
                 <div class="form-control">
-                    <label class="label font-medium">Kategori Obat</label>
+                    <label class="label font-medium">Medicine Category</label>
                     <select name="kategori_obat" class="select select-bordered w-full" required>
                         <?php foreach ($kategoriObat as $kategori): ?>
                             <option value="<?= $kategori['ID'] ?>" 
@@ -143,16 +143,16 @@ if (isset($_GET['id'])) {
                 </div>
 
                 <div class="flex justify-end gap-2 mt-6">
-                    <label for="update-obat-drawer" class="btn btn-ghost">Batal</label>
+                    <label for="update-obat-drawer" class="btn btn-ghost">Cancel</label>
                     <button type="submit" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">
-                        Update Obat
+                        Update Medicine
                     </button>
                 </div>
             </form>
         </div>
         <?php
     } else {
-        echo "<div class='alert alert-error'>Data obat tidak ditemukan</div>";
+        echo "<div class='alert alert-error'>Medicine data not found</div>";
         echo "<script>
             setTimeout(function() {
                 window.location.href = 'dashboard.php?tab=obat';

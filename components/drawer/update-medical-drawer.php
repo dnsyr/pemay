@@ -90,16 +90,16 @@
                         <div class="divider">Medication Information</div>
                         
                         <div id="obatSection">
-                            <!-- Tabel Obat -->
+                            <!-- Medicine Table -->
                             <div class="overflow-x-auto mb-4">
                                 <table class="table table-zebra bg-white w-full">
                                     <thead>
                                         <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
-                                            <th class="border-b border-[#363636]">Nama Obat</th>
-                                            <th class="border-b border-[#363636]">Dosis</th>
-                                            <th class="border-b border-[#363636]">Frekuensi</th>
-                                            <th class="border-b border-[#363636]">Kategori</th>
-                                            <th class="border-b border-[#363636]">Aksi</th>
+                                            <th class="border-b border-[#363636]">Medicine Name</th>
+                                            <th class="border-b border-[#363636]">Dosage</th>
+                                            <th class="border-b border-[#363636]">Frequency</th>
+                                            <th class="border-b border-[#363636]">Category</th>
+                                            <th class="border-b border-[#363636]">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="obatTableBody">
@@ -108,7 +108,7 @@
                                 </table>
                             </div>
 
-                            <!-- Form Tambah Obat -->
+                            <!-- Add Medicine Form -->
                             <div class="flex justify-between items-center mb-2">
                                 <label class="label">
                                     <span class="label-text font-semibold">Add New Medication</span>
@@ -123,35 +123,35 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-control">
                                         <label class="label">
-                                            <span class="label-text">Nama Obat</span>
+                                            <span class="label-text">Medicine Name</span>
                                         </label>
                                         <input type="text" id="namaObat" class="input input-bordered w-full">
                                     </div>
                                     <div class="form-control">
                                         <label class="label">
-                                            <span class="label-text">Dosis</span>
+                                            <span class="label-text">Dosage</span>
                                         </label>
                                         <input type="text" id="dosisObat" class="input input-bordered w-full">
                                     </div>
                                     <div class="form-control">
                                         <label class="label">
-                                            <span class="label-text">Frekuensi</span>
+                                            <span class="label-text">Frequency</span>
                                         </label>
                                         <input type="text" id="frekuensiObat" class="input input-bordered w-full">
                                     </div>
                                     <div class="form-control">
                                         <label class="label">
-                                            <span class="label-text">Kategori</span>
+                                            <span class="label-text">Category</span>
                                         </label>
                                         <select id="kategoriObat" class="select2 select select-bordered w-full bg-white text-black">
-                                            <option value="">Pilih Kategori</option>
+                                            <option value="">Select Category</option>
                                             <!-- Will be populated by AJAX -->
                                         </select>
                                     </div>
                                 </div>
                                 <div class="form-control mt-4">
                                     <label class="label">
-                                        <span class="label-text">Instruksi</span>
+                                        <span class="label-text">Instructions</span>
                                     </label>
                                     <textarea id="instruksiObat" class="textarea textarea-bordered w-full"></textarea>
                                 </div>
@@ -171,8 +171,11 @@
 
                         <div class="flex justify-end gap-2 mt-6">
                             <label for="update-medical-drawer" class="btn btn-ghost">Cancel</label>
-                            <button type="submit" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">
-                                Save Changes
+                            <button type="submit" name="action" value="save" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">
+                                Save
+                            </button>
+                            <button type="submit" name="action" value="save_and_print" class="btn bg-[#D4F0EA] hover:bg-[#D4F0EA] text-[#363636]">
+                                Save and Print
                             </button>
                         </div>
                     </form>
