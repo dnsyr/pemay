@@ -1,9 +1,18 @@
 <?php
-session_start();
-include '../../config/connection.php';
+if (!defined('SKIP_SESSION_START')) {
+    session_start();
+}
+if (!defined('SKIP_DB_INCLUDE')) {
+    include '../../config/database.php';
+}
 
 $pageTitle = 'Manage Product';
-include '../../layout/header.php';
+include '../../layout/header-tailwind.php';
+
+// Initialize Database
+if (!defined('SKIP_DB_INCLUDE')) {
+    $db = new Database();
+}
 
 // Check if the user is logged in
 if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
@@ -12,7 +21,7 @@ if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true)
 }
 
 // Pagination setup
-$itemsPerPage = 5;
+$itemsPerPage = 6;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
 
@@ -34,15 +43,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Prepare search wildcard
-$searchWildcard = '%' . $searchTerm . '%';
-
 // Build main query with filters
 $searchQuery = " WHERE 1=1";
+$params = [];
 
 // If a search term is provided, add it to the query
 if ($searchTerm) {
     $searchQuery .= " AND UPPER(P.NAMA) LIKE UPPER(:searchTerm)";
+    $params[':searchTerm'] = '%' . $searchTerm . '%';
 }
 
 // If category_type is selected, filter by type
@@ -58,8 +66,10 @@ if ($selectedCategoryType) {
 if ($selectedCategory && $selectedCategoryType) {
     if ($selectedCategoryType == 'produk') {
         $searchQuery .= " AND P.KategoriProduk_ID = :category";
+        $params[':category'] = $selectedCategory;
     } elseif ($selectedCategoryType == 'obat') {
         $searchQuery .= " AND P.KategoriObat_ID = :category";
+        $params[':category'] = $selectedCategory;
     }
 }
 
@@ -71,53 +81,29 @@ $sql = "SELECT P.*,
         LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID
         LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID" . 
         $searchQuery . 
-        " ORDER BY P.JUMLAH ASC" . // Sorting by lowest quantity first
-        " OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
+        " ORDER BY P.JUMLAH ASC OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
 
-$stid = oci_parse($conn, $sql);
+// Add pagination parameters
+$params[':offset'] = $offset;
+$params[':itemsPerPage'] = $itemsPerPage;
 
-// Bind parameters
-if ($searchTerm) {
-    oci_bind_by_name($stid, ":searchTerm", $searchWildcard);
+// Execute the query
+$db->query($sql);
+foreach ($params as $param => $value) {
+    $db->bind($param, $value);
 }
+$stocks = $db->resultSet();
 
-if ($selectedCategory && $selectedCategoryType) {
-    oci_bind_by_name($stid, ":category", $selectedCategory);
-}
-
-oci_bind_by_name($stid, ":offset", $offset, -1, SQLT_INT);
-oci_bind_by_name($stid, ":itemsPerPage", $itemsPerPage, -1, SQLT_INT);
-
-// Execute main query
-oci_execute($stid);
-
-$stocks = [];
-while ($row = oci_fetch_assoc($stid)) {
-    $stocks[] = $row;
-}
-oci_free_statement($stid);
-
-// Fetch categories for filter based on category type
-$categoriesProdukList = [];
-$categoriesObatList = [];
-
+// Fetch categories for filter
 // Fetch KategoriProduk
-$categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
-$categoryProdukStid = oci_parse($conn, $categoryProdukQuery);
-oci_execute($categoryProdukStid);
-while ($row = oci_fetch_assoc($categoryProdukStid)) {
-    $categoriesProdukList[] = $row;
-}
-oci_free_statement($categoryProdukStid);
+$categoriesProduk = [];
+$db->query("SELECT * FROM KategoriProduk ORDER BY Nama");
+$categoriesProduk = $db->resultSet();
 
 // Fetch KategoriObat
-$categoryObatQuery = "SELECT * FROM KategoriObat ORDER BY Nama";
-$categoryObatStid = oci_parse($conn, $categoryObatQuery);
-oci_execute($categoryObatStid);
-while ($row = oci_fetch_assoc($categoryObatStid)) {
-    $categoriesObatList[] = $row;
-}
-oci_free_statement($categoryObatStid);
+$categoriesObat = [];
+$db->query("SELECT * FROM KategoriObat ORDER BY Nama");
+$categoriesObat = $db->resultSet();
 
 // Count total items for pagination
 $totalSql = "SELECT COUNT(*) AS TOTAL 
@@ -125,180 +111,339 @@ $totalSql = "SELECT COUNT(*) AS TOTAL
              LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID
              LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID" . $searchQuery;
 
-$totalStid = oci_parse($conn, $totalSql);
-
-if ($searchTerm) {
-    oci_bind_by_name($totalStid, ":searchTerm", $searchWildcard);
+$db->query($totalSql);
+foreach ($params as $param => $value) {
+    if ($param !== ':offset' && $param !== ':itemsPerPage') {
+        $db->bind($param, $value);
+    }
 }
-
-if ($selectedCategory && $selectedCategoryType) {
-    oci_bind_by_name($totalStid, ":category", $selectedCategory);
-}
-
-oci_execute($totalStid);
-$totalRow = oci_fetch_assoc($totalStid);
+$totalRow = $db->single();
 $totalItems = $totalRow['TOTAL'];
-oci_free_statement($totalStid);
 
 // Handle delete request
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     $sqlDelete = "DELETE FROM Produk WHERE ID = :id";
-    $stidDelete = oci_parse($conn, $sqlDelete);
-    oci_bind_by_name($stidDelete, ":id", $delete_id);
+    $db->query($sqlDelete);
+    $db->bind(':id', $delete_id);
 
-    if (oci_execute($stidDelete)) {
+    if ($db->execute()) {
         echo "<script>alert('Stock item deleted successfully!'); window.location.href='product.php';</script>";
     } else {
         echo "<script>alert('Failed to delete stock item.');</script>";
     }
-    oci_free_statement($stidDelete);
 }
-
-oci_close($conn);
 
 $totalPages = ceil($totalItems / $itemsPerPage);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
 
 <body>
-    <div class="page-container">
-        <h2>Stock Management</h2>
-        <a href="./add-product.php" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></a>
+    <div class="pb-6 px-12 text-[#363636]">
+        <div class="flex justify-between mb-6">
+            <h2 class="text-3xl font-bold">Stock Management</h2>
+        </div>
 
-        <!-- Filter Form -->
-        <form method="POST" class="row g-3 mb-4">
-            <!-- Search Field -->
-            <div class="col-md-3">
-                <input type="text" class="form-control" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
-            </div>
+        <!-- Tabs -->
+        <div role="tablist" class="tabs tabs-lifted relative z-0 mb-6">
+            <input type="radio" name="my_tabs_2" role="tab" checked class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636] h-10 px-8" aria-label="Product" />
+            <div role="tabpanel" class="tab-content bg-[#FCFCFC] border-base-300 rounded-box p-6">
+                <!-- Filter Form -->
+                <form method="POST" class="flex gap-3 mb-4">
+                    <!-- Search Field -->
+                    <input type="text" class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="search" placeholder="Search by item name..." value="<?php echo htmlentities($searchTerm); ?>">
 
-            <!-- Category Type Dropdown -->
-            <div class="col-md-3">
-                <select class="form-select" name="category_type">
-                    <option disabled value="" <?php echo empty($selectedCategoryType) ? 'selected' : ''; ?>>-- Select Category Type --</option>
-                    <option value="all" <?php echo ($selectedCategoryType) == 'all' ?'selected' : ''; ?>>All</option>
-                    <option value="produk" <?php echo $selectedCategoryType == 'produk' ? 'selected' : ''; ?>>Produk</option>
-                    <option value="obat" <?php echo $selectedCategoryType == 'obat' ? 'selected' : ''; ?>>Obat</option>
-                </select>
-            </div>
+                    <!-- Category Type Dropdown -->
+                    <select class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="category_type">
+                        <option disabled value="" <?php echo empty($selectedCategoryType) ? 'selected' : ''; ?>>-- Select Category Type --</option>
+                        <option value="all" <?php echo ($selectedCategoryType) == 'all' ?'selected' : ''; ?>>All</option>
+                        <option value="produk" <?php echo $selectedCategoryType == 'produk' ? 'selected' : ''; ?>>Produk</option>
+                        <option value="obat" <?php echo $selectedCategoryType == 'obat' ? 'selected' : ''; ?>>Obat</option>
+                    </select>
 
             <!-- Category Dropdown -->
-            <div class="col-md-3">
-                <select class="form-select" name="category" <?php echo empty($selectedCategoryType) ? 'disabled' : ''; ?>>
-                    <option value="" <?php echo empty($selectedCategory) ? 'selected' : ''; ?>>-- Select Category --</option>
-                    <?php
-                    if ($selectedCategoryType == 'produk') {
-                        if (!empty($categoriesProdukList)) {
-                            foreach ($categoriesProdukList as $category) {
-                                $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
-                                echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
-                            }
-                        } else {
-                            echo '<option value="" disabled>No Produk Categories Available</option>';
+            <select class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="category" <?php echo empty($selectedCategoryType) ? 'disabled' : ''; ?>>
+                <option value="" <?php echo empty($selectedCategory) ? 'selected' : ''; ?>>-- Select Category --</option>
+                <?php
+                if ($selectedCategoryType == 'produk') {
+                    if (!empty($categoriesProduk)) {
+                        foreach ($categoriesProduk as $category) {
+                            $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
+                            echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
                         }
-                    } elseif ($selectedCategoryType == 'obat') {
-                        if (!empty($categoriesObatList)) {
-                            foreach ($categoriesObatList as $category) {
-                                $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
-                                echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
-                            }
-                        } else {
-                            echo '<option value="" disabled>No Obat Categories Available</option>';
-                        }
+                    } else {
+                        echo '<option value="" disabled>No Produk Categories Available</option>';
                     }
-                    ?>
-                </select>
-            </div>
+                } elseif ($selectedCategoryType == 'obat') {
+                    if (!empty($categoriesObat)) {
+                        foreach ($categoriesObat as $category) {
+                            $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
+                            echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
+                        }
+                    } else {
+                        echo '<option value="" disabled>No Obat Categories Available</option>';
+                    }
+                }
+                ?>
+            </select>
 
             <!-- Filter Button -->
-            <div class="col-md-3">
-                <button class="btn btn-outline-secondary" type="submit">Filter</button>
-                <a href="product.php" class="btn btn-outline-secondary">Reset Filter</a>
+            <div class="flex gap-2">
+                <button class="btn bg-[#D4F0EA] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center" type="submit">
+                    <i class="fas fa-filter"></i>
+                </button>
+                <a href="product.php" class="btn bg-[#E0BAB2] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center">
+                    <i class="fas fa-undo"></i>
+                </a>
             </div>
         </form>
 
-        <!-- Table -->
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Item Name</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Category</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($stocks)): ?>
-                    <?php foreach ($stocks as $stock): ?>
-                        <tr class="<?php echo ($stock['JUMLAH'] <= 10) ? 'table-warning' : ''; ?>">
-                            <td><?php echo htmlentities($stock['NAMA']); ?></td>
-                            <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
-                            <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
-                            <td>
-                                <?php 
-                                    if ($stock['KATEGORIPRODUKNAMA']) {
-                                        echo htmlentities($stock['KATEGORIPRODUKNAMA']);
-                                    } elseif ($stock['KATEGORIOBATNAMA']) {
-                                        echo htmlentities($stock['KATEGORIOBATNAMA']);
-                                    } else {
-                                        echo 'N/A';
-                                    }
-                                ?>
-                            </td>
-                            <td>
-                                <!-- Update Button -->
-                                <a href="update-product.php?id=<?php echo htmlentities($stock['ID']); ?>" class="btn btn-warning btn-sm">Update</a>
+                <!-- Table -->
+                <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171] mt-3">
+                    <table class="table border-collapse w-full">
+                        <thead>
+                            <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
+                                <th class="rounded-tl-xl">Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Category</th>
+                                <th class="rounded-tr-xl">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($stocks)): ?>
+                                <?php foreach ($stocks as $index => $stock): ?>
+                                    <tr class="text-[#363636] <?php echo ($stock['JUMLAH'] <= 10) ? 'bg-yellow-100' : ''; ?>">
+                                        <td class="<?= $index === count($stocks) - 1 ? 'rounded-bl-xl' : '' ?>"><?php echo htmlentities($stock['NAMA']); ?></td>
+                                        <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
+                                        <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
+                                        <td>
+                                            <?php 
+                                                if ($stock['KATEGORIPRODUKNAMA']) {
+                                                    echo htmlentities($stock['KATEGORIPRODUKNAMA']);
+                                                } elseif ($stock['KATEGORIOBATNAMA']) {
+                                                    echo htmlentities($stock['KATEGORIOBATNAMA']);
+                                                } else {
+                                                    echo 'N/A';
+                                                }
+                                            ?>
+                                        </td>
+                                        <td class="<?= $index === count($stocks) - 1 ? 'rounded-br-xl' : '' ?>">
+                                            <div class="flex gap-3 justify-center items-center">
+                                                <!-- Update Button -->
+                                                <button type="button" class="drawer-btn btn btn-warning btn-sm" onclick="handleUpdateBtn('<?php echo $stock['ID']; ?>')">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
 
-                                <!-- Delete Button -->
-                                <a href="product.php?delete_id=<?php echo htmlentities($stock['ID']); ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5">Barang tidak ada.</td>
-                    </tr>
+                                                <!-- Delete Button -->
+                                                <a href="product.php?delete_id=<?php echo htmlentities($stock['ID']); ?>" class="btn btn-error btn-sm" onclick="return confirm('Are you sure you want to delete this item?')">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center">Barang tidak ada.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="flex justify-center gap-2">
+                            <?php 
+                            // Previous button
+                            if ($page > 1): ?>
+                                <li>
+                                    <a href="?page=<?php echo ($page - 1); ?>" class="btn btn-sm bg-[#D4F0EA] text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC]">Previous</a>
+                                </li>
+                            <?php endif; ?>
+
+                            <?php
+                            // Determine the range of pages to display
+                            $range = 2;
+                            $start = max(1, $page - $range);
+                            $end = min($totalPages, $page + $range);
+
+                            // Page numbers
+                            for ($i = $start; $i <= $end; $i++): ?>
+                                <li>
+                                    <a href="?page=<?php echo $i; ?>" class="btn btn-sm <?php echo ($i == $page) ? 'bg-[#565656] text-[#FCFCFC]' : 'bg-[#D4F0EA] text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC]'; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                </li>
+                            <?php endfor; ?>
+
+                            <?php 
+                            // Next button
+                            if ($page < $totalPages): ?>
+                                <li>
+                                    <a href="?page=<?php echo ($page + 1); ?>" class="btn btn-sm bg-[#D4F0EA] text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC]">Next</a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
                 <?php endif; ?>
-            </tbody>
-        </table>
+            </div>
+        </div>
 
-        <!-- Pagination -->
-        <?php if ($totalPages > 1): ?>
-            <nav aria-label="Page navigation">
-                <ul class="pagination">
-                    <?php 
-                    // Determine the range of pages to display
-                    $range = 2; // Number of pages to show on either side of the current page
-                    $start = max(1, $page - $range);
-                    $end = min($totalPages, $page + $range);
-
-                    // Previous button
-                    if ($page > 1) {
-                        echo '<li class="page-item"><a class="page-link" href="?page=' . ($page - 1) . '">Previous</a></li>';
-                    } else {
-                        echo '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-                    }
-
-                    // Page numbers
-                    for ($i = $start; $i <= $end; $i++) {
-                        $active = ($i == $page) ? 'active' : '';
-                        echo '<li class="page-item ' . $active . '"><a class="page-link" href="?page=' . $i . '">' . $i . '</a></li>';
-                    }
-
-                    // Next button
-                    if ($page < $totalPages) {
-                        echo '<li class="page-item"><a class="page-link" href="?page=' . ($page + 1) . '">Next</a></li>';
-                    } else {
-                        echo '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-                    }
-                    ?>
-                </ul>
-            </nav>
-        <?php endif; ?>
+        <!-- Add Product Drawer Button -->
+        <div class="drawer drawer-end z-10">
+            <input id="drawerAddProduct" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content">
+                <label for="drawerAddProduct" class="drawer-button btn bg-[#D4F0EA] w-14 h-14 flex justify-center text-[#363636] hover:bg-[#363636] hover:text-[#D4F0EA] items-center rounded-full fixed bottom-5 right-5 border border-[#363636] shadow-md shadow-[#717171]">
+                    <i class="fas fa-plus fa-lg"></i>
+                </label>
+            </div>
+            <div class="drawer-side">
+                <label for="drawerAddProduct" aria-label="close sidebar" class="drawer-overlay"></label>
+                <div class="menu bg-[#FCFCFC] text-[#363636] min-h-screen w-96 flex flex-col justify-center px-8">
+                    <h3 class="text-lg font-semibold mb-7">Add New Product</h3>
+                    <form action="add-product.php" method="post" class="gap-5 flex flex-col">
+                        <div>
+                            <label for="nama_item">Item Name</label>
+                            <input type="text" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" id="nama_item" name="nama_item" required>
+                        </div>
+                        <div>
+                            <label for="jumlah">Quantity</label>
+                            <input type="number" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" id="jumlah" name="jumlah" min="0" required>
+                        </div>
+                        <div>
+                            <label for="harga">Price</label>
+                            <input type="number" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" id="harga" name="harga" min="0" required>
+                        </div>
+                        <div>
+                            <label>Category Type</label><br>
+                            <div class="mt-1 flex gap-4">
+                                <div>
+                                    <input type="radio" id="produk" name="tipe_kategori" value="produk" checked onclick="updateCategory()">
+                                    <label for="produk">Produk</label>
+                                </div>
+                                <div>
+                                    <input type="radio" id="obat" name="tipe_kategori" value="obat" onclick="updateCategory()">
+                                    <label for="obat">Obat</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="kategori">Category</label>
+                            <select class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2 select2" id="kategori" name="kategori" required>
+                                <option value="" disabled selected>-- Select Category --</option>
+                                <?php foreach ($categoriesProduk as $category): ?>
+                                    <option value="<?php echo $category['ID']; ?>" class="produk">
+                                        <?php echo htmlentities($category['NAMA']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <?php foreach ($categoriesObat as $category): ?>
+                                    <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;">
+                                        <?php echo htmlentities($category['NAMA']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="flex justify-end gap-5 mt-5">
+                            <button type="submit" class="btn bg-[#B2B5E0] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center">
+                                <i class="fas fa-plus fa-md"></i> Add Product
+                            </button>
+                            <label for="drawerAddProduct" class="btn bg-[#E0BAB2] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC]">Cancel</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fungsi untuk mengupdate kategori
+            window.updateCategory = function() {
+                const kategori = document.getElementById('kategori');
+                const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+                const kategoriSelect = $(kategori);
+
+                // Reset nilai dropdown
+                kategoriSelect.val(null).trigger('change');
+
+                // Sembunyikan semua opsi terlebih dahulu
+                kategoriSelect.find('option').not('[value=""]').remove();
+
+                // Tambahkan kembali opsi sesuai kategori yang dipilih
+                if (tipeKategori === 'produk') {
+                    <?php foreach ($categoriesProduk as $category): ?>
+                        kategoriSelect.append(new Option('<?php echo htmlentities($category['NAMA']); ?>', '<?php echo $category['ID']; ?>', false, false));
+                    <?php endforeach; ?>
+                } else {
+                    <?php foreach ($categoriesObat as $category): ?>
+                        kategoriSelect.append(new Option('<?php echo htmlentities($category['NAMA']); ?>', '<?php echo $category['ID']; ?>', false, false));
+                    <?php endforeach; ?>
+                }
+
+                // Refresh Select2
+                kategoriSelect.select2({
+                    placeholder: '-- Select Category --',
+                    allowClear: true,
+                    dropdownParent: $('.drawer-side')
+                });
+            }
+
+            // Inisialisasi Select2
+            $('.select2').select2({
+                placeholder: '-- Select Category --',
+                allowClear: true,
+                dropdownParent: $('.drawer-side')
+            });
+
+            // Event listener untuk tipe kategori
+            document.querySelectorAll('input[name="tipe_kategori"]').forEach(function (radio) {
+                radio.addEventListener('change', updateCategory);
+            });
+
+            // Panggil updateCategory saat halaman dimuat
+            updateCategory();
+        });
+
+        // Fungsi untuk menangani klik tombol update
+        function handleUpdateBtn(id) {
+            window.location.href = 'update-product.php?id=' + id;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle category type change
+            const categoryTypeSelect = document.querySelector('select[name="category_type"]');
+            const categorySelect = document.querySelector('select[name="category"]');
+
+            categoryTypeSelect.addEventListener('change', function() {
+                const selectedType = this.value;
+                categorySelect.disabled = selectedType === 'all';
+
+                // Clear current options
+                categorySelect.innerHTML = '<option value="" selected>-- Select Category --</option>';
+
+                if (selectedType === 'produk') {
+                    <?php foreach ($categoriesProduk as $category): ?>
+                        const option = new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>');
+                        categorySelect.add(option);
+                    <?php endforeach; ?>
+                } else if (selectedType === 'obat') {
+                    <?php foreach ($categoriesObat as $category): ?>
+                        const option = new Option('<?php echo htmlspecialchars($category['NAMA']); ?>', '<?php echo $category['ID']; ?>');
+                        categorySelect.add(option);
+                    <?php endforeach; ?>
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

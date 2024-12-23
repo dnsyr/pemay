@@ -58,18 +58,24 @@ $reportUri = "/pemay/pages/owner/reports.php";
 $role = $_SESSION['posisi'];
 $linkActive = 'underline-offset-[5px] underline decoration-[#565656] decoration-2';
 
-$isManagementsActive = (
-  in_array($currentUri, $usersUri) ||
-  in_array($currentUri, $productUris) ||
-  in_array($currentUri, $categoryUri) ||
-  in_array($currentUri, $customerUri)
-) ? $linkActive : '';
+$isManagementsActive = false;
+if (in_array($currentUri, $usersUri) ||
+    in_array($currentUri, $productUris) ||
+    in_array($currentUri, $categoryUri) ||
+    in_array($currentUri, $customerUri)) {
+    $isManagementsActive = true;
+}
 
-$isPetServicesActive = (
-  in_array($currentUri, $petHotelUri) ||
-  in_array($currentUri, $petSalonUri) ||
-  in_array($currentUri, $petMedicalUri)
-) ? $linkActive : '';
+// Perbaikan logika untuk active state Pet Services
+$isPetServicesActive = false;
+if (in_array($currentUri, $petHotelUri) ||
+    in_array($currentUri, $petSalonUri) ||
+    in_array($currentUri, $petMedicalUri)) {
+    $isPetServicesActive = true;
+}
+
+$managementsActiveClass = $isManagementsActive ? $linkActive : '';
+$petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 ?>
 
 <!DOCTYPE html>
@@ -125,7 +131,7 @@ $isPetServicesActive = (
           <!-- Management Dropdown -->
           <div class="relative inline-block w-[140px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $isManagementsActive; ?> hover:font-semibold">
+            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $managementsActiveClass; ?> hover:font-semibold">
               <span id="selectedManagement">Managements</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -148,7 +154,7 @@ $isPetServicesActive = (
                 <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $categoryUri)) ? $linkActive : ''; ?>">Categories</a>
               </li>
               <li>
-                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
+                <a href="/pemay/pages/customer/customer.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
               </li>
             </ul>
           </div>
@@ -156,7 +162,7 @@ $isPetServicesActive = (
           <!-- Pet Services Dropdown -->
           <div class="relative inline-block w-[140px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $isPetServicesActive; ?> hover:font-semibold">
+            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $petServicesActiveClass; ?> hover:font-semibold">
               <span id="selectedPetService">Pet Services</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />

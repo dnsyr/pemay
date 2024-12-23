@@ -1,7 +1,12 @@
 <?php
 session_start();
-include '../../config/connection.php';
-include '../../layout/header.php';
+include '../../config/database.php';
+
+$pageTitle = 'Manage Categories';
+include '../../layout/header-tailwind.php';
+
+// Initialize Database
+$db = new Database();
 
 $message = "";
 
@@ -30,125 +35,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $biaya = isset($_POST['biaya']) ? (int) $_POST['biaya'] : 30000;
 
     // Siapkan query berdasarkan tab yang aktif
-    $sql = "INSERT INTO $currentTable (Nama" . ($tab === 'salon' || $tab === 'medis' ? ', Biaya' : '') . ") 
-            VALUES (:nama" . ($tab === 'salon' || $tab === 'medis' ? ', :biaya' : '') . ")";
-    $stid = oci_parse($conn, $sql);
-    oci_bind_by_name($stid, ":nama", $namaKategori);
     if ($tab === 'salon' || $tab === 'medis') {
-        oci_bind_by_name($stid, ":biaya", $biaya);
+        $sql = "INSERT INTO $currentTable (Nama, Biaya) VALUES (:nama, :biaya)";
+        $db->query($sql);
+        $db->bind(':nama', $namaKategori);
+        $db->bind(':biaya', $biaya);
+    } else {
+        $sql = "INSERT INTO $currentTable (Nama) VALUES (:nama)";
+        $db->query($sql);
+        $db->bind(':nama', $namaKategori);
     }
 
-    if (oci_execute($stid)) {
+    if ($db->execute()) {
         $message = "$currentLabel berhasil ditambahkan.";
     } else {
         $message = "Gagal menambahkan $currentLabel.";
     }
-    oci_free_statement($stid);
 }
 
 // Proses Hapus Kategori
 if (isset($_GET['delete_id'])) {
     $deleteId = $_GET['delete_id'];
     $sql = "UPDATE $currentTable SET onDelete = 1 WHERE ID = :id";
-    $stid = oci_parse($conn, $sql);
-    oci_bind_by_name($stid, ":id", $deleteId);
+    $db->query($sql);
+    $db->bind(':id', $deleteId);
 
-    if (oci_execute($stid)) {
+    if ($db->execute()) {
         $message = "$currentLabel berhasil dihapus.";
     } else {
         $message = "Gagal menghapus $currentLabel.";
     }
-    oci_free_statement($stid);
 }
 
 // Ambil Data Kategori
 $sql = "SELECT * FROM $currentTable WHERE onDelete = 0 ORDER BY ID";
-$stid = oci_parse($conn, $sql);
-oci_execute($stid);
-
-$categories = [];
-while ($row = oci_fetch_assoc($stid)) {
-    $categories[] = $row;
-}
-oci_free_statement($stid);
-
+$db->query($sql);
+$categories = $db->resultSet();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <body>
-    <div class="page-container">
-        <h2>Manage Categories</h2>
-        <?php if ($message != ""): ?>
-            <div class="alert alert-info">
-                <?php echo htmlentities($message); ?>
+    <div class="pb-6 px-12 text-[#363636]">
+        <div class="flex justify-between mb-6">
+            <h2 class="text-3xl font-bold">Manage Categories</h2>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-6">
+            <div class="inline-flex border-b border-[#363636]">
+                <a href="?tab=produk" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $tab === 'produk' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Product</a>
+                <a href="?tab=obat" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $tab === 'obat' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Medicine</a>
+                <a href="?tab=salon" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $tab === 'salon' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Salon Service</a>
+                <a href="?tab=medis" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $tab === 'medis' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Medical Service</a>
             </div>
-        <?php endif; ?>
 
-        <!-- Tabs for Category Types -->
-        <ul class="nav nav-tabs">
-            <?php foreach ($tables as $key => $table): ?>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo $tab === $key ? 'active' : ''; ?>" href="?tab=<?php echo $key; ?>">
-                        <?php echo htmlentities($table['label']); ?>
-                    </a>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-
-        <div class="mt-3">
-            <!-- Add Form -->
-            <form method="POST" action="?tab=<?php echo $tab; ?>">
-                <input type="hidden" name="action" value="add">
-                <div class="mb-3">
-                    <label for="namaKategori" class="form-label"><?php echo $currentLabel; ?> Name</label>
-                    <input type="text" class="form-control" id="namaKategori" name="namaKategori" required>
-                </div>
-                <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                    <div class="mb-3">
-                        <label for="biaya" class="form-label">Price</label>
-                        <input type="number" class="form-control" id="biaya" name="biaya" required>
-                    </div>
-                <?php endif; ?>
-                <button type="submit" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></button>
-            </form>
-
-            <!-- Category List -->
-            <table class="table mt-3">
-                <thead>
-                    <tr>
-                        <th><?php echo $currentLabel; ?> Name</th>
-                        <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                            <th>Price</th>
-                        <?php endif; ?>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($categories as $category): ?>
-                        <tr>
-                            <td><?php echo htmlentities($category['NAMA']); ?></td>
-                            <?php if ($tab === 'salon' || $tab === 'medis'): ?>
-                                <td>Rp <?php echo number_format($category['BIAYA'], 0, ',', '.'); ?></td>
-                            <?php endif; ?>
-                            <td>
-                                <!-- Edit Button -->
-                                <a href="update-category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" class="btn btn-warning btn-sm">Edit</a>
-                                <!-- Delete Button -->
-                                <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus?')">Hapus</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-
+            <!-- Tab Content -->
+            <div class="bg-[#FCFCFC] border border-[#363636] rounded-b-xl p-6">
+                <?php include 'tab-content.php'; ?>
+            </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        .tab-active {
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            position: relative;
+        }
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #FCFCFC;
+            z-index: 1;
+        }
+        .tab {
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            border: 1px solid transparent;
+            margin-right: 0.25rem;
+        }
+        .tab:hover:not(.tab-active) {
+            border: 1px solid #363636;
+            border-bottom: 0;
+            background: transparent;
+        }
+        .tab:last-child {
+            margin-right: 0;
+        }
+    </style>
 </body>
-
 </html>
