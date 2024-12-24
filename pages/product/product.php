@@ -70,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Build main query with filters
-$searchQuery = " WHERE 1=1";
+$searchQuery = " WHERE P.onDelete = 0";
 $params = [];
 
 // If a search term is provided, add it to the query
@@ -99,19 +99,21 @@ if ($selectedCategory && $selectedCategoryType) {
     }
 }
 
-// Main SQL query with sorting by lowest quantity first
-$sql = "SELECT P.*, 
-               KP.Nama AS KATEGORIPRODUKNAMA, 
-               KO.Nama AS KATEGORIOBATNAMA
-        FROM Produk P
-        LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
-        LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0" . 
-        $searchQuery . 
-        " ORDER BY P.JUMLAH ASC OFFSET :offset ROWS FETCH NEXT :itemsPerPage ROWS ONLY";
-
-// Add pagination parameters
-$params[':offset'] = $offset;
-$params[':itemsPerPage'] = $itemsPerPage;
+// Main SQL query with Oracle-style pagination
+$sql = "
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                P.*, 
+                KP.Nama AS KATEGORIPRODUKNAMA, 
+                KO.Nama AS KATEGORIOBATNAMA
+            FROM Produk P
+            LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
+            LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0
+            {$searchQuery}
+            ORDER BY P.JUMLAH ASC
+        ) a WHERE ROWNUM <= " . ($offset + $itemsPerPage) . "
+    ) WHERE rnum > " . $offset;
 
 // Execute the query
 $db->query($sql);
@@ -131,16 +133,16 @@ $db->query("SELECT * FROM KategoriObat WHERE ONDELETE = 0 ORDER BY Nama");
 $categoriesObat = $db->resultSet();
 
 // Count total items for pagination
-$totalSql = "SELECT COUNT(*) AS TOTAL 
-             FROM Produk P
-             LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
-             LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0" . $searchQuery;
+$totalSql = "
+    SELECT COUNT(*) AS TOTAL 
+    FROM Produk P
+    LEFT JOIN KategoriProduk KP ON P.KategoriProduk_ID = KP.ID AND KP.ONDELETE = 0
+    LEFT JOIN KategoriObat KO ON P.KategoriObat_ID = KO.ID AND KO.ONDELETE = 0
+    {$searchQuery}";
 
 $db->query($totalSql);
 foreach ($params as $param => $value) {
-    if ($param !== ':offset' && $param !== ':itemsPerPage') {
-        $db->bind($param, $value);
-    }
+    $db->bind($param, $value);
 }
 $totalRow = $db->single();
 $totalItems = $totalRow['TOTAL'];
@@ -405,6 +407,112 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                     </nav>
                 <?php endif; ?>
             </div>
+
+            <input type="radio" name="my_tabs_2" role="tab" class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636] h-10 px-8" aria-label="Product Log" />
+            <div role="tabpanel" class="tab-content bg-[#FCFCFC] border-base-300 rounded-box p-6">
+                <!-- Filter Form for Log -->
+                <form method="POST" class="flex gap-3 mb-4">
+                    <input type="hidden" name="tab" value="log">
+                    <!-- Date Range -->
+                    <div class="flex gap-2 items-center">
+                        <label class="text-sm">From:</label>
+                        <input type="datetime-local" name="date_from" class="rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-4 py-2" 
+                               value="<?php echo isset($_POST['date_from']) ? date('Y-m-d\TH:i', strtotime($_POST['date_from'])) : date('Y-m-d\TH:i', strtotime('-1 month')); ?>">
+                        
+                        <label class="text-sm">To:</label>
+                        <input type="datetime-local" name="date_to" class="rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-4 py-2" 
+                               value="<?php echo isset($_POST['date_to']) ? date('Y-m-d\TH:i', strtotime($_POST['date_to'])) : date('Y-m-d\TH:i'); ?>">
+                    </div>
+
+                    <!-- Filter & Print Buttons -->
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn bg-[#D4F0EA] text-[#363636] shadow-md shadow-[#565656] px-7 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC]">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                        <button type="button" onclick="printProductLog()" class="btn bg-green-600 text-white shadow-md shadow-[#565656] px-7 rounded-full hover:bg-green-700">
+                            <i class="fas fa-print mr-2"></i>Print
+                        </button>
+                        <a href="?tab=log" class="btn bg-[#E0BAB2] text-[#363636] shadow-md shadow-[#565656] px-7 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC]">
+                            <i class="fas fa-undo mr-2"></i>Reset
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Log Table -->
+                <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171] mt-3">
+                    <table class="table border-collapse w-full" id="logTable">
+                        <thead>
+                            <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
+                                <th class="rounded-tl-xl">Date</th>
+                                <th>Product Name</th>
+                                <th>Initial Stock</th>
+                                <th>Final Stock</th>
+                                <th>Change</th>
+                                <th>Description</th>
+                                <th class="rounded-tr-xl">Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Get log data with date filter
+                            $logQuery = "
+                                SELECT 
+                                    TO_CHAR(L.TanggalPerubahan, 'DD-MON-YYYY HH24:MI:SS') as TanggalPerubahan,
+                                    P.Nama as ProductName,
+                                    L.StokAwal,
+                                    L.StokAkhir,
+                                    L.Perubahan,
+                                    L.Keterangan,
+                                    PG.Nama as StaffName
+                                FROM LogProduk L
+                                JOIN Produk P ON L.Produk_ID = P.ID
+                                JOIN Pegawai PG ON L.Pegawai_ID = PG.ID
+                                WHERE P.onDelete = 0
+                            ";
+
+                            if (isset($_POST['tab']) && $_POST['tab'] === 'log') {
+                                if (!empty($_POST['date_from'])) {
+                                    $logQuery .= " AND L.TanggalPerubahan >= TO_TIMESTAMP(:date_from, 'YYYY-MM-DD HH24:MI:SS')";
+                                }
+                                if (!empty($_POST['date_to'])) {
+                                    $logQuery .= " AND L.TanggalPerubahan <= TO_TIMESTAMP(:date_to, 'YYYY-MM-DD HH24:MI:SS')";
+                                }
+                            }
+
+                            $logQuery .= " ORDER BY L.TanggalPerubahan DESC";
+
+                            $db->query($logQuery);
+                            foreach ($params as $param => $value) {
+                                $db->bind($param, $value);
+                            }
+                            $logs = $db->resultSet();
+
+                            if (!empty($logs)):
+                                foreach ($logs as $log):
+                            ?>
+                                <tr class="text-[#363636]">
+                                    <td><?php echo $log['TANGGALPERUBAHAN']; ?></td>
+                                    <td><?php echo htmlentities($log['PRODUCTNAME']); ?></td>
+                                    <td><?php echo htmlentities($log['STOKAWAL']); ?></td>
+                                    <td><?php echo htmlentities($log['STOKAKHIR']); ?></td>
+                                    <td class="<?php echo $log['PERUBAHAN'] >= 0 ? 'text-green-600' : 'text-red-600'; ?>">
+                                        <?php echo ($log['PERUBAHAN'] >= 0 ? '+' : '') . $log['PERUBAHAN']; ?>
+                                    </td>
+                                    <td><?php echo htmlentities($log['KETERANGAN']); ?></td>
+                                    <td><?php echo htmlentities($log['STAFFNAME']); ?></td>
+                                </tr>
+                            <?php
+                                endforeach;
+                            else:
+                            ?>
+                                <tr>
+                                    <td colspan="7" class="text-center">No log data available.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Add Product Drawer -->
@@ -594,6 +702,127 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                 }
             });
         });
+
+        function printProductLog() {
+            const printWindow = window.open('', '_blank');
+            const dateFrom = document.querySelector('input[name="date_from"]').value;
+            const dateTo = document.querySelector('input[name="date_to"]').value;
+            
+            // Calculate totals while iterating through rows
+            const productSummary = {};
+            
+            document.querySelectorAll('#logTable tbody tr').forEach(row => {
+                if (row.cells.length > 1) { // Skip empty state row
+                    const productName = row.cells[1].textContent.trim();
+                    const change = parseFloat(row.cells[4].textContent.replace('+', ''));
+                    
+                    if (!productSummary[productName]) {
+                        productSummary[productName] = {
+                            pembelian: 0,
+                            restock: 0
+                        };
+                    }
+                    
+                    // Negative change means pembelian, positive means restock
+                    if (change < 0) {
+                        productSummary[productName].pembelian += Math.abs(change);
+                    } else {
+                        productSummary[productName].restock += change;
+                    }
+                }
+            });
+            
+            // Create the print content
+            let printContent = `
+                <html>
+                <head>
+                    <title>Product Log Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .text-red { color: red; }
+                        .text-green { color: green; }
+                        .header { margin-bottom: 30px; }
+                        .date-range { margin-bottom: 20px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Product Log Report</h1>
+                        <div class="date-range">
+                            Period: ${new Date(dateFrom).toLocaleString()} - ${new Date(dateTo).toLocaleString()}
+                        </div>
+                    </div>
+
+                    <h2>Summary</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Total Pembelian (-)</th>
+                                <th>Total Restock (+)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
+                    // Add summary rows
+                    Object.entries(productSummary).forEach(([product, totals]) => {
+                        printContent += `
+                            <tr>
+                                <td>${product}</td>
+                                <td class="text-red">${totals.pembelian}</td>
+                                <td class="text-green">${totals.restock}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    // Add the log table
+                    printContent += `
+                        </tbody>
+                    </table>
+
+                    <h2>Detailed Log</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product Name</th>
+                                <th>Initial Stock</th>
+                                <th>Final Stock</th>
+                                <th>Change</th>
+                                <th>Description</th>
+                                <th>Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
+                    // Add log rows
+                    document.querySelectorAll('#logTable tbody tr').forEach(row => {
+                        if (row.cells.length > 1) {
+                            printContent += '<tr>' + row.innerHTML + '</tr>';
+                        }
+                    });
+                    
+                    printContent += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+            
+            // Write to the new window and print
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            // Wait for images to load before printing
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
     </script>
 </body>
 
