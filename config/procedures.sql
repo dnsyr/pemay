@@ -577,6 +577,10 @@ BEGIN
     LEFT JOIN Pegawai P ON PJ.PEGAWAI_ID = P.ID
     LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
     WHERE PJ.onDelete = 0
+    AND PJ.PRODUK IS NOT NULL
+    AND PJ.LAYANANMEDIS_ID IS NULL
+    AND PJ.LAYANANHOTEL_ID IS NULL  
+    AND PJ.LAYANANSALON_ID IS NULL 
     AND (p_search IS NULL 
         OR UPPER(P.NAMA) LIKE '%' || UPPER(p_search) || '%'
         OR UPPER(PH.NAMA) LIKE '%' || UPPER(p_search) || '%')
@@ -588,16 +592,22 @@ BEGIN
         SELECT 
             PJ.ID,
             PJ.TANGGALTRANSAKSI,
-            PJ.TOTAL_BIAYA as TOTALHARGA,
+            PJ.TOTALBIAYA as TOTALHARGA,
             P.NAMA as PEGAWAI_NAMA,
             PH.NAMA as PEMILIK_NAMA,
-            LISTAGG(PR.NAMA, ', ') WITHIN GROUP (ORDER BY PR.NAMA) as PRODUK_INFO
+            LISTAGG(PR.NAMA || ' (x' || COUNT(PR.ID) || ')', ', ') 
+            WITHIN GROUP (ORDER BY PR.NAMA) as PRODUK_INFO,
+            COUNT(PR.ID) as TOTAL_QUANTITY
         FROM PENJUALAN PJ
         LEFT JOIN Pegawai P ON PJ.PEGAWAI_ID = P.ID
         LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
         LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
         LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
         WHERE PJ.onDelete = 0
+        AND PJ.PRODUK IS NOT NULL
+        AND PJ.LAYANANMEDIS_ID IS NULL
+        AND PJ.LAYANANHOTEL_ID IS NULL
+        AND PJ.LAYANANSALON_ID IS NULL
         AND (p_search IS NULL 
             OR UPPER(P.NAMA) LIKE '%' || UPPER(p_search) || '%'
             OR UPPER(PH.NAMA) LIKE '%' || UPPER(p_search) || '%')
@@ -606,7 +616,7 @@ BEGIN
         GROUP BY 
             PJ.ID,
             PJ.TANGGALTRANSAKSI,
-            PJ.TOTAL_BIAYA,
+            PJ.TOTALBIAYA,
             P.NAMA,
             PH.NAMA
         ORDER BY PJ.TANGGALTRANSAKSI DESC
@@ -637,53 +647,7 @@ BEGIN
 END;
 / 
 
--- Procedure to Create Penjualan
-CREATE OR REPLACE PROCEDURE CreatePenjualan(
-    p_tanggal IN TIMESTAMP,
-    p_produk IN ARRAYPRODUK,
-    p_pegawai_id IN VARCHAR2,
-    p_layananhotel_id IN VARCHAR2 DEFAULT NULL,
-    p_layanansalon_id IN VARCHAR2 DEFAULT NULL,
-    p_layananmedis_id IN VARCHAR2 DEFAULT NULL,
-    p_pemilikhewan_id IN VARCHAR2 DEFAULT NULL
-) AS
-    v_total_biaya NUMBER := 0;
-    v_harga NUMBER;
-BEGIN
-    -- Calculate total cost from products
-    IF p_produk IS NOT NULL AND p_produk.COUNT > 0 THEN
-        FOR i IN 1..p_produk.COUNT LOOP
-            -- Get product price
-            SELECT HARGA INTO v_harga
-            FROM Produk
-            WHERE ID = p_produk(i) AND onDelete = 0;
-            
-            v_total_biaya := v_total_biaya + v_harga;
-        END LOOP;
-    END IF;
 
-    -- Insert into Penjualan table
-    INSERT INTO Penjualan (
-        TANGGALTRANSAKSI,
-        PRODUK,
-        TOTALBIAYA,
-        PEGAWAI_ID,
-        LAYANANHOTEL_ID,
-        LAYANANSALON_ID,
-        LAYANANMEDIS_ID,
-        PEMILIKHEWAN_ID
-    ) VALUES (
-        p_tanggal,
-        p_produk,
-        v_total_biaya,
-        p_pegawai_id,
-        p_layananhotel_id,
-        p_layanansalon_id,
-        p_layananmedis_id,
-        p_pemilikhewan_id
-    );
-END;
-/ 
 
 CREATE OR REPLACE PROCEDURE UpdatePenjualan(
     p_id IN NUMBER,
