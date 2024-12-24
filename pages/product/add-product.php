@@ -2,38 +2,36 @@
 session_start();
 include '../../config/connection.php';
 
-// Include role-specific headers
-switch ($_SESSION['posisi']) {
-    case 'owner':
-        include '../owner/header.php';
-        break;
-    case 'vet':
-        include '../vet/header.php';
-        break;
-    case 'staff':
-        include '../staff/header.php';
-        break;
+// Check if the user is logged in and the session is active
+if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
+    header("Location: ../../auth/restricted.php");
+    // die("Access denied. Please log in as an owner.");
+    exit();
 }
 
 $pageTitle = 'Add Product Item';
+include '../../layout/header.php';
 
-// Check if the user is logged in and the session is active
-if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'owner') {
-    die("Access denied. Please log in as an owner.");
+$pegawaiId = trim($_SESSION['employee_id']);
+
+// Fetch available categories for Produk
+$categoryProdukQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
+$categoryProdukStid = oci_parse($conn, $categoryProdukQuery);
+oci_execute($categoryProdukStid);
+$categoriesProduk = [];
+while ($row = oci_fetch_assoc($categoryProdukStid)) {
+    $categoriesProduk[] = $row;
 }
-
-$pegawaiId = intval($_SESSION['employee_id']);
-
-// Fetch available categories
-$categoryQuery = "SELECT * FROM KategoriProduk ORDER BY Nama";
-$categoryStid = oci_parse($conn, $categoryQuery);
-oci_execute($categoryStid);
-
-$categories = [];
-while ($row = oci_fetch_assoc($categoryStid)) {
-    $categories[] = $row;
+oci_free_statement($categoryProdukStid);
+// Fetch available categories for Obat
+$categoryObatQuery = "SELECT * FROM KategoriObat ORDER BY Nama";
+$categoryObatStid = oci_parse($conn, $categoryObatQuery);
+oci_execute($categoryObatStid);
+$categoriesObat = [];
+while ($row = oci_fetch_assoc($categoryObatStid)) {
+    $categoriesObat[] = $row;
 }
-oci_free_statement($categoryStid);
+oci_free_statement($categoryObatStid);
 
 // Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -41,24 +39,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $jumlah = $_POST['jumlah'];
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
+    $tipeKategori = $_POST['tipe_kategori']; // produk atau obat
 
-    // Insert new product item into the Produk table, automatically using Pegawai_ID from the session
-    $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID) 
-            VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
-    $stid = oci_parse($conn, $sql);
+    // Validasi input
+    if ($jumlah < 0 || $harga < 0) {
+        echo "<script>alert('Quantity and Price must be zero or positive!');</script>";
+    } else {
+        // Insert new product item into the correct table
+        $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+        $sql = "INSERT INTO Produk (Nama, Jumlah, Harga, Pegawai_ID, {$table}_ID) 
+                VALUES (:namaItem, :jumlah, :harga, :pegawai_id, :kategori)";
+        $stid = oci_parse($conn, $sql);
 
     oci_bind_by_name($stid, ":namaItem", $namaItem);
     oci_bind_by_name($stid, ":jumlah", $jumlah);
     oci_bind_by_name($stid, ":harga", $harga);
-    oci_bind_by_name($stid, ":pegawai_id", $pegawaiId);  // Automatically using session Pegawai_ID
+    oci_bind_by_name($stid, ":pegawai_id", $pegawaiId);
     oci_bind_by_name($stid, ":kategori", $kategori);
 
     if (oci_execute($stid)) {
-        echo "<script>alert('product item added successfully!'); window.location.href='product.php';</script>";
+        echo "<script>alert('Product item added successfully!'); window.location.href='product.php';</script>";
     } else {
         echo "<script>alert('Failed to add product item.');</script>";
     }
     oci_free_statement($stid);
+}
 }
 
 oci_close($conn);
@@ -76,30 +81,105 @@ oci_close($conn);
             </div>
             <div class="mb-3">
                 <label for="jumlah" class="form-label">Quantity</label>
-                <input type="number" class="form-control" id="jumlah" name="jumlah" required>
+                <input type="number" class="form-control" id="jumlah" name="jumlah" min="0" required>
             </div>
             <div class="mb-3">
                 <label for="harga" class="form-label">Price</label>
-                <input type="number" class="form-control" id="harga" name="harga" required>
+                <input type="number" class="form-control" id="harga" name="harga" min = "0" required>
             </div>
             <div class="mb-3">
-                <label for="kategori" class="form-label">Category</label>
-                <select class="form-select" id="kategori" name="kategori" required>
-                    <option value="" disabled selected>-- Select Category --</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo $category['ID']; ?>">
-                            <?php echo htmlentities($category['NAMA']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label for="tipe_kategori" class="form-label">Category Type</label><br>
+                <input type="radio" id="produk" name="tipe_kategori" value="produk" checked onclick="updateCategory()">
+                <label for="produk">Produk</label>
+                <input type="radio" id="obat" name="tipe_kategori" value="obat" onclick="updateCategory()">
+                <label for="obat">Obat</label>
             </div>
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Add product Item</button>
+    <label for="kategori" class="form-label">Category</label>
+    <select class="form-select select2" id="kategori" name="kategori" required>
+        <option value="" disabled selected>-- Select Category --</option>
+        <?php foreach ($categoriesProduk as $category): ?>
+            <option value="<?php echo $category['ID']; ?>" class="produk">
+                <?php echo htmlentities($category['NAMA']); ?>
+            </option>
+        <?php endforeach; ?>
+        <?php foreach ($categoriesObat as $category): ?>
+            <option value="<?php echo $category['ID']; ?>" class="obat" style="display: none;">
+                <?php echo htmlentities($category['NAMA']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Add Product Item</button>
                 <a href="product.php" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
 
+    <script>
+        function updateCategory() {
+            const kategori = document.getElementById('kategori');
+            const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+            for (let option of kategori.options) {
+                if (option.classList.contains(tipeKategori)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+            // Reset selection when changing type
+            kategori.value = '';
+        }
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+    const jumlah = document.getElementById('jumlah').value;
+    const harga = document.getElementById('harga').value;
+
+    if (jumlah < 0 || harga < 0) {
+        alert('Quantity and Price must be zero or positive!');
+        e.preventDefault(); // Batalkan pengiriman form
+    }
+});
+document.addEventListener('DOMContentLoaded', function () {
+    // Inisialisasi Select2
+    $('.select2').select2({
+        placeholder: '-- Select Category --',
+        allowClear: true
+    });
+
+    // Update kategori berdasarkan tipe kategori
+    function updateCategory() {
+        const tipeKategori = document.querySelector('input[name="tipe_kategori"]:checked').value;
+        const kategoriSelect = $('#kategori');
+
+        // Reset nilai dropdown
+        kategoriSelect.val(null).trigger('change');
+
+        // Perbarui pilihan yang ditampilkan
+        kategoriSelect.find('option').each(function () {
+            if ($(this).hasClass(tipeKategori)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+
+        // Refresh Select2 setelah perubahan
+        kategoriSelect.select2();
+    }
+
+    // Event listener untuk tipe kategori
+    document.querySelectorAll('input[name="tipe_kategori"]').forEach(function (radio) {
+        radio.addEventListener('change', updateCategory);
+    });
+
+    // Panggil saat halaman dimuat
+    updateCategory();
+});
+
+    </script>
 </body>
 
 </html>

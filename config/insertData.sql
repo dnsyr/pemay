@@ -332,7 +332,7 @@ values (
     TO_TIMESTAMP('2024-11-22 15:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     200000,
     ARRAYJENISLAYANANSALON(2, 1),
-    'Remaining',
+    'In Progress',
     2,
     4
   );
@@ -364,7 +364,7 @@ values (
     TO_TIMESTAMP('2024-11-27 15:00:00', 'YYYY-MM-DD HH24:MI:SS'),
     120000,
     ARRAYJENISLAYANANSALON(3),
-    'Cancelled',
+    'Canceled',
     5,
     4
   );
@@ -459,7 +459,7 @@ values (
     ),
     150000,
     'Pemeriksaan kulit',
-    'Cancelled',
+    'Canceled',
     ARRAYJENISLAYANANMEDIS(4),
     4,
     4
@@ -652,7 +652,7 @@ values (
       'DD-MON-RR HH.MI.SSXFF AM'
     ),
     300000,
-    'Cancelled',
+    'Canceled',
     4,
     4,
     5

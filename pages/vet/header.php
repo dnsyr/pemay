@@ -4,7 +4,7 @@ $currentUri = strtok($_SERVER['REQUEST_URI'], '?');
 // List of uri
 $dashboardUri = "/pemay/pages/vet/dashboard.php";
 $petHotelUri = "/pemay/pages/pet-hotel/dashboard.php";
-$medicineUri = "/pemay/pages/medicine/medical-services.php";
+$medicineUri = "/pemay/pages/medicine/dashboard.php";
 $productUri = "/pemay/pages/product/product.php";
 $categoryUri = "/pemay/pages/category/category.php";
 ?>
@@ -53,7 +53,7 @@ $categoryUri = "/pemay/pages/category/category.php";
           </li>
           <!-- Medicine Menu Item -->
           <li class="nav-item">
-            <a class="nav-link <?php echo ($currentUri === $medicineUri) ? 'active' : ''; ?>" href="/pemay/pages/medicine/medical-services.php">Medicines</a>
+            <a class="nav-link <?php echo ($currentUri === $medicineUri) ? 'active' : ''; ?>" href="/pemay/pages/medicine/dashboard.php">Medicines</a>
           </li>
           <!-- Product Menu Item -->
           <li class="nav-item">
@@ -62,7 +62,8 @@ $categoryUri = "/pemay/pages/category/category.php";
           <!-- Category Menu Item -->
           <li class="nav-item">
             <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/category/category.php">Categories</a>
-          </li><!-- obat Menu Item -->
+          </li>
+          <!-- obat Menu Item -->
           <li class="nav-item">
             <a class="nav-link <?php echo ($currentUri === $categoryUri) ? 'active' : ''; ?>" href="/pemay/pages/obat/obat.php">Obat</a>
           </li>

@@ -1,0 +1,239 @@
+
+/* Style untuk tab panel */
+.tab-content {
+    background-color: white !important;
+    border: 1px solid #363636 !important;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1) !important;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+
+/* Style untuk tabs container */
+[role="tablist"] {
+    border-color: #363636 !important;
+}
+
+.tab {
+    border-color: #363636 !important;
+}
+
+/* Memastikan tabel dan kontennya tetap putih di dark mode */
+.table {
+    background-color: white !important;
+    color: #363636 !important;
+}
+
+/* Style untuk alignment tabel - dengan spesifisitas lebih tinggi */
+table.table thead th,
+table.table tbody td {
+    text-align: left !important;
+    padding: 8px !important;
+}
+
+/* Khusus untuk kolom nomor dan action dengan spesifisitas lebih tinggi */
+table.table thead th:first-child,
+table.table tbody td:first-child,
+table.table thead th:last-child,
+table.table tbody td:last-child {
+    text-align: center !important;
+}
+
+/* Khusus untuk badges tetap di tengah */
+table.table td .badge {
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.tab-content {
+    background-color: white !important;
+}
+
+/* Menghapus hover effect pada tabel */
+.table tbody tr {
+    background-color: white !important;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f8f8f8 !important;
+}
+
+/* Style untuk container utama */
+.pb-6.px-12 {
+    background-color: white !important;
+}
+
+/* Style untuk Select2 */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container .select2-selection--single,
+.select2-container--default .select2-selection--single {
+    height: 32px !important;
+    padding: 2px 12px !important;
+    border-radius: 16px !important;
+    border: 1px solid #E5E7EB !important;
+    background-color: white !important;
+    font-size: 13px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 26px !important;
+    font-size: 13px !important;
+    padding-left: 0 !important;
+    color: #6B7280 !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px !important;
+    right: 8px !important;
+}
+
+/* Style untuk Select2 Dropdown */
+.select2-dropdown {
+    border-radius: 12px !important;
+    margin-top: 4px !important;
+    border: 1px solid #E5E7EB !important;
+    font-size: 13px !important;
+    padding: 4px !important;
+    background-color: white !important;
+}
+
+.select2-search__field {
+    border-radius: 12px !important;
+    padding: 4px 12px !important;
+    height: 28px !important;
+    font-size: 13px !important;
+    border: 1px solid #E5E7EB !important;
+}
+
+.select2-results__option {
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    color: #6B7280 !important;
+}
+
+.table th,
+.table td {
+    padding: 8px !important;
+}
+
+/* Keep some specific columns left-aligned if needed */
+.table td.text-left {
+    text-align: left !important;
+}
+
+/* Make sure badges stay centered */
+.badge {
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Style untuk form inputs */
+.input, 
+.select, 
+.textarea {
+    border-radius: 20px !important;
+    height: 36px !important;
+    padding: 8px 16px !important;
+    border: 1px solid #E5E7EB !important;
+    font-size: 14px !important;
+}
+
+/* Style untuk buttons */
+.btn {
+    border-radius: 20px !important;
+    height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 14px !important;
+    min-height: 36px !important;
+}
+
+.btn-sm {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    border-radius: 16px !important;
+    min-height: 32px !important;
+}
+
+/* Style untuk form groups */
+.form-control {
+    margin-bottom: 16px !important;
+}
+
+.form-control label {
+    margin-bottom: 4px !important;
+    font-size: 14px !important;
+}
+
+/* Style untuk drawer content */
+.drawer-side .p-4 {
+    padding: 1rem !important;
+}
+
+.drawer-side .mb-4 {
+    margin-bottom: 1rem !important;
+}
+
+.drawer-side .gap-4 {
+    gap: 1rem !important;
+}
+
+/* Style untuk form update */
+.form-group {
+    margin-bottom: 0.75rem !important;
+}
+
+.form-group label {
+    margin-bottom: 0.25rem !important;
+    font-size: 0.875rem !important;
+    color: #4B5563 !important;
+}
+
+/* Style untuk checkbox group */
+.checkbox-group {
+    gap: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.checkbox-group label {
+    font-size: 0.875rem !important;
+    margin-left: 0.25rem !important;
+}
+
+/* Style untuk section titles */
+.section-title {
+    font-size: 1rem !important;
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.25rem !important;
+}
+
+/* Style untuk form dividers */
+.divider {
+    margin: 0.75rem 0 !important;
+}
+
+/* Style untuk button groups */
+.button-group {
+    gap: 0.5rem !important;
+    margin-top: 0.75rem !important;
+}
+
+/* Style untuk cost display */
+.cost-display {
+    margin-top: 0.5rem !important;
+    font-size: 0.875rem !important;
+}
+
+/* Style untuk service types */
+.service-types {
+    gap: 0.5rem !important;
+}
+
+.service-type-item {
+    padding: 0.5rem !important;
+    margin-bottom: 0.25rem !important;
+} 

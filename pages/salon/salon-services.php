@@ -1,5 +1,13 @@
 <?php
 session_start();
+ob_start();
+include '../../config/connection.php';
+include '../../config/database.php';
+
+$pageTitle = 'Salon Services';
+include '../../layout/header-tailwind.php';
+
+
 if (!isset($_SESSION['username']) || $_SESSION['posisi'] != 'staff') {
     header("Location: ../../auth/restricted.php");
     exit();
