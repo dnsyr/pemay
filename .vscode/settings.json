@@ -1,0 +1,8 @@
+{
+    "php.version": "8.1",
+    "php.stubs": [
+        "oci8",
+        "pdo_oci",
+        "*"
+    ]
+}

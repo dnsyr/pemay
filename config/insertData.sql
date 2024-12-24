@@ -130,7 +130,7 @@ values (
     TO_TIMESTAMP('2024-07-30 15:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     25,
     15,
-    1
+    (SELECT ID FROM PEMILIKHEWAN WHERE EMAIL = 'andi.wijaya@email.com')
   );
 Insert into HEWAN (
     NAMA,
@@ -152,7 +152,7 @@ values (
     TO_TIMESTAMP('2024-05-30 15:20:00', 'YYYY-MM-DD HH24:MI:SS'),
     50,
     20,
-    2
+    (SELECT ID FROM PEMILIKHEWAN WHERE EMAIL = 'rina.kartika@email.com')
   );
 Insert into HEWAN (
     NAMA,
@@ -174,7 +174,7 @@ values (
     TO_TIMESTAMP('2024-06-23 10:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     30,
     18,
-    3
+    (SELECT ID FROM PEMILIKHEWAN WHERE EMAIL = 'dedi.pratama@email.com')
   );
 Insert into HEWAN (
     NAMA,
@@ -196,7 +196,7 @@ values (
     TO_TIMESTAMP('2023-04-26 12:45:00', 'YYYY-MM-DD HH24:MI:SS'),
     40,
     25,
-    4
+    (SELECT ID FROM PEMILIKHEWAN WHERE EMAIL = 'budi.santoso@email.com')
   );
 Insert into HEWAN (
     NAMA,
@@ -218,7 +218,7 @@ values (
     TO_TIMESTAMP('2023-11-22 12:29:00', 'YYYY-MM-DD HH24:MI:SS'),
     28,
     16,
-    5
+    (SELECT ID FROM PEMILIKHEWAN WHERE EMAIL = 'siti.aminah@email.com')
   );
 REM INSERTING into PRODUK
 SET DEFINE OFF;
