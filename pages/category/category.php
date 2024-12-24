@@ -2,6 +2,16 @@
 session_start();
 include '../../config/database.php';
 
+// Check user role and set permissions
+$userRole = $_SESSION['posisi'] ?? '';
+$canEdit = ($userRole === 'owner');
+$canView = in_array($userRole, ['staff', 'vet']);
+
+if (!$canEdit && !$canView) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 $pageTitle = 'Manage Categories';
 include '../../layout/header-tailwind.php';
 
@@ -107,6 +117,7 @@ $categories = $db->resultSet();
                 <!-- Add Category Form -->
                 <div class="bg-[#FCFCFC] border border-[#363636] rounded-xl p-6 mb-6 shadow-md shadow-[#717171]">
                     <h3 class="text-lg font-semibold mb-4"><?php echo $currentLabel; ?> Registration</h3>
+                    <?php if ($canEdit): ?>
                     <form action="" method="post" class="flex gap-4 items-end">
                         <input type="hidden" name="action" value="add">
                         <div class="form-control flex-1">
@@ -121,6 +132,12 @@ $categories = $db->resultSet();
                             <i class="fas fa-plus"></i> Add Item
                         </button>
                     </form>
+                    <?php else: ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
+                        <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                        <span class="block sm:inline">Only OWNER can manage categories</span>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Listed Categories -->
@@ -183,15 +200,22 @@ $categories = $db->resultSet();
                                             <?php endif; ?>
                                             <td class="px-6 py-3 text-center <?= $index === count($categories) - 1 ? 'rounded-br-xl' : '' ?>">
                                                 <div class="flex gap-3 justify-center items-center">
-                                                    <a href="update-category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" 
-                                                        class="btn btn-warning btn-sm">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" 
-                                                        class="btn btn-error btn-sm" 
-                                                        onclick="return confirm('Apakah Anda yakin ingin menghapus?')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </a>
+                                                    <?php if ($canEdit): ?>
+                                                        <a href="update-category.php?id=<?php echo $category['ID']; ?>&tab=<?php echo $tab; ?>" 
+                                                            class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="?tab=<?php echo $tab; ?>&delete_id=<?php echo $category['ID']; ?>" 
+                                                            class="btn btn-error btn-sm" 
+                                                            onclick="return confirm('Apakah Anda yakin ingin menghapus?')">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fas fa-eye-slash text-gray-400"></i>
+                                                            <span class="text-sm text-gray-400">View Only</span>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>

@@ -2,17 +2,17 @@
 session_start();
 include '../../config/database.php';
 
+// Check if the user is logged in and has permission
+if (!isset($_SESSION['user_logged_in']) || !in_array($_SESSION['posisi'], ['owner', 'staff'])) {
+    header("Location: ../../auth/restricted.php");
+    exit();
+}
+
 $pageTitle = 'Manage Product';
 include '../../layout/header-tailwind.php';
 
 // Initialize Database
 $db = new Database();
-
-// Pastikan pengguna telah login
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header("Location: ../../auth/login.php");
-    exit();
-}
 
 // Pagination setup
 $itemsPerPage = 5;
@@ -134,29 +134,107 @@ $categoriesObat = $db->resultSet();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Ambil data dari form
     $name = $_POST['nama_item'];
-    $quantity = $_POST['jumlah'];
+    $newQuantity = $_POST['jumlah'];
     $price = $_POST['harga'];
     $category = $_POST['kategori'];
-    $tipeKategori = $_POST['tipe_kategori']; // produk atau obat
+    $tipeKategori = $_POST['tipe_kategori'];
+
+    // Get current quantity
+    $currentQuantitySql = "SELECT JUMLAH FROM Produk WHERE ID = :id AND onDelete = 0";
+    $db->query($currentQuantitySql);
+    $db->bind(':id', $productId);
+    $currentQuantityResult = $db->single();
+    
+    if (!$currentQuantityResult) {
+        die("Product not found or has been deleted");
+    }
+    
+    $currentQuantity = $currentQuantityResult['JUMLAH'];
 
     // Validasi input
-    if ($quantity < 0 || $price < 0) {
+    if ($newQuantity < 0 || $price < 0) {
         echo "<script>alert('Quantity and Price must be at least 0.');</script>";
     } else {
-        // Update produk di database
-        $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
-        $updateSql = "UPDATE Produk SET NAMA = :name, JUMLAH = :quantity, HARGA = :price, {$table}_ID = :category WHERE ID = :id";
-        $db->query($updateSql);
-        $db->bind(':name', $name);
-        $db->bind(':quantity', $quantity);
-        $db->bind(':price', $price);
-        $db->bind(':category', $category);
-        $db->bind(':id', $productId);
+        try {
+            // Verify category exists
+            $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+            $checkCategory = "SELECT 1 FROM {$table} WHERE ID = :kategori_id AND onDelete = 0";
+            $db->query($checkCategory);
+            $db->bind(':kategori_id', $category);
+            if (!$db->single()) {
+                throw new Exception("Invalid category selected");
+            }
+            
+            // Update produk di database
+            $updateSql = "UPDATE Produk 
+                         SET NAMA = :name, 
+                             JUMLAH = :quantity, 
+                             HARGA = :price, 
+                             {$table}_ID = :category 
+                         WHERE ID = :id 
+                         AND onDelete = 0";
+            $db->query($updateSql);
+            $db->bind(':name', $name);
+            $db->bind(':quantity', $newQuantity);
+            $db->bind(':price', $price);
+            $db->bind(':category', $category);
+            $db->bind(':id', $productId);
 
-        if ($db->execute()) {
+            if (!$db->execute()) {
+                throw new Exception('Failed to update product: ' . print_r($db->error(), true));
+            }
+
+            // Calculate stock change
+            $stockChange = $newQuantity - $currentQuantity;
+            $keterangan = $stockChange >= 0 ? 'Stock Update (Addition)' : 'Stock Update (Reduction)';
+
+            // Insert log for stock update
+            $logSql = "INSERT INTO LogProduk (
+                ID,
+                StokAwal, 
+                StokAkhir, 
+                Perubahan, 
+                Keterangan, 
+                TanggalPerubahan, 
+                Produk_ID, 
+                Pegawai_ID
+            ) VALUES (
+                SYS_GUID(),
+                :stokAwal,
+                :stokAkhir,
+                :perubahan,
+                :keterangan,
+                SYSTIMESTAMP,
+                :produk_id,
+                :pegawai_id
+            )";
+
+            $db->query($logSql);
+            $db->bind(':stokAwal', $currentQuantity);
+            $db->bind(':stokAkhir', $newQuantity);
+            $db->bind(':perubahan', $stockChange);
+            $db->bind(':keterangan', $keterangan);
+            $db->bind(':produk_id', $productId);
+            $db->bind(':pegawai_id', $_SESSION['employee_id']);
+
+            if (!$db->execute()) {
+                throw new Exception('Failed to create product log: ' . print_r($db->error(), true));
+            }
+
+            // Commit the transaction
+            $db->query("COMMIT");
+            if (!$db->execute()) {
+                throw new Exception('Failed to commit transaction: ' . print_r($db->error(), true));
+            }
+            
             echo "<script>alert('Product updated successfully!'); window.location.href='product.php';</script>";
-        } else {
-            echo "<script>alert('Failed to update product.');</script>";
+
+        } catch (Exception $e) {
+            // Rollback on error
+            $db->query("ROLLBACK");
+            $db->execute();
+            $errorMessage = htmlspecialchars($e->getMessage());
+            echo "<script>alert('Error: " . $errorMessage . "');</script>";
         }
     }
 }

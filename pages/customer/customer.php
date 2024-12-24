@@ -3,6 +3,16 @@ session_start();
 require_once '../../config/database.php';
 require_once '../../layout/header-tailwind.php';
 
+// Check user role and set permissions
+$userRole = $_SESSION['posisi'] ?? '';
+$canEdit = ($userRole === 'staff' || $userRole === 'owner');
+$canView = ($userRole === 'vet');
+
+if (!$canEdit && !$canView) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 $db = new Database();
 
 // Pencarian pelanggan
@@ -144,12 +154,19 @@ $pets = $db->resultSet();
                   <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
                   <td class="<?= $index === count($customers) - 1 ? 'rounded-br-xl' : '' ?>">
                     <div class="flex gap-3 justify-center items-center">
-                      <a href="edit-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
-                        <i class="fas fa-edit"></i>
-                      </a>
-                      <button onclick="showDeleteCustomerModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
-                        <i class="fas fa-trash-alt"></i>
-                      </button>
+                        <?php if ($canEdit): ?>
+                            <a href="edit-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="showDeleteCustomerModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        <?php else: ?>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-eye-slash text-gray-400"></i>
+                                <span class="text-sm text-gray-400">View Only</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                   </td>
                 </tr>
@@ -225,12 +242,19 @@ $pets = $db->resultSet();
                   <td><?php echo htmlspecialchars($row['LEBAR']); ?> cm</td>
                   <td class="<?= $index === count($pets) - 1 ? 'rounded-br-xl' : '' ?>">
                     <div class="flex gap-3 justify-center items-center">
-                      <a href="edit-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
-                        <i class="fas fa-edit"></i>
-                      </a>
-                      <button onclick="showDeletePetModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
-                        <i class="fas fa-trash-alt"></i>
-                      </button>
+                        <?php if ($canEdit): ?>
+                            <a href="edit-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="showDeletePetModal('<?php echo $row['ID']; ?>')" class="btn btn-error btn-sm">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        <?php else: ?>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-eye-slash text-gray-400"></i>
+                                <span class="text-sm text-gray-400">View Only</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                   </td>
                 </tr>
@@ -267,6 +291,7 @@ $pets = $db->resultSet();
   </div>
 
   <!-- Add Customer Button -->
+  <?php if ($canEdit): ?>
   <div class="drawer drawer-end z-10">
     <input id="drawerAddCustomer" type="checkbox" class="drawer-toggle" />
     <div class="drawer-content">
@@ -285,6 +310,17 @@ $pets = $db->resultSet();
       </a>
     </div>
   </div>
+  <?php else: ?>
+  <!-- View Only Info for non-staff/owner -->
+  <div class="fixed bottom-5 right-5">
+    <div class="bg-gray-100 px-4 py-2 rounded-lg border border-[#363636] shadow-md">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-eye text-gray-600"></i>
+        <span class="text-gray-600 text-sm font-medium">Only STAFF and OWNER can manage customers & pets</span>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <?php 
   // Include modal files before scripts

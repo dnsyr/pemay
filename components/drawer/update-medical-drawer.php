@@ -13,7 +13,7 @@
                         <label for="update-medical-drawer" class="btn btn-sm btn-circle">✕</label>
                     </div>
                     
-                    <form method="POST" action="update-medical-services.php" class="space-y-4" id="updateMedicalForm">
+                    <form method="POST" action="/pemay/pages/pet-medical/update-medical-services.php" class="space-y-4" id="updateMedicalForm">
                         <input type="hidden" name="id" id="layananId">
                         
                         <!-- Status Section -->
