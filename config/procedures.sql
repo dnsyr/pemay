@@ -647,57 +647,6 @@ BEGIN
 END;
 / 
 
-
-
-CREATE OR REPLACE PROCEDURE UpdatePenjualan(
-    p_id IN NUMBER,
-    p_customer_id IN NUMBER,
-    p_product_list IN VARCHAR2,
-    p_total_cost IN NUMBER
-)
-IS
-    v_product_array ARRAYPRODUK := ARRAYPRODUK();
-    v_product_id NUMBER;
-    v_pos NUMBER;
-    v_string VARCHAR2(4000);
-BEGIN
-    -- Convert comma-separated string to VARRAY
-    v_string := p_product_list;
-    LOOP
-        v_pos := INSTR(v_string, ',');
-        IF v_pos = 0 THEN
-            -- Last or only item
-            v_product_id := TO_NUMBER(v_string);
-            v_product_array.EXTEND;
-            v_product_array(v_product_array.COUNT) := v_product_id;
-            EXIT;
-        END IF;
-        
-        -- Get next item
-        v_product_id := TO_NUMBER(SUBSTR(v_string, 1, v_pos-1));
-        v_product_array.EXTEND;
-        v_product_array(v_product_array.COUNT) := v_product_id;
-        
-        -- Remove processed item and comma
-        v_string := SUBSTR(v_string, v_pos+1);
-    END LOOP;
-
-    -- Update transaction
-    UPDATE PENJUALAN 
-    SET PEMILIKHEWAN_ID = p_customer_id,
-        PRODUK = v_product_array,
-        TOTALBIAYA = p_total_cost,
-        UPDATEDAT = CURRENT_TIMESTAMP
-    WHERE ID = p_id;
-    
-    COMMIT;
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        RAISE;
-END UpdatePenjualan;
-/ 
-
 -- Procedure to Create a new record in Transaksi
 CREATE OR REPLACE PROCEDURE CreatePenjualan (
   p_TanggalTransaksi   IN TIMESTAMP,

@@ -52,9 +52,6 @@ $categoryUri = [
 // manage customer uri
 $customerUri = ["/pemay/pages/customer/customer.php"];
 
-// reports uri
-$reportUri = "/pemay/pages/owner/reports.php";
-
 // transactions uri
 $transactionUri = ["/pemay/pages/pet-transaction/pet-transaction.php"];
 
@@ -199,11 +196,6 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
               </li>
             </ul>
           </div>
-
-          <!-- Report Menu Item -->
-          <?php if ($role === 'owner'): ?>
-            <a class="text-[#363636] font-normal text-xs py-1 px-3 <?php echo ($currentUri === $reportUri) ? $linkActive : ''; ?> hover:font-semibold italic" href="/pemay/pages/report/dashboard.php">Reports</a>
-          <?php endif; ?>
         </div>
 
         <!-- Logout Button -->
