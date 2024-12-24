@@ -2,9 +2,9 @@
 session_start();
 ob_start();
 include '../../config/connection.php';
-require_once '../../config/database.php';
+include '../../config/database.php';
 
-$pageTitle = 'Vet Dashboard';
+$pageTitle = 'vet Dashboard';
 include '../../layout/header-tailwind.php';
 
 
@@ -125,7 +125,7 @@ oci_close($conn);
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title text-base text-gray-500 font-semibold">Emergency Clients</h2>
-          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#emergencyModal">⤴</a>
+          <label for="emergencyModal" class="text-sm text-gray-700 cursor-pointer">⤴</label>
         </div>
         <p class="text-sm">Emergency</p>
         <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($emergencyCount); ?></p>
@@ -137,7 +137,7 @@ oci_close($conn);
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title text-base text-gray-500 font-semibold">Scheduled Clients</h2>
-          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#scheduledModal">⤴</a>
+          <label for="scheduledModal" class="text-sm text-gray-700 cursor-pointer">⤴</label>
         </div>
         <p class="text-sm">Scheduled</p>
         <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($scheduledCount); ?></p>
@@ -149,7 +149,7 @@ oci_close($conn);
       <div class="card-body">
         <div class="flex justify-between items-center">
           <h2 class="card-title text-base text-gray-500 font-semibold">Finished Clients</h2>
-          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#finishedModal">⤴</a>
+          <label for="finishedModal" class="text-sm text-gray-700 cursor-pointer">⤴</label>
         </div>
         <p class="text-sm">Completed</p>
         <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($finishedCount); ?></p>
@@ -206,10 +206,9 @@ oci_close($conn);
     <!-- Cancelled Appointments -->
     <div class="card shadow-lg bg-gray-100 border border-zinc-400 rounded-3xl">
       <div class="card-body">
-        <h2 class="card-title text-base font-semibold">Cancelled Appointments</h2>
-        <div class="flex justify-between mt-4">
-          <span>Salon services</span>
-          <span class="font-bold">10</span>
+        <div class="flex justify-between items-center">
+          <h2 class="card-title text-base font-semibold">Cancelled Appointments</h2>
+          <label for="cancelledModal" class="text-sm text-gray-700 cursor-pointer">⤴</label>
         </div>
         <div class="flex justify-between">
           <span>Medical services</span>
@@ -220,200 +219,195 @@ oci_close($conn);
   </div>
 </div>
 
-<!-- Modal for Emergency Data -->
-<div class="modal fade" id="emergencyModal" tabindex="-1" role="dialog" aria-labelledby="emergencyModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="emergencyModalLabel">Emergency Services</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <table class="table">
-          <thead>
+<!-- Emergency Modal -->
+<input type="checkbox" id="emergencyModal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box bg-gray-100 max-w-5xl">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b pb-2">
+      <h3 class="font-bold text-lg" id="emergencyModalLabel">Emergency Services</h3>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Nama Hewan</th>
+            <th>Spesies</th>
+            <th>Nama Pemilik</th>
+            <th>No Telp</th>
+            <th>Jam</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($emergencyData as $row): ?>
             <tr>
-              <th>Nama Hewan</th>
-              <th>Spesies</th>
-              <th>Nama Pemilik</th>
-              <th>No Telp</th>
-              <th>Jam</th>
-              <th>Action</th>
+              <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+              <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+              <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+              <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+              <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
+              <td>
+                <?php if ($row['STATUS'] !== 'Finished' && $row['STATUS'] !== 'Canceled'): ?>
+                  <a
+                    href="../../pages/pet-medical/update-medical-services.php?id=<?php echo urlencode($row['ID']); ?>"
+                    class="btn btn-warning btn-sm">
+                    Update Status
+                  </a>
+                <?php endif; ?>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($emergencyData as $row): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
-                <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
-                <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
-                <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
-                <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
-                <td>
-                  <?php if ($row['STATUS'] !== 'Finished' && $row['STATUS'] !== 'Canceled'): ?>
-                    <a href="../../pages/pet-medical/update-medical-services.php?id=<?php echo urlencode($row['ID']); ?>" class="btn btn-warning btn-sm">Update Status</a>
-                  <?php endif; ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-action">
+      <label for="emergencyModal" class="btn">Close</label>
     </div>
   </div>
 </div>
 
-<!-- Modal for Scheduled Data -->
-<div class="modal fade" id="scheduledModal" tabindex="-1" role="dialog" aria-labelledby="scheduledModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="scheduledModalLabel">Scheduled Services</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <table class="table">
-          <thead>
+<!-- Scheduled Modal -->
+<input type="checkbox" id="scheduledModal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box bg-gray-100 max-w-5xl">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b pb-2">
+      <h3 class="font-bold text-lg" id="scheduledModalLabel">Scheduled Services</h3>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Nama Hewan</th>
+            <th>Spesies</th>
+            <th>Nama Pemilik</th>
+            <th>No Telp</th>
+            <th>Jam</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($scheduledData as $row): ?>
             <tr>
-              <th>Nama Hewan</th>
-              <th>Spesies</th>
-              <th>Nama Pemilik</th>
-              <th>No Telp</th>
-              <th>Jam</th>
-              <th>Action</th>
+              <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+              <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+              <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+              <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+              <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
+              <td>
+                <!-- No Update Status Button -->
+                <span class="text-gray-400">No actions available</span>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($scheduledData as $row): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
-                <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
-                <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
-                <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
-                <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
-                <td>
-                  <?php if ($row['STATUS'] !== 'Finished' && $row['STATUS'] !== 'Canceled'): ?>
-                    <a href="../../pages/pet-medical/update-medical-services.php?id=<?php echo urlencode($row['ID']); ?>" class="btn btn-warning btn-sm">Update Status</a>
-                  <?php endif; ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-action">
+      <label for="scheduledModal" class="btn">Close</label>
     </div>
   </div>
 </div>
 
-<!-- Modal for Finished Data -->
-<div class="modal fade" id="finishedModal" tabindex="-1" role="dialog" aria-labelledby="finishedModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="finishedModalLabel">Finished Services</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <table class="table">
-          <thead>
+<!-- Finished Modal -->
+<input type="checkbox" id="FinishedModal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box bg-gray-100 max-w-5xl">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b pb-2">
+      <h3 class="font-bold text-lg" id="FinishedModalLabel">Finished Services</h3>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Nama Hewan</th>
+            <th>Spesies</th>
+            <th>Nama Pemilik</th>
+            <th>No Telp</th>
+            <th>Jam</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($FinishedData as $row): ?>
             <tr>
-              <th>Nama Hewan</th>
-              <th>Spesies</th>
-              <th>Nama Pemilik</th>
-              <th>No Telp</th>
-              <th>Jam</th>
-              <th>Action</th>
+              <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+              <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+              <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+              <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+              <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
+              <td>
+                <!-- No Update Status Button -->
+                <span class="text-gray-400">No actions available</span>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($finishedData as $row): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
-                <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
-                <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
-                <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
-                <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
-                <td>
-                  <!-- No Update Status Button -->
-                  <span class="text-muted">No actions available</span>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-action">
+      <label for="FinishedModal" class="btn">Close</label>
     </div>
   </div>
 </div>
 
-<!-- Modal for Canceled Data -->
-<div class="modal fade" id="canceledModal" tabindex="-1" role="dialog" aria-labelledby="canceledModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="canceledModalLabel">Canceled Services</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <table class="table">
-          <thead>
+<!-- Cancelled Modal -->
+<input type="checkbox" id="canceledModal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box bg-gray-100 max-w-5xl">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b pb-2">
+      <h3 class="font-bold text-lg" id="canceledModalLabel">Cancelled Services</h3>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Nama Hewan</th>
+            <th>Spesies</th>
+            <th>Nama Pemilik</th>
+            <th>No Telp</th>
+            <th>Jam</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($canceledData as $row): ?>
             <tr>
-              <th>Nama Hewan</th>
-              <th>Spesies</th>
-              <th>Nama Pemilik</th>
-              <th>No Telp</th>
-              <th>Jam</th>
-              <th>Action</th>
+              <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
+              <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
+              <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
+              <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
+              <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
+              <td>
+                <!-- No Update Status Button -->
+                <span class="text-gray-400">No actions available</span>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($canceledData as $row): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($row['NAMAHEWAN']); ?></td>
-                <td><?php echo htmlspecialchars($row['SPESIES']); ?></td>
-                <td><?php echo htmlspecialchars($row['NAMAPEMILIK']); ?></td>
-                <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
-                <td><?php echo htmlspecialchars(date('H:i', strtotime($row['TANGGAL']))); ?></td>
-                <td>
-                  <!-- No Update Status Button -->
-                  <span class="text-muted">No actions available</span>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-action">
+      <label for="canceledModal" class="btn">Close</label>
     </div>
   </div>
 </div>
