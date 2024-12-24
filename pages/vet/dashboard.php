@@ -88,7 +88,7 @@ $canceledData = getLayananByStatus($conn, 'Canceled', $selectedDate);
 oci_close($conn);
 ?>
 
-<div class="min-h-screen bg-white text-base-content p-24">
+<div class="min-h-screen bg-white text-base-content py-8 px-24">
   <!-- Header -->
   <div class="flex justify-between items-center mb-10">
     <h1 class="text-2xl font-bold text-gray-500">Welcome to the dashboard, vet</h1>
