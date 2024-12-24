@@ -14,9 +14,6 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
     exit();
 }
 
-include '../../config/connection.php';
-include '../../layout/header.php';
-
 // Cek jika ada input tanggal
 $selectedDate = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');  // Default ke hari ini
 
@@ -90,67 +87,139 @@ $canceledData = getLayananByStatus($conn, 'Canceled', $selectedDate);
 oci_close($conn);
 ?>
 
-<div class="container mt-4">
-    <!-- Button untuk menambah layanan medis baru -->
-    <a href="../../pages/pet-medical/add-medical-services.php" class="btn btn-success mb-3">Tambah Layanan Medis</a>
-
-    <form method="POST">
-        <div class="form-group">
-            <label for="date">Pilih Tanggal:</label>
-            <input type="date" id="date" name="date" class="form-control" value="<?php echo htmlspecialchars($selectedDate); ?>">
-        </div>
-        <button type="submit" class="btn btn-primary">Tampilkan Data</button>
+<div class="min-h-screen bg-white text-base-content p-24">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-10">
+  <h1 class="text-2xl font-bold text-gray-500">Welcome to the dashboard, vet</h1>
+  <div class="flex items-center space-x-4">
+    <!-- Form with horizontal alignment -->
+    <form method="POST" class="flex items-center space-x-2">
+      <div class="flex items-center space-x-2">
+        <label for="date" class="text-sm text-gray-500">Pilih Tanggal:</label>
+        <input
+          type="date"
+          id="date"
+          name="date"
+          class="input input-bordered w-full max-w-xs"
+          value="<?php echo htmlspecialchars($selectedDate); ?>"
+        />
+      </div>
+      <button
+        type="submit"
+        class="btn btn-primary"
+      >
+        Tampilkan Data
+      </button>
     </form>
-
-    <div class="row mt-4">
-        <!-- Card Emergency -->
-        <div class="col-md-3">
-            <div class="card text-white bg-danger mb-3">
-                <div class="card-header">Emergency</div>
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo htmlspecialchars($emergencyCount); ?></h5>
-                    <p class="card-text">Jumlah layanan darurat.</p>
-                    <button class="btn btn-light" data-toggle="modal" data-target="#emergencyModal">Show Data</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card Scheduled -->
-        <div class="col-md-3">
-            <div class="card text-white bg-warning mb-3">
-                <div class="card-header">Scheduled</div>
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo htmlspecialchars($scheduledCount); ?></h5>
-                    <p class="card-text">Jumlah layanan terjadwal pada <?php echo htmlspecialchars(date('d-m-Y', strtotime($selectedDate))); ?>.</p>
-                    <button class="btn btn-light" data-toggle="modal" data-target="#scheduledModal">Show Data</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card Finished -->
-        <div class="col-md-3">
-            <div class="card text-white bg-success mb-3">
-                <div class="card-header">Finished</div>
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo htmlspecialchars($finishedCount); ?></h5>
-                    <p class="card-text">Jumlah layanan yang selesai.</p>
-                    <button class="btn btn-light" data-toggle="modal" data-target="#finishedModal">Show Data</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card Canceled -->
-        <div class="col-md-3">
-            <div class="card text-white bg-secondary mb-3">
-                <div class="card-header">Canceled Today</div>
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo htmlspecialchars($canceledCount); ?></h5>
-                    <p class="card-text">Jumlah layanan yang dibatalkan hari ini.</p>
-                    <button class="btn btn-light" data-toggle="modal" data-target="#canceledModal">Show Data</button>
-                </div>
-            </div>
-        </div>
+    <!-- Right section -->
+    <div class="text-sm text-right text-gray-500">
+      <div>Monday</div>
+      <div>December 2024</div>
     </div>
+  </div>
+</div>
+
+<!-- Main Row: Emergency, Scheduled, and Finished Clients -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+    <!-- Emergency Clients -->
+    <div class="card shadow-lg bg-red-100 border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h2 class="card-title text-base text-gray-500 font-semibold">Emergency Clients</h2>
+          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#emergencyModal">⤴</a>
+        </div>
+        <p class="text-sm">Emergency</p>
+        <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($emergencyCount); ?></p>
+      </div>
+    </div>
+
+    <!-- Scheduled Clients -->
+    <div class="card shadow-lg bg-yellow-100 border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h2 class="card-title text-base text-gray-500 font-semibold">Scheduled Clients</h2>
+          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#scheduledModal">⤴</a>
+        </div>
+        <p class="text-sm">Scheduled</p>
+        <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($scheduledCount); ?></p>
+      </div>
+    </div>
+
+    <!-- Finished Clients -->
+    <div class="card shadow-lg bg-teal-100 border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h2 class="card-title text-base text-gray-500 font-semibold">Finished Clients</h2>
+          <a href="#" class="text-sm text-gray-700" data-toggle="modal" data-target="#finishedModal">⤴</a>
+        </div>
+        <p class="text-sm">Completed</p>
+        <p class="card-title text-5xl font-bold mt-2 text-gray-500"><?php echo htmlspecialchars($finishedCount); ?></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stocks & Reservations Section -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+    <!-- Available Products -->
+    <div class="card shadow-lg bg-white border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h3 class="card-title text-sm text-gray-500 font-semibold">Available Medicine</h3>
+          <a href="#" class="text-sm text-gray-500">⤴</a>
+        </div>
+        <div class="flex justify-between mt-4">
+          <span>Antibiiotics</span>
+          <span class="font-bold text-gray-500">10</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Vitamins</span>
+          <span class="font-bold text-gray-500">10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- available treatments -->
+    <div class="card shadow-lg bg-gray-50 border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h3 class="card-title text-sm font-semibold text-gray-500">Available Treatments</h3>
+          <a href="#" class="text-sm text-gray-500">⤴</a>
+        </div>
+        <div class="flex justify-between mt-4">
+          <span>Wound Treatment</span>
+          <span class="font-bold text-gray-600">10</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Regular check</span>
+          <span class="font-bold text-gray-600">10</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Sterilisation</span>
+          <span class="font-bold text-gray-600">10</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Vaccination</span>
+          <span class="font-bold text-gray-600">10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cancelled Appointments -->
+    <div class="card shadow-lg bg-gray-100 border border-zinc-400 rounded-3xl">
+      <div class="card-body">
+        <h2 class="card-title text-base font-semibold">Cancelled Appointments</h2>
+        <div class="flex justify-between mt-4">
+          <span>Salon services</span>
+          <span class="font-bold">10</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Medical services</span>
+          <span class="font-bold">10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
     <!-- Modal for Emergency Data -->
     <div class="modal fade" id="emergencyModal" tabindex="-1" role="dialog" aria-labelledby="emergencyModalLabel" aria-hidden="true">
