@@ -47,9 +47,14 @@ $baseQueryProduct = "WITH ProductCounts AS (
     LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
     LEFT JOIN PRODUK PR ON TP.COLUMN_VALUE = PR.ID
     WHERE PJ.onDelete = 0
+    AND PJ.PRODUK IS NOT NULL
+    AND PJ.LAYANANMEDIS_ID IS NULL
+    AND PJ.LAYANANHOTEL_ID IS NULL
+    AND PJ.LAYANANSALON_ID IS NULL
     " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
     " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
     GROUP BY PJ.ID, PJ.TANGGALTRANSAKSI, PJ.TOTALBIAYA, PH.NAMA, PR.NAMA
+    HAVING COUNT(PR.ID) > 0
 )
 SELECT 
     PC.PENJUALAN_ID as ID,
@@ -60,7 +65,11 @@ SELECT
     WITHIN GROUP (ORDER BY PC.NAMA_PRODUK) as PRODUK_INFO,
     SUM(PC.JUMLAH) as TOTAL_QUANTITY
 FROM ProductCounts PC
-GROUP BY PC.PENJUALAN_ID, PC.TANGGALTRANSAKSI, PC.TOTALBIAYA, PC.PEMILIK_NAMA";
+GROUP BY 
+    PC.PENJUALAN_ID,
+    PC.TANGGALTRANSAKSI,
+    PC.TOTALBIAYA,
+    PC.PEMILIK_NAMA";
 
 // Base query for medical transactions
 $baseQueryMedical = "WITH ServiceInfo AS (
@@ -70,11 +79,12 @@ $baseQueryMedical = "WITH ServiceInfo AS (
         PM.TOTALBIAYA,
         PH.NAMA as PEMILIK_NAMA,
         H.NAMA as HEWAN_NAMA,
-        LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
+        LISTAGG(L.NAMA, ', ') 
+            WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
     FROM LAYANANMEDIS PM
     LEFT JOIN HEWAN H ON PM.HEWAN_ID = H.ID
     LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
-    LEFT JOIN TABLE(PM.JENISLAYANAN) TL ON 1=1
+    CROSS JOIN TABLE(PM.JENISLAYANAN) TL
     LEFT JOIN JENISLAYANANMEDIS L ON TL.COLUMN_VALUE = L.ID
     WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0
     " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
@@ -98,11 +108,12 @@ $baseQuerySalon = "WITH ServiceInfo AS (
         LS.TOTALBIAYA,
         PH.NAMA as PEMILIK_NAMA,
         H.NAMA as HEWAN_NAMA,
-        LISTAGG(L.NAMA, ', ') WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
+        LISTAGG(L.NAMA, ', ') 
+            WITHIN GROUP (ORDER BY L.NAMA) as LAYANAN_INFO
     FROM LAYANANSALON LS
     LEFT JOIN HEWAN H ON LS.HEWAN_ID = H.ID
     LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
-    LEFT JOIN TABLE(LS.JENISLAYANAN) TL ON 1=1
+    CROSS JOIN TABLE(LS.JENISLAYANAN) TL  -- Changed from LEFT JOIN to CROSS JOIN
     LEFT JOIN JENISLAYANANSALON L ON TL.COLUMN_VALUE = L.ID
     WHERE LS.STATUS = 'Complete' AND LS.onDelete = 0
     " . ($startDate ? " AND TRUNC(LS.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
@@ -151,15 +162,19 @@ FROM HotelInfo";
 // Get total items based on active tab
 if ($activeTab === 'product') {
     $countQuery = "SELECT COUNT(DISTINCT PC.PENJUALAN_ID) as TOTAL
-        FROM (
-            SELECT 
-                PJ.ID as PENJUALAN_ID,
-                PJ.TANGGALTRANSAKSI
-            FROM PENJUALAN PJ
-            WHERE PJ.onDelete = 0
-            " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
-            " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
-        ) PC";
+    FROM (
+        SELECT 
+            PJ.ID as PENJUALAN_ID,
+            PJ.TANGGALTRANSAKSI
+        FROM PENJUALAN PJ
+        WHERE PJ.onDelete = 0
+        AND PJ.PRODUK IS NOT NULL
+        AND PJ.LAYANANMEDIS_ID IS NULL
+        AND PJ.LAYANANHOTEL_ID IS NULL
+        AND PJ.LAYANANSALON_ID IS NULL
+        " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+        " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
+    ) PC";
     $baseQuery = $baseQueryProduct;
 } else if ($activeTab === 'medical') {
     $countQuery = "SELECT COUNT(DISTINCT SI.ID) as TOTAL
@@ -216,30 +231,60 @@ if (!empty($countQuery)) {
     $totalPages = max(1, ceil($totalItems / $itemsPerPage));
 }
 
-// Add order by and pagination
-if (!empty($baseQuery)) {
-    $query = $baseQuery;
-    if ($activeTab === 'product') {
-        $query .= " ORDER BY TANGGALTRANSAKSI DESC";
-    } else if ($activeTab === 'medical' || $activeTab === 'salon') {
-        $query .= " ORDER BY TANGGAL DESC";
-    } else if ($activeTab === 'hotel') {
-        $query .= " ORDER BY CHECKIN DESC";
-    }
-    $query .= " OFFSET :offset ROWS FETCH NEXT :items_per_page ROWS ONLY";
+// Get total amount for the filtered period
+if ($activeTab === 'product') {
+    $totalAmountQuery = "
+        SELECT SUM(PJ.TOTALBIAYA) as TOTAL_AMOUNT
+        FROM PENJUALAN PJ
+        WHERE PJ.onDelete = 0
+        AND PJ.PRODUK IS NOT NULL
+        AND PJ.LAYANANMEDIS_ID IS NULL
+        AND PJ.LAYANANHOTEL_ID IS NULL
+        AND PJ.LAYANANSALON_ID IS NULL
+        " . ($startDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+        " . ($endDate ? " AND TRUNC(PJ.TANGGALTRANSAKSI) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "");
+} else if ($activeTab === 'medical') {
+    $totalAmountQuery = "
+        SELECT SUM(LM.TOTALBIAYA) as TOTAL_AMOUNT
+        FROM LAYANANMEDIS LM
+        WHERE LM.onDelete = 0
+        AND LM.Status = 'Finished'
+        " . ($startDate ? " AND TRUNC(LM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+        " . ($endDate ? " AND TRUNC(LM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "");
+}
 
-    // Execute main query with all parameters
-    $db->query($query);
-    // Bind filter parameters first
+// Get total amount
+$totalAmount = 0;
+if (!empty($totalAmountQuery)) {
+    $db->query($totalAmountQuery);
     if ($startDate) {
         $db->bind(':start_date', $startDate);
     }
     if ($endDate) {
         $db->bind(':end_date', $endDate);
     }
-    // Bind pagination parameters
-    $db->bind(':offset', $offset);
-    $db->bind(':items_per_page', $itemsPerPage);
+    $result = $db->single();
+    $totalAmount = $result ? $result['TOTAL_AMOUNT'] : 0;
+}
+
+// Add pagination to query
+if (!empty($baseQuery)) {
+    $query = "SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+            " . $baseQuery . "
+            ORDER BY TANGGALTRANSAKSI DESC
+        ) a WHERE ROWNUM <= " . ($offset + $itemsPerPage) . "
+    ) WHERE rnum > " . $offset;
+
+    $db->query($query);
+    
+    // Bind parameters
+    if ($startDate) {
+        $db->bind(':start_date', $startDate);
+    }
+    if ($endDate) {
+        $db->bind(':end_date', $endDate);
+    }
     
     $transactions = $db->resultSet();
 } else {
@@ -262,117 +307,206 @@ $categoriesObat = $db->resultSet();
         <h2 class="text-3xl font-bold text-[#363636]">Pet Transaction Management</h2>
     </div>
 
-    <!-- Main Content -->
-    <div class="flex flex-col">
-        <!-- Tabs -->
-        <div class="mb-6">
-            <div class="inline-flex border-b border-[#363636]">
-                <a href="?tab=product" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'product' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Product Sales</a>
-                <a href="?tab=medical" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'medical' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Medical Services</a>
-                <a href="?tab=salon" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'salon' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Salon Services</a>
-                <a href="?tab=hotel" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'hotel' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Hotel Services</a>
-            </div>
+    <!-- Tabs -->
+    <div class="flex border-b border-[#363636] mb-6">
+        <a href="?tab=product" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'product' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Product Sales</a>
+        <a href="?tab=medical" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'medical' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Medical Services</a>
+        <a href="?tab=salon" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'salon' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Salon Services</a>
+        <a href="?tab=hotel" class="tab h-10 min-h-[2.5rem] !outline-none <?php echo $activeTab === 'hotel' ? 'tab-active !bg-[#D4F0EA] !text-[#363636] !border-[#363636] !border-b-0' : 'text-[#363636] hover:text-[#363636]'; ?> text-base font-normal px-6">Hotel Services</a>
+    </div>
 
-            <!-- Content Area -->
-            <div class="bg-[#FCFCFC] border border-[#363636] rounded-b-xl p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <p class="text-lg text-[#363636] font-semibold">Product Sales Transactions</p>
-                    
-                    <!-- Filter Form -->
-                    <form class="flex gap-4 items-end" id="filterForm">
-                        <input type="hidden" name="tab" value="<?= $activeTab ?>">
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Start Date</span>
-                            </label>
-                            <input type="date" name="start_date" id="start_date" value="<?= $startDate ?>" class="input input-bordered">
-                        </div>
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">End Date</span>
-                            </label>
-                            <input type="date" name="end_date" id="end_date" value="<?= $endDate ?>" class="input input-bordered">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                        <?php if ($startDate || $endDate): ?>
-                            <a href="?tab=<?= $activeTab ?>" class="btn btn-ghost">Reset</a>
-                        <?php endif; ?>
-                    </form>
+    <!-- Main Table -->
+    <div class="bg-white rounded-lg p-6 shadow-md">
+        <div class="flex justify-between items-center mb-4">
+            <p class="text-lg text-[#363636] font-semibold">
+                <?php
+                switch($activeTab) {
+                    case 'product':
+                        echo 'Product Sales Transactions';
+                        break;
+                    case 'medical':
+                        echo 'Medical Service Transactions';
+                        break;
+                    case 'salon':
+                        echo 'Salon Service Transactions';
+                        break;
+                    case 'hotel':
+                        echo 'Hotel Service Transactions';
+                        break;
+                }
+                ?>
+            </p>
+            
+            <!-- Filter Form -->
+            <form class="flex gap-4 items-end" id="filterForm">
+                <input type="hidden" name="tab" value="<?= $activeTab ?>">
+                
+                <!-- Quick Filter -->
+                <div class="form-control">
+                    <select name="quick_filter" id="quick_filter" class="select select-bordered" onchange="applyQuickFilter(this.value)">
+                        <option value="">Custom Range</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                        <option value="year">Last 365 Days</option>
+                    </select>
                 </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Start Date</span>
+                    </label>
+                    <input type="date" name="start_date" id="start_date" value="<?= $startDate ?>" class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">End Date</span>
+                    </label>
+                    <input type="date" name="end_date" id="end_date" value="<?= $endDate ?>" class="input input-bordered">
+                </div>
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <?php if ($startDate || $endDate): ?>
+                    <a href="?tab=<?= $activeTab ?>" class="btn btn-ghost">Reset</a>
+                <?php endif; ?>
+                <button type="button" onclick="showPreview()" class="btn bg-green-600 hover:bg-green-700 text-white">
+                    <i class="fas fa-print mr-2"></i>Print
+                </button>
+            </form>
+        </div>
 
-                <!-- Table Container -->
-                <div class="border border-[#363636] rounded-xl overflow-x-auto">
-                    <table class="table w-full">
-                        <thead>
-                            <tr class="bg-[#D4F0EA] text-[#363636]">
-                                <th class="py-4 px-6 text-center border-b border-[#363636]">No.</th>
-                                <th class="py-4 px-6 text-left border-b border-[#363636]">Transaction Date</th>
-                                <th class="py-4 px-6 text-left border-b border-[#363636]">Customer Name</th>
+        <!-- Print Content (Hidden) -->
+        <div id="print-content" class="hidden">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold">Laporan Transaksi <?= ucfirst($activeTab) ?></h1>
+                <p>Periode: <?= $startDate ? date('d/m/Y', strtotime($startDate)) : 'Awal' ?> - <?= $endDate ? date('d/m/Y', strtotime($endDate)) : 'Akhir' ?></p>
+            </div>
+            
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemilik</th>
+                        <?php if ($activeTab === 'product'): ?>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                            <th class="px-6 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                        <?php elseif ($activeTab === 'medical'): ?>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hewan</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
+                        <?php elseif ($activeTab === 'hotel'): ?>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hewan</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kandang</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                        <?php elseif ($activeTab === 'salon'): ?>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hewan</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layanan</th>
+                        <?php endif; ?>
+                        <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Biaya</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php $no = 1; foreach ($transactions as $transaction): ?>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $no++ ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['PEMILIK_NAMA'] ?></td>
+                        <?php if ($activeTab === 'product'): ?>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['PRODUK_INFO'] ?></td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-900"><?= $transaction['TOTAL_QUANTITY'] ?></td>
+                        <?php elseif ($activeTab === 'medical'): ?>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
+                        <?php elseif ($activeTab === 'hotel'): ?>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                            <td class="px-6 py-4 text-sm text-gray-900">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['CHECKOUT'] ?></td>
+                        <?php elseif ($activeTab === 'salon'): ?>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
+                        <?php endif; ?>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="<?= $activeTab === 'product' ? '5' : ($activeTab === 'hotel' ? '6' : '4') ?>" class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">Total Keseluruhan:</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">Rp <?= number_format($totalAmount, 0, ',', '.') ?></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Table Container -->
+        <div class="border border-[#363636] rounded-xl overflow-x-auto">
+            <table class="table w-full">
+                <thead>
+                    <tr class="bg-[#D4F0EA] text-[#363636]">
+                        <th class="py-4 px-6 text-center border-b border-[#363636]">No.</th>
+                        <th class="py-4 px-6 text-left border-b border-[#363636]">Transaction Date</th>
+                        <th class="py-4 px-6 text-left border-b border-[#363636]">Customer Name</th>
+                        <?php if ($activeTab === 'medical'): ?>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                        <?php elseif ($activeTab === 'hotel'): ?>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Cage Info</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Check Out</th>
+                        <?php elseif ($activeTab === 'salon'): ?>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                        <?php else: ?>
+                            <th class="py-4 px-6 text-left border-b border-[#363636]">Products</th>
+                            <th class="py-4 px-6 text-center border-b border-[#363636]">Total Items</th>
+                        <?php endif; ?>
+                        <th class="py-4 px-6 text-right border-b border-[#363636]">Total Cost</th>
+                        <?php if ($activeTab === 'product'): ?>
+                            <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
+                        <?php endif; ?>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    <?php if (empty($transactions)): ?>
+                        <tr>
+                            <td colspan="<?= $activeTab === 'medical' ? '6' : ($activeTab === 'hotel' ? '7' : '7') ?>" class="text-center py-4">No transactions found.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php 
+                        $nomor = ($page - 1) * $itemsPerPage + 1;
+                        foreach ($transactions as $transaction): 
+                        ?>
+                            <tr class="text-[#363636] hover:bg-gray-50 border-b border-[#363636] last:border-b-0">
+                                <td class="py-4 px-6 text-center"><?= $nomor++ ?></td>
+                                <td class="py-4 px-6"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
+                                <td class="py-4 px-6"><?= $transaction['PEMILIK_NAMA'] ? htmlentities($transaction['PEMILIK_NAMA']) : 'Non-Member' ?></td>
                                 <?php if ($activeTab === 'medical'): ?>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
                                 <?php elseif ($activeTab === 'hotel'): ?>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Cage Info</th>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Check Out</th>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                    <td class="py-4 px-6">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
+                                    <td class="py-4 px-6"><?= $transaction['CHECKOUT'] ?></td>
                                 <?php elseif ($activeTab === 'salon'): ?>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Pet Name</th>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Services</th>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
                                 <?php else: ?>
-                                    <th class="py-4 px-6 text-left border-b border-[#363636]">Products</th>
-                                    <th class="py-4 px-6 text-center border-b border-[#363636]">Total Items</th>
+                                    <td class="py-4 px-6"><?= htmlentities($transaction['PRODUK_INFO']) ?></td>
+                                    <td class="py-4 px-6 text-center"><?= $transaction['TOTAL_QUANTITY'] ?></td>
                                 <?php endif; ?>
-                                <th class="py-4 px-6 text-right border-b border-[#363636]">Total Cost</th>
+                                <td class="py-4 px-6 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
                                 <?php if ($activeTab === 'product'): ?>
-                                    <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
+                                    <td class="py-4 px-6">
+                                        <div class="flex gap-3 justify-center items-center">
+                                            <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
                                 <?php endif; ?>
                             </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            <?php if (empty($transactions)): ?>
-                                <tr>
-                                    <td colspan="<?= $activeTab === 'medical' ? '6' : ($activeTab === 'hotel' ? '7' : '7') ?>" class="text-center py-4">No transactions found.</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php 
-                                $nomor = ($page - 1) * $itemsPerPage + 1;
-                                foreach ($transactions as $transaction): 
-                                ?>
-                                    <tr class="text-[#363636] hover:bg-gray-50 border-b border-[#363636] last:border-b-0">
-                                        <td class="py-4 px-6 text-center"><?= $nomor++ ?></td>
-                                        <td class="py-4 px-6"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
-                                        <td class="py-4 px-6"><?= $transaction['PEMILIK_NAMA'] ? htmlentities($transaction['PEMILIK_NAMA']) : 'Non-Member' ?></td>
-                                        <?php if ($activeTab === 'medical'): ?>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
-                                        <?php elseif ($activeTab === 'hotel'): ?>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
-                                            <td class="py-4 px-6">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
-                                            <td class="py-4 px-6"><?= $transaction['CHECKOUT'] ?></td>
-                                        <?php elseif ($activeTab === 'salon'): ?>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['HEWAN_NAMA']) ?></td>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['LAYANAN_INFO']) ?></td>
-                                        <?php else: ?>
-                                            <td class="py-4 px-6"><?= htmlentities($transaction['PRODUK_INFO']) ?></td>
-                                            <td class="py-4 px-6 text-center"><?= $transaction['TOTAL_QUANTITY'] ?></td>
-                                        <?php endif; ?>
-                                        <td class="py-4 px-6 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
-                                        <?php if ($activeTab === 'product'): ?>
-                                            <td class="py-4 px-6">
-                                                <div class="flex gap-3 justify-center items-center">
-                                                    <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        <?php endif; ?>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -444,6 +578,20 @@ $categoriesObat = $db->resultSet();
         </div>
     </dialog>
 <?php endif; ?>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl">
+        <h3 class="font-bold text-lg mb-4">Preview Laporan</h3>
+        <div id="preview-content"></div>
+        <div class="modal-action">
+            <button onclick="printFromPreview()" class="btn btn-primary">
+                <i class="fas fa-print mr-2"></i>Print
+            </button>
+            <button onclick="closePreviewModal()" class="btn">Tutup</button>
+        </div>
+    </div>
+</div>
 
 <script>
 let transactionToDelete = null;
@@ -583,6 +731,110 @@ $(document).ready(function() {
         }, 100);
     });
 });
+
+function showPreview() {
+    // Clone print content
+    const printContent = document.getElementById('print-content').cloneNode(true);
+    printContent.classList.remove('hidden');
+    
+    // Show in modal
+    document.getElementById('preview-content').innerHTML = printContent.outerHTML;
+    document.getElementById('previewModal').classList.add('modal-open');
+}
+
+function closePreviewModal() {
+    document.getElementById('previewModal').classList.remove('modal-open');
+}
+
+function printFromPreview() {
+    const printContent = document.getElementById('preview-content').firstChild;
+    
+    // Create new window
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Laporan Transaksi</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-bottom: 1rem; 
+                }
+                th, td { 
+                    padding: 8px; 
+                    text-align: left; 
+                    border: 1px solid #ddd;
+                }
+                th { 
+                    background-color: #f8f9fa; 
+                    font-weight: bold; 
+                }
+                .text-right { 
+                    text-align: right; 
+                }
+                .text-center { 
+                    text-align: center; 
+                }
+                .font-bold { 
+                    font-weight: bold; 
+                }
+                @media print {
+                    @page { 
+                        size: landscape;
+                        margin: 1cm; 
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${printContent.outerHTML}
+        </body>
+        </html>
+    `);
+    
+    // Print and close
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+
+function applyQuickFilter(value) {
+    const today = new Date();
+    let startDate = '';
+    
+    switch(value) {
+        case 'week':
+            startDate = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+            break;
+        case 'month':
+            startDate = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            break;
+        case 'year':
+            startDate = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
+            break;
+        default:
+            // Reset dates if "Custom Range" is selected
+            document.getElementById('start_date').value = '';
+            document.getElementById('end_date').value = '';
+            document.getElementById('filterForm').submit();
+            return;
+    }
+    
+    // Format dates
+    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('end_date').value = today.toISOString().split('T')[0];
+    
+    // Submit form
+    document.getElementById('filterForm').submit();
+}
 </script>
 
 <style>
@@ -636,5 +888,27 @@ $(document).ready(function() {
 
     .select2--small .select2-selection__arrow {
         height: 36px;
+    }
+
+    /* Modal styles */
+    .modal-box {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    #preview-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    #preview-content th,
+    #preview-content td {
+        padding: 8px;
+        border: 1px solid #ddd;
+    }
+
+    #preview-content th {
+        background-color: #f8f9fa;
     }
 </style>

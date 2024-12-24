@@ -433,133 +433,6 @@ END;
 /
 
 -- Procedure to Read all records from Penjualan
-CREATE OR REPLACE PROCEDURE SelectAllPenjualan(p_cursor OUT SYS_REFCURSOR) AS
-BEGIN
-    OPEN p_cursor FOR 
-    SELECT 
-        PJ.ID, 
-        PJ.TANGGALTRANSAKSI, 
-        PJ.PRODUK, 
-        PJ.PEGAWAI_ID, 
-        PJ.LAYANANHOTEL_ID, 
-        PJ.LAYANANSALON_ID, 
-        PJ.LAYANANMEDIS_ID, 
-        PJ.PEMILIKHEWAN_ID
-    FROM Penjualan PJ
-    ORDER BY PJ.TANGGALTRANSAKSI DESC;
-END;
-/
-
--- Procedure to Read a record by ID from Penjualan
-CREATE OR REPLACE PROCEDURE SelectPenjualanByID(
-    p_ID IN VARCHAR2,
-    p_cursor OUT SYS_REFCURSOR
-) AS
-BEGIN
-    OPEN p_cursor FOR 
-    SELECT 
-        PJ.ID, 
-        PJ.TANGGALTRANSAKSI, 
-        PJ.PRODUK, 
-        PJ.PEGAWAI_ID, 
-        PJ.LAYANANHOTEL_ID, 
-        PJ.LAYANANSALON_ID, 
-        PJ.LAYANANMEDIS_ID, 
-        PJ.PEMILIKHEWAN_ID
-    FROM Penjualan PJ
-    WHERE PJ.ID = p_ID;
-END;
-/
-
--- Procedure to Update a record in Penjualan
-CREATE OR REPLACE PROCEDURE UpdatePenjualan (
-  p_ID                IN VARCHAR2,
-  p_TanggalTransaksi  IN TIMESTAMP,
-  p_Produk            IN ARRAYPRODUK, -- Adjust the datatype as per your ARRAYPRODUK definition
-  p_Pegawai_ID        IN VARCHAR2,
-  p_LayananHotel_ID   IN VARCHAR2,
-  p_LayananSalon_ID   IN VARCHAR2,
-  p_LayananMedis_ID   IN VARCHAR2,
-  p_PemilikHewan_ID   IN VARCHAR2
-) AS
-BEGIN
-  UPDATE Penjualan
-  SET 
-    TANGGALTRANSAKSI = p_TanggalTransaksi,
-    PRODUK = p_Produk,
-    PEGAWAI_ID = p_Pegawai_ID,
-    LAYANANHOTEL_ID = p_LayananHotel_ID,
-    LAYANANSALON_ID = p_LayananSalon_ID,
-    LAYANANMEDIS_ID = p_LayananMedis_ID,
-    PEMILIKHEWAN_ID = p_PemilikHewan_ID
-  WHERE ID = p_ID;
-END;
-/
-
--- Procedure to Delete a record from Penjualan
-CREATE OR REPLACE PROCEDURE DeletePenjualan (
-  p_ID IN VARCHAR2
-) AS
-BEGIN
-  DELETE FROM Penjualan WHERE ID = p_ID;
-END;
-/
-
-CREATE OR REPLACE PROCEDURE UpdateLayananMedis (
-    p_id IN VARCHAR2,
-    p_tanggal IN TIMESTAMP,
-    p_totalBiaya IN NUMBER,
-    p_description IN VARCHAR2,
-    p_status IN VARCHAR2,
-    p_jenisLayanan IN ArrayJenisLayananMedis,
-    p_pegawai_id IN VARCHAR2,
-    p_hewan_id IN VARCHAR2
-) AS
-BEGIN
-    -- Update data layanan medis
-    UPDATE LayananMedis
-    SET Tanggal = p_tanggal,
-        TotalBiaya = p_totalBiaya,
-        Description = p_description,
-        Status = p_status,
-        JenisLayanan = p_jenisLayanan,
-        Pegawai_ID = p_pegawai_id,
-        Hewan_ID = p_hewan_id,
-        onDelete = 0
-    WHERE ID = p_id;
-    
-    -- Jika tidak ada baris yang terupdate, throw exception
-    IF SQL%ROWCOUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Data layanan medis tidak ditemukan atau sudah dihapus');
-    END IF;
-END UpdateLayananMedis;
-/
-
--- Tambahkan trigger untuk memastikan total biaya sesuai dengan jenis layanan
-CREATE OR REPLACE TRIGGER trg_update_layananmedis_biaya
-BEFORE UPDATE ON LayananMedis
-FOR EACH ROW
-DECLARE
-    v_total_biaya NUMBER := 0;
-    v_biaya NUMBER;
-    v_jenis_id VARCHAR2(36);
-BEGIN
-    IF :NEW.JenisLayanan IS NOT NULL THEN
-        FOR i IN 1..:NEW.JenisLayanan.COUNT LOOP
-            v_jenis_id := :NEW.JenisLayanan(i);
-            SELECT Biaya INTO v_biaya
-            FROM JenisLayananMedis
-            WHERE ID = v_jenis_id AND onDelete = 0;
-            v_total_biaya := v_total_biaya + v_biaya;
-        END LOOP;
-        
-        -- Update total biaya
-        :NEW.TotalBiaya := v_total_biaya;
-    END IF;
-END;
-/ 
-
--- Procedure to Read all records from Penjualan
 CREATE OR REPLACE PROCEDURE SelectAllPenjualan (
     p_search IN VARCHAR2 DEFAULT NULL,
     p_start_date IN DATE DEFAULT NULL,
@@ -577,7 +450,6 @@ BEGIN
     LEFT JOIN Pegawai P ON PJ.PEGAWAI_ID = P.ID
     LEFT JOIN PemilikHewan PH ON PJ.PEMILIKHEWAN_ID = PH.ID
     WHERE PJ.onDelete = 0
-    AND PJ.PRODUK IS NOT NULL
     AND PJ.LAYANANMEDIS_ID IS NULL
     AND PJ.LAYANANHOTEL_ID IS NULL  
     AND PJ.LAYANANSALON_ID IS NULL 
@@ -604,7 +476,6 @@ BEGIN
         LEFT JOIN TABLE(PJ.PRODUK) TP ON 1=1
         LEFT JOIN Produk PR ON TP.COLUMN_VALUE = PR.ID
         WHERE PJ.onDelete = 0
-        AND PJ.PRODUK IS NOT NULL
         AND PJ.LAYANANMEDIS_ID IS NULL
         AND PJ.LAYANANHOTEL_ID IS NULL
         AND PJ.LAYANANSALON_ID IS NULL
@@ -619,6 +490,7 @@ BEGIN
             PJ.TOTALBIAYA,
             P.NAMA,
             PH.NAMA
+        HAVING COUNT(PR.ID) > 0  -- Hanya tampilkan yang benar-benar memiliki produk
         ORDER BY PJ.TANGGALTRANSAKSI DESC
         OFFSET p_offset ROWS FETCH NEXT p_limit ROWS ONLY;
 END;
@@ -686,8 +558,7 @@ BEGIN
     UPDATE PENJUALAN 
     SET PEMILIKHEWAN_ID = p_customer_id,
         PRODUK = v_product_array,
-        TOTALBIAYA = p_total_cost,
-        UPDATEDAT = CURRENT_TIMESTAMP
+        TOTALBIAYA = p_total_cost
     WHERE ID = p_id;
     
     COMMIT;
