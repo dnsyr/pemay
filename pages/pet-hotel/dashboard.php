@@ -18,24 +18,45 @@ if (!isset($_SESSION['username'])) {
   exit();
 }
 
-function formatTimestamp($timestamp)
-{
-  try {
-    // Create a DateTime object from the input timestamp
-    $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
+// Inisialisasi variabel filter
+$startDate = isset($_GET['start_date']) ? $_GET['start_date'] : '';
+$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : '';
 
-    // Check if parsing was successful
-    if ($dateTime) {
-      // Format the date to the desired format
-      return $dateTime->format('d M Y, h:i A');
-    } else {
-      // Handle invalid timestamp
-      return "Invalid timestamp: $timestamp";
+// Base query for hotel transactions
+$baseQueryHotel = "SELECT 
+    LH.ID,
+    TO_CHAR(LH.CHECKIN, 'DD-MON-YY HH12.MI.SS.FF AM') as TANGGALTRANSAKSI,
+    LH.TOTALBIAYA as TOTALHARGA,
+    PH.NAMA as PEMILIK_NAMA,
+    H.NAMA as HEWAN_NAMA,
+    K.NOMOR as KANDANG_NOMOR,
+    K.UKURAN as KANDANG_UKURAN,
+    TO_CHAR(LH.CHECKOUT, 'DD-MON-YY HH12.MI.SS.FF AM') as CHECKOUT
+FROM LAYANANHOTEL LH
+LEFT JOIN HEWAN H ON LH.HEWAN_ID = H.ID
+LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
+LEFT JOIN KANDANG K ON LH.KANDANG_ID = K.ID
+WHERE LH.STATUS = 'Complete' AND LH.onDelete = 0
+" . ($startDate ? " AND TRUNC(LH.CHECKIN) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
+" . ($endDate ? " AND TRUNC(LH.CHECKIN) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "");
+
+function formatTimestamp($timestamp) {
+    try {
+        if (empty($timestamp)) {
+            return "Invalid timestamp";
+        }
+        
+        // Ambil bagian yang diperlukan saja dari timestamp
+        $pattern = '/(\d{2}-[A-Z]{3}-\d{2}) (\d{2}.\d{2}).\d{2}.\d{6} ([AP]M)/';
+        if (preg_match($pattern, $timestamp, $matches)) {
+            return $matches[1] . " " . str_replace(".", ":", $matches[2]) . " " . $matches[3];
+        }
+        
+        return $timestamp;
+    } catch (Exception $e) {
+        error_log("Error formatting timestamp: " . $e->getMessage());
+    return $timestamp;
     }
-  } catch (Exception $e) {
-    // Handle exceptions
-    return "Error formatting timestamp: " . $e->getMessage();
-  }
 }
 
 // Initialize Database class
@@ -496,19 +517,6 @@ ob_end_flush();
     } else {
       const reservationData = getDataReservation(reservationID);
 
-      document.getElementById('updateReservationID').value = reservationData.reservationID;
-      document.getElementById('updateHewanID').value = reservationData.hewanID;
-      document.getElementById('selectedreservatorIDUpdate').textContent = reservationData.hewanNama;
-      document.getElementById('updatePegawaiID').value = reservationData.pegawaiID;
-      document.getElementById('updateKandangID').value = reservationData.kandangID;
-      document.getElementById('updateStatus').value = reservationData.status;
-      document.getElementById('updatePrice').value = reservationData.totalBiaya;
-      document.getElementById('updateBiaya').value = "Rp " + (reservationData.totalBiaya).toLocaleString();
-      document.getElementById('updateCheckIn').value = reservationData.checkIn;
-      document.getElementById('updateCheckOut').value = reservationData.checkOut;
-
-      handleSelectUpdateKandangID(reservationData.kandangID, `No: ${reservationData.kandangNomor} | Size: ${reservationData.kandangUkuran}`)
-
       let cancelOption = document.getElementById('liCanceledOption')
       let scheduledOption = document.getElementById('liScheduledOption')
       let inProgressOption = document.getElementById('liInProgressOption')
@@ -527,6 +535,19 @@ ob_end_flush();
         inProgressOption.hidden = false;
         completedOption.hidden = true;
       }
+      
+      document.getElementById('updateReservationID').value = reservationData.reservationID;
+      document.getElementById('updateHewanID').value = reservationData.hewanID;
+      document.getElementById('selectedreservatorIDUpdate').textContent = reservationData.hewanNama;
+      document.getElementById('updatePegawaiID').value = reservationData.pegawaiID;
+      document.getElementById('updateKandangID').value = reservationData.kandangID;
+      document.getElementById('updateStatus').value = reservationData.status;
+      document.getElementById('updatePrice').value = reservationData.totalBiaya;
+      document.getElementById('updateBiaya').value = "Rp " + (reservationData.totalBiaya).toLocaleString();
+      document.getElementById('updateCheckIn').value = reservationData.checkIn;
+      document.getElementById('updateCheckOut').value = reservationData.checkOut;
+
+      handleSelectUpdateKandangID(reservationData.kandangID, `No: ${reservationData.kandangNomor} | Size: ${reservationData.kandangUkuran}`)
 
       document.getElementById('drawerUpdateReservationHotel').checked = true;
     }
@@ -612,18 +633,8 @@ ob_end_flush();
     let checkin = document.getElementById('checkIn').value;
     let checkout = document.getElementById('checkOut').value;
 
-    if (!checkin || !checkout) {
-      alert('Please select both check-in and check-out dates.');
-      return;
-    }
-
     let checkinDate = new Date(checkin);
     let checkoutDate = new Date(checkout);
-
-    if (checkoutDate <= checkinDate) {
-      alert('Check-out date must be after check-in date.');
-      return;
-    }
 
     let durationInMillis = checkoutDate - checkinDate; // Duration in milliseconds
     let durationInDays = durationInMillis / (1000 * 3600 * 24); // Convert to days

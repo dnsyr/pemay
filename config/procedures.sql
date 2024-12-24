@@ -633,5 +633,54 @@ BEGIN
     );
 END;
 /
+-- Procedure to Create Layanan Salon
+CREATE OR REPLACE PROCEDURE CreateLayananSalon(
+    p_tanggal IN TIMESTAMP,
+    p_totalBiaya IN NUMBER,
+    p_status IN VARCHAR2,
+    p_jenisLayanan IN ArrayJenisLayananSalon,
+    p_pegawai_id IN VARCHAR2,
+    p_hewan_id IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO LayananSalon (
+        TANGGAL,
+        TOTALBIAYA,
+        STATUS,
+        JENISLAYANAN,
+        PEGAWAI_ID,
+        HEWAN_ID
+    ) VALUES (
+        p_tanggal,
+        p_totalBiaya,
+        p_status,
+        p_jenisLayanan,
+        p_pegawai_id,
+        p_hewan_id
+    );
+END;
+/
 
+-- Procedure to Update Layanan Salon
+CREATE OR REPLACE PROCEDURE UpdateLayananSalon(
+    p_id IN VARCHAR2,
+    p_tanggal IN TIMESTAMP,
+    p_totalBiaya IN NUMBER,
+    p_status IN VARCHAR2,
+    p_jenisLayanan IN ArrayJenisLayananSalon,
+    p_pegawai_id IN VARCHAR2,
+    p_hewan_id IN VARCHAR2
+) AS
+BEGIN
+    -- Update LayananSalon
+    UPDATE LayananSalon
+    SET TANGGAL = p_tanggal,
+        TOTALBIAYA = p_totalBiaya,
+        STATUS = p_status,
+        JENISLAYANAN = p_jenisLayanan,
+        PEGAWAI_ID = p_pegawai_id,
+        HEWAN_ID = p_hewan_id
+    WHERE ID = p_id;
+END;
+/
 COMMIT; 

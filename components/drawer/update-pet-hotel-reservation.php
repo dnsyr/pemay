@@ -203,18 +203,8 @@ $cageRooms = getAllDataCages($db);
       let updateCheckin = document.getElementById('updateCheckIn').value;
       let updateCheckout = document.getElementById('updateCheckOut').value;
 
-      if (!updateCheckin || !updateCheckout) {
-        alert('Please select both check-in and check-out dates.');
-        return;
-      }
-
       let updateCheckinDate = new Date(updateCheckin);
       let updateCheckoutDate = new Date(updateCheckout);
-
-      if (updateCheckoutDate <= updateCheckinDate) {
-        alert('Check-out date must be after check-in date.');
-        return;
-      }
 
       let durationInMillis = updateCheckoutDate - updateCheckinDate; // Duration in milliseconds
       let durationInDays = durationInMillis / (1000 * 3600 * 24); // Convert to days
