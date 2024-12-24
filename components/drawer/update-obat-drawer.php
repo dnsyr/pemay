@@ -10,7 +10,7 @@
                 <?php 
                 if (isset($_GET['obat_id'])) {
                     $_GET['id'] = $_GET['obat_id'];
-                    include dirname(__FILE__) . '/../../update-obat.php';
+                    include dirname(__FILE__) . '/../../pages/pet-medical/update-obat.php';
                 }
                 ?>
             </div>

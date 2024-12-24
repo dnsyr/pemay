@@ -8,6 +8,17 @@ if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true)
     exit();
 }
 
+// Check user role and set permissions
+$userRole = $_SESSION['posisi'] ?? '';
+$canEdit = ($userRole === 'staff' || $userRole === 'owner');
+$canPrint = ($userRole === 'owner');
+$canView = ($userRole === 'vet');
+
+if (!$canEdit && !$canView) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 $pageTitle = 'Pet Transactions Management';
 include '../../layout/header-tailwind.php';
 
@@ -367,9 +378,11 @@ $categoriesObat = $db->resultSet();
                 <?php if ($startDate || $endDate): ?>
                     <a href="?tab=<?= $activeTab ?>" class="btn btn-ghost">Reset</a>
                 <?php endif; ?>
+                <?php if ($canPrint): ?>
                 <button type="button" onclick="showPreview()" class="btn bg-green-600 hover:bg-green-700 text-white">
                     <i class="fas fa-print mr-2"></i>Print
                 </button>
+                <?php endif; ?>
             </form>
         </div>
 
@@ -459,7 +472,7 @@ $categoriesObat = $db->resultSet();
                             <th class="py-4 px-6 text-center border-b border-[#363636]">Total Items</th>
                         <?php endif; ?>
                         <th class="py-4 px-6 text-right border-b border-[#363636]">Total Cost</th>
-                        <?php if ($activeTab === 'product'): ?>
+                        <?php if ($activeTab === 'product' && $canEdit): ?>
                             <th class="py-4 px-6 text-center border-b border-[#363636]">Actions</th>
                         <?php endif; ?>
                     </tr>
@@ -493,12 +506,19 @@ $categoriesObat = $db->resultSet();
                                     <td class="py-4 px-6 text-center"><?= $transaction['TOTAL_QUANTITY'] ?></td>
                                 <?php endif; ?>
                                 <td class="py-4 px-6 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
-                                <?php if ($activeTab === 'product'): ?>
+                                <?php if ($activeTab === 'product' && $canEdit): ?>
                                     <td class="py-4 px-6">
                                         <div class="flex gap-3 justify-center items-center">
                                             <button type="button" class="btn btn-error btn-sm" onclick="deleteRecord('<?= $transaction['ID'] ?>')">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
+                                        </div>
+                                    </td>
+                                <?php elseif (!$canEdit): ?>
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-eye-slash text-gray-400"></i>
+                                            <span class="text-sm text-gray-400">View Only</span>
                                         </div>
                                     </td>
                                 <?php endif; ?>
@@ -553,7 +573,7 @@ $categoriesObat = $db->resultSet();
     <?php endif; ?>
 </div>
 
-<?php if ($activeTab === 'product'): ?>
+<?php if ($activeTab === 'product' && $canEdit): ?>
     <!-- Floating Add Button -->
     <div class="fixed bottom-4 right-4">
         <label for="add_drawer" class="btn btn-circle btn-lg bg-[#B2E0D6] hover:bg-[#9AC7BE] text-[#363636] border-none">
@@ -577,6 +597,14 @@ $categoriesObat = $db->resultSet();
             </div>
         </div>
     </dialog>
+<?php elseif (!$canEdit): ?>
+    <!-- View Only Info -->
+    <div class="fixed bottom-5 right-5">
+        <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-3 rounded-full shadow-lg z-50 flex items-center gap-3">
+            <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+            <span class="block sm:inline">Only STAFFS and OWNER can manage transactions</span>
+        </div>
+    </div>
 <?php endif; ?>
 
 <!-- Preview Modal -->

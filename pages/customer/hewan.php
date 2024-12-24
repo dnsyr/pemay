@@ -3,6 +3,16 @@ session_start();
 require_once '../../config/database.php';
 require_once '../../layout/header-tailwind.php';
 
+// Check user role and set permissions
+$userRole = $_SESSION['posisi'] ?? '';
+$canEdit = ($userRole === 'staff' || $userRole === 'owner');
+$canView = ($userRole === 'vet');
+
+if (!$canEdit && !$canView) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 $db = new Database();
 
 // Pencarian pelanggan
@@ -163,15 +173,27 @@ $pets = $db->resultSet();
                         <td><?php echo htmlspecialchars($row['NAMA']); ?></td>
                         <td><?php echo htmlspecialchars($row['EMAIL']); ?></td>
                         <td><?php echo htmlspecialchars($row['NOMORTELPON']); ?></td>
-                        <td>
-                            <a href="edit-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-edit">Edit</a>
-                            <a href="delete-customer.php?id=<?php echo $row['ID']; ?>" class="btn btn-delete" onclick="return confirm('Yakin ingin menghapus pelanggan ini?')">Hapus</a>
-                        </td>
+                        <td>';
+                        if ($canEdit) {
+                            echo '<a href="edit-customer.php?id=' . $row['ID'] . '" class="btn btn-edit">Edit</a>';
+                            echo '<a href="delete-customer.php?id=' . $row['ID'] . '" class="btn btn-delete" onclick="return confirm(\'Yakin ingin menghapus pelanggan ini?\')">Hapus</a>';
+                        } else {
+                            echo '<span style="color: #666;">View Only</span>';
+                        }
+                        echo '</td>';
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <a href="add-customer.php" class="fab fab-customer">+</a>
+        <?php
+        if ($canEdit) {
+            echo '<a href="add-customer.php" class="fab fab-customer">+</a>';
+        } else {
+            echo '<div style="position: fixed; bottom: 20px; right: 20px; background: #f0f0f0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">';
+            echo '<span style="color: #666;">Only STAFF and OWNER can manage customers & pets</span>';
+            echo '</div>';
+        }
+        ?>
     </div>
     
 
@@ -208,15 +230,27 @@ $pets = $db->resultSet();
                         <td><?php echo htmlspecialchars($row['TANGGALLAHIR']); ?></td>
                         <td><?php echo htmlspecialchars($row['TINGGI']); ?></td>
                         <td><?php echo htmlspecialchars($row['LEBAR']); ?></td>
-                        <td>
-                            <a href="edit-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-edit">Edit</a>
-                            <a href="delete-pet.php?id=<?php echo $row['ID']; ?>" class="btn btn-delete" onclick="return confirm('Yakin ingin menghapus data ini?')">Hapus</a>
-                        </td>
+                        <td>';
+                        if ($canEdit) {
+                            echo '<a href="edit-pet.php?id=' . $row['ID'] . '" class="btn btn-edit">Edit</a>';
+                            echo '<a href="delete-pet.php?id=' . $row['ID'] . '" class="btn btn-delete" onclick="return confirm(\'Yakin ingin menghapus data ini?\')">Hapus</a>';
+                        } else {
+                            echo '<span style="color: #666;">View Only</span>';
+                        }
+                        echo '</td>';
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <a href="add-pet.php" class="fab fab-pet">+</a>
+        <?php
+        if ($canEdit) {
+            echo '<a href="add-pet.php" class="fab fab-pet">+</a>';
+        } else {
+            echo '<div style="position: fixed; bottom: 20px; right: 20px; background: #f0f0f0; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">';
+            echo '<span style="color: #666;">Only STAFF and OWNER can manage customers & pets</span>';
+            echo '</div>';
+        }
+        ?>
     </div>
 </body>
 </html>

@@ -1,23 +1,49 @@
 <?php
-if (!defined('SKIP_SESSION_START')) {
-    session_start();
+session_start();
+
+// Check if the user is logged in and has permission
+if (!isset($_SESSION['user_logged_in']) || !in_array($_SESSION['posisi'], ['owner', 'staff', 'vet'])) {
+    header("Location: ../../auth/restricted.php");
+    exit();
 }
-if (!defined('SKIP_DB_INCLUDE')) {
-    include '../../config/database.php';
+
+// Check user role and set permissions
+$userRole = $_SESSION['posisi'] ?? '';
+$canEdit = ($userRole === 'staff' || $userRole === 'owner');
+$canView = ($userRole === 'vet');
+
+if (!$canEdit && !$canView) {
+    header("Location: ../../index.php");
+    exit();
+}
+
+include '../../config/database.php';
+$db = new Database();
+
+// Verify employee_id exists
+if (!isset($_SESSION['employee_id'])) {
+    die("Invalid session: employee_id not found");
+}
+
+$pegawaiId = trim($_SESSION['employee_id']);
+
+// Verify pegawaiId exists in database
+$db->query("SELECT 1 FROM Pegawai WHERE ID = :pegawai_id AND onDelete = 0");
+$db->bind(':pegawai_id', $pegawaiId);
+$pegawaiExists = $db->single();
+if (!$pegawaiExists) {
+    die("Invalid employee ID");
 }
 
 $pageTitle = 'Manage Product';
 include '../../layout/header-tailwind.php';
 
-// Initialize Database
-if (!defined('SKIP_DB_INCLUDE')) {
-    $db = new Database();
-}
-
-// Check if the user is logged in
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header("Location: ../../auth/login.php");
-    exit();
+// Notification message based on role
+$roleMessage = '';
+if (!$canEdit) {
+    $roleMessage = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <span class="block sm:inline">Only STAFFS and OWNER are allowed to create and edit list.</span>
+    </div>';
 }
 
 // Pagination setup
@@ -133,6 +159,88 @@ if (isset($_GET['delete_id'])) {
     }
 }
 
+// Process add product if form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'add') {
+    $namaItem = $_POST['nama_item'];
+    $jumlah = $_POST['jumlah'];
+    $harga = $_POST['harga'];
+    $kategori = $_POST['kategori'];
+    $tipeKategori = $_POST['tipe_kategori'];
+
+    if ($jumlah < 0 || $harga < 0) {
+        echo "<script>alert('Quantity and Price must be zero or positive!');</script>";
+    } else {
+        try {
+            // Debug employee ID
+            error_log("Employee ID being used: " . $_SESSION['employee_id']);
+
+            // Verify employee exists first
+            $db->query("SELECT ID FROM Pegawai WHERE ID = :pegawai_id AND onDelete = 0");
+            $db->bind(':pegawai_id', $_SESSION['employee_id']);
+            $pegawaiResult = $db->single();
+            
+            if (!$pegawaiResult) {
+                throw new Exception("Invalid employee ID. Please try logging in again.");
+            }
+
+            // Begin transaction
+            $db->beginTransaction();
+
+            // Then verify category exists
+            $table = $tipeKategori === 'produk' ? 'KategoriProduk' : 'KategoriObat';
+            $db->query("SELECT ID FROM {$table} WHERE ID = :kategori_id AND onDelete = 0");
+            $db->bind(':kategori_id', $kategori);
+            $categoryResult = $db->single();
+            
+            if (!$categoryResult) {
+                throw new Exception("Selected category not found");
+            }
+
+            // Generate new GUID for product
+            $db->query("SELECT SYS_GUID() as NEW_ID FROM DUAL");
+            $result = $db->single();
+            $productId = $result['NEW_ID'];
+
+            // Prepare insert SQL based on category type
+            if ($tipeKategori === 'produk') {
+                $insertSql = "INSERT INTO Produk (ID, Nama, Jumlah, Harga, Pegawai_ID, KategoriProduk_ID, onDelete) 
+                             VALUES (:product_id, :namaItem, :jumlah, :harga, :pegawai_id, :kategori, 0)";
+            } else {
+                $insertSql = "INSERT INTO Produk (ID, Nama, Jumlah, Harga, Pegawai_ID, KategoriObat_ID, onDelete) 
+                             VALUES (:product_id, :namaItem, :jumlah, :harga, :pegawai_id, :kategori, 0)";
+            }
+
+            // Execute product insertion
+            $db->query($insertSql);
+            $db->bind(':product_id', $productId);
+            $db->bind(':namaItem', $namaItem);
+            $db->bind(':jumlah', $jumlah);
+            $db->bind(':harga', $harga);
+            $db->bind(':pegawai_id', $_SESSION['employee_id']);
+            $db->bind(':kategori', $kategori);
+
+            if (!$db->execute()) {
+                throw new Exception("Failed to insert product");
+            }
+
+            // If we get here, everything succeeded
+            $db->commit();
+            echo "<script>alert('Product item added successfully!'); window.location.href='product.php';</script>";
+            exit();
+
+        } catch (Exception $e) {
+            // Rollback and show error
+            $db->rollBack();
+            $errorMessage = str_replace("'", "\\'", $e->getMessage());
+            echo "<script>
+                console.error('Error:', '" . $errorMessage . "');
+                alert('Error: " . $errorMessage . "');
+            </script>";
+            error_log("Error adding product: " . $e->getMessage());
+        }
+    }
+}
+
 $totalPages = ceil($totalItems / $itemsPerPage);
 ?>
 <!DOCTYPE html>
@@ -234,6 +342,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                                             ?>
                                         </td>
                                         <td class="<?= $index === count($stocks) - 1 ? 'rounded-br-xl' : '' ?>">
+                                            <?php if ($canEdit): ?>
                                             <div class="flex gap-3">
                                                 <!-- Update Button -->
                                                 <button type="button" class="drawer-btn btn btn-warning btn-sm" onclick="handleUpdateBtn('<?php echo $stock['ID']; ?>')">
@@ -245,6 +354,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                                                     <i class="fas fa-trash-alt"></i>
                                                 </a>
                                             </div>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -297,7 +407,8 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             </div>
         </div>
 
-        <!-- Add Product Drawer Button -->
+        <!-- Add Product Drawer -->
+        <?php if ($canEdit): ?>
         <div class="drawer drawer-end z-10">
             <input id="drawerAddProduct" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content">
@@ -308,8 +419,9 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             <div class="drawer-side">
                 <label for="drawerAddProduct" aria-label="close sidebar" class="drawer-overlay"></label>
                 <div class="menu bg-[#FCFCFC] text-[#363636] min-h-screen w-96 flex flex-col justify-center px-8">
-                    <h3 class="text-lg font-semibold mb-7">Add New Product</h3>
-                    <form action="add-product.php" method="post" class="gap-5 flex flex-col">
+                    <h3 class="text-lg font-semibold mb-7">Add Product</h3>
+                    <form method="post" class="gap-5 flex flex-col" id="addProductForm" onsubmit="return validateForm()">
+                        <input type="hidden" name="action" value="add">
                         <div>
                             <label for="nama_item">Item Name</label>
                             <input type="text" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" id="nama_item" name="nama_item" required>
@@ -353,7 +465,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                         </div>
                         <div class="flex justify-end gap-5 mt-5">
                             <button type="submit" class="btn bg-[#B2B5E0] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center">
-                                <i class="fas fa-plus fa-md"></i> Add Product
+                                <i class="fas fa-save fa-md"></i> Add Product
                             </button>
                             <label for="drawerAddProduct" class="btn bg-[#E0BAB2] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC]">Cancel</label>
                         </div>
@@ -361,6 +473,15 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                 </div>
             </div>
         </div>
+        <?php endif; ?>
+
+        <!-- Role-based notification -->
+        <?php if (!$canEdit): ?>
+        <div class="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-700 px-6 py-3 rounded-full shadow-lg z-50 flex items-center gap-3" role="alert">
+            <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+            <span class="block sm:inline">Only STAFFS and OWNER are allowed to create and edit list.</span>
+        </div>
+        <?php endif; ?>
     </div>
 
     <script>
@@ -375,18 +496,10 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                 kategoriSelect.val(null).trigger('change');
 
                 // Sembunyikan semua opsi terlebih dahulu
-                kategoriSelect.find('option').not('[value=""]').remove();
+                kategoriSelect.find('option').not('[value=""]').hide();
 
-                // Tambahkan kembali opsi sesuai kategori yang dipilih
-                if (tipeKategori === 'produk') {
-                    <?php foreach ($categoriesProduk as $category): ?>
-                        kategoriSelect.append(new Option('<?php echo htmlentities($category['NAMA']); ?>', '<?php echo $category['ID']; ?>', false, false));
-                    <?php endforeach; ?>
-                } else {
-                    <?php foreach ($categoriesObat as $category): ?>
-                        kategoriSelect.append(new Option('<?php echo htmlentities($category['NAMA']); ?>', '<?php echo $category['ID']; ?>', false, false));
-                    <?php endforeach; ?>
-                }
+                // Tampilkan opsi sesuai kategori yang dipilih
+                kategoriSelect.find('option.' + tipeKategori).show();
 
                 // Refresh Select2
                 kategoriSelect.select2({
@@ -410,6 +523,47 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 
             // Panggil updateCategory saat halaman dimuat
             updateCategory();
+        });
+
+        // Fungsi validasi form
+        function validateForm() {
+            const namaItem = document.getElementById('nama_item').value;
+            const jumlah = document.getElementById('jumlah').value;
+            const harga = document.getElementById('harga').value;
+            const kategori = document.getElementById('kategori').value;
+
+            if (!namaItem || !jumlah || !harga || !kategori) {
+                alert('Please fill in all required fields');
+                return false;
+            }
+
+            if (jumlah < 0) {
+                alert('Quantity must be zero or positive!');
+                return false;
+            }
+
+            if (harga < 0) {
+                alert('Price must be zero or positive!');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Debug form submission
+        document.getElementById('addProductForm').addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Log form data untuk debugging
+            const formData = new FormData(this);
+            console.log('Form data:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            return true;
         });
 
         // Fungsi untuk menangani klik tombol update

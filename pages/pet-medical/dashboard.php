@@ -454,7 +454,10 @@ if ($tab === 'obat') {
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     <?php else: ?>
-                                                        <span class="text-sm text-gray-500">View Only</span>
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fas fa-eye-slash text-gray-400"></i>
+                                                            <span class="text-sm text-gray-400">View Only</span>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -539,7 +542,10 @@ if ($tab === 'obat') {
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     <?php else: ?>
-                                                        <span class="text-sm text-gray-500">View Only</span>
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fas fa-eye-slash text-gray-400"></i>
+                                                            <span class="text-sm text-gray-400">View Only</span>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -572,12 +578,25 @@ if ($tab === 'obat') {
                         href="<?= $baseUrl . ($page + 1) ?>&nama_hewan=<?= urlencode($filterNamaHewan) ?>&nama_pemilik=<?= urlencode($filterNamaPemilik) ?>&status=<?= urlencode($filterStatus) ?>">»</a>
     </div>
 
-<!-- Floating Add Button -->
-<?php if ($tab === 'medical-services' && $isVet): ?>
-    <button onclick="document.getElementById('my-drawer').checked = true"
-            class="bg-[#D4F0EA] w-14 h-14 flex justify-center items-center rounded-full fixed bottom-5 right-5 border border-[#363636] shadow-md shadow-[#717171]">
-        <i class="fas fa-plus fa-lg"></i>
-    </button>
+<!-- Floating Corner Info/Button -->
+<?php if ($tab === 'medical-services'): ?>
+    <?php if ($isVet): ?>
+        <!-- Floating Add Button for Vet -->
+        <button onclick="document.getElementById('my-drawer').checked = true"
+                class="bg-[#D4F0EA] w-14 h-14 flex justify-center items-center rounded-full fixed bottom-5 right-5 border border-[#363636] shadow-md shadow-[#717171]">
+            <i class="fas fa-plus fa-lg"></i>
+        </button>
+    <?php else: ?>
+        <!-- View Only Info for non-Vet -->
+        <div class="fixed bottom-5 right-5">
+            <div class="bg-gray-100 px-4 py-2 rounded-lg border border-[#363636] shadow-md">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-eye text-gray-600"></i>
+                    <span class="text-gray-600 text-sm font-medium">Only VET can manage services</span>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <!-- Include drawers -->
