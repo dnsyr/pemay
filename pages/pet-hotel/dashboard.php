@@ -370,7 +370,7 @@ ob_end_flush();
 
         <div class="divider divider-neutral mt-8"></div>
 
-        <es class="text-lg text-[#363636] font-semibold italic">Listed Cages</es>
+        <p class="text-lg text-[#363636] font-semibold italic">Listed Cages</p>
         <div class="overflow-hidden border border-[#565656] rounded-xl shadow-md shadow-[#717171] mt-3">
           <table class="table border-collapse">
             <thead>

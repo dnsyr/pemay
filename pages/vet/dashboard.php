@@ -15,7 +15,6 @@ if (!isset($_SESSION['username']) || $_SESSION['posisi'] !== 'vet') {
 }
 
 include '../../config/connection.php';
-include '../../layout/header.php';
 
 // Cek jika ada input tanggal
 $selectedDate = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');  // Default ke hari ini
@@ -44,7 +43,8 @@ $finishedCount = $rowCounts['FINISHED_COUNT'] ?? 0;
 $canceledCount = $rowCounts['CANCELED_COUNT'] ?? 0;
 
 // Fungsi untuk mengambil data layanan medis berdasarkan status dan tanggal
-function getLayananByStatus($conn, $status, $selectedDate) {
+function getLayananByStatus($conn, $status, $selectedDate)
+{
     if ($status == 'Emergency') {
         // Emergency tidak terpengaruh oleh tanggal, ambil semua data dengan status 'Emergency'
         $sql = "
