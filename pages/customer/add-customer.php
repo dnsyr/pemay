@@ -4,9 +4,9 @@ ob_start();
 
 // Cek jika form disubmit dan redirect ke customer.php
 if (isset($_POST['add'])) {
-    require_once '../../config/database.php';
-    $db = new Database();
-    
+require_once '../../config/database.php';
+$db = new Database();
+
     $nama = $_POST['nama'] ?? '';
     $email = $_POST['email'] ?? '';
     $nomorTelpon = $_POST['nomortelpon'] ?? '';
