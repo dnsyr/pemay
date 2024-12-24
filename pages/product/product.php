@@ -247,6 +247,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -271,47 +272,47 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                     <!-- Category Type Dropdown -->
                     <select class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="category_type">
                         <option disabled value="" <?php echo empty($selectedCategoryType) ? 'selected' : ''; ?>>-- Select Category Type --</option>
-                        <option value="all" <?php echo ($selectedCategoryType) == 'all' ?'selected' : ''; ?>>All</option>
+                        <option value="all" <?php echo ($selectedCategoryType) == 'all' ? 'selected' : ''; ?>>All</option>
                         <option value="produk" <?php echo $selectedCategoryType == 'produk' ? 'selected' : ''; ?>>Produk</option>
                         <option value="obat" <?php echo $selectedCategoryType == 'obat' ? 'selected' : ''; ?>>Obat</option>
                     </select>
 
-            <!-- Category Dropdown -->
-            <select class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="category" <?php echo empty($selectedCategoryType) ? 'disabled' : ''; ?>>
-                <option value="" <?php echo empty($selectedCategory) ? 'selected' : ''; ?>>-- Select Category --</option>
-                <?php
-                if ($selectedCategoryType == 'produk') {
-                    if (!empty($categoriesProduk)) {
-                        foreach ($categoriesProduk as $category) {
-                            $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
-                            echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
+                    <!-- Category Dropdown -->
+                    <select class="w-1/4 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm px-7 py-2" name="category" <?php echo empty($selectedCategoryType) ? 'disabled' : ''; ?>>
+                        <option value="" <?php echo empty($selectedCategory) ? 'selected' : ''; ?>>-- Select Category --</option>
+                        <?php
+                        if ($selectedCategoryType == 'produk') {
+                            if (!empty($categoriesProduk)) {
+                                foreach ($categoriesProduk as $category) {
+                                    $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
+                                    echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
+                                }
+                            } else {
+                                echo '<option value="" disabled>No Produk Categories Available</option>';
+                            }
+                        } elseif ($selectedCategoryType == 'obat') {
+                            if (!empty($categoriesObat)) {
+                                foreach ($categoriesObat as $category) {
+                                    $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
+                                    echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
+                                }
+                            } else {
+                                echo '<option value="" disabled>No Obat Categories Available</option>';
+                            }
                         }
-                    } else {
-                        echo '<option value="" disabled>No Produk Categories Available</option>';
-                    }
-                } elseif ($selectedCategoryType == 'obat') {
-                    if (!empty($categoriesObat)) {
-                        foreach ($categoriesObat as $category) {
-                            $selected = ($selectedCategory == $category['ID']) ? 'selected' : '';
-                            echo '<option value="' . htmlspecialchars($category['ID']) . '" ' . $selected . '>' . htmlspecialchars($category['NAMA']) . '</option>';
-                        }
-                    } else {
-                        echo '<option value="" disabled>No Obat Categories Available</option>';
-                    }
-                }
-                ?>
-            </select>
+                        ?>
+                    </select>
 
-            <!-- Filter Button -->
-            <div class="flex gap-2">
-                <button class="btn bg-[#D4F0EA] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center" type="submit">
-                    <i class="fas fa-filter"></i>
-                </button>
-                <a href="product.php" class="btn bg-[#E0BAB2] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center">
-                    <i class="fas fa-undo"></i>
-                </a>
-            </div>
-        </form>
+                    <!-- Filter Button -->
+                    <div class="flex gap-2">
+                        <button class="btn bg-[#D4F0EA] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center" type="submit">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                        <a href="product.php" class="btn bg-[#E0BAB2] text-[#363636] shadow-md shadow-[#565656] w-12 h-12 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center justify-center">
+                            <i class="fas fa-undo"></i>
+                        </a>
+                    </div>
+                </form>
 
                 <!-- Table -->
                 <div class="overflow-hidden border border-[#363636] rounded-xl shadow-md shadow-[#717171] mt-3">
@@ -333,14 +334,14 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                                         <td><?php echo htmlentities($stock['JUMLAH']); ?></td>
                                         <td><?php echo 'Rp' . number_format($stock['HARGA'], 2, ',', '.'); ?></td>
                                         <td>
-                                            <?php 
-                                                if ($stock['KATEGORIPRODUKNAMA']) {
-                                                    echo htmlentities($stock['KATEGORIPRODUKNAMA']);
-                                                } elseif ($stock['KATEGORIOBATNAMA']) {
-                                                    echo htmlentities($stock['KATEGORIOBATNAMA']);
-                                                } else {
-                                                    echo 'N/A';
-                                                }
+                                            <?php
+                                            if ($stock['KATEGORIPRODUKNAMA']) {
+                                                echo htmlentities($stock['KATEGORIPRODUKNAMA']);
+                                            } elseif ($stock['KATEGORIOBATNAMA']) {
+                                                echo htmlentities($stock['KATEGORIOBATNAMA']);
+                                            } else {
+                                                echo 'N/A';
+                                            }
                                             ?>
                                         </td>
                                         <td class="<?= $index === count($stocks) - 1 ? 'rounded-br-xl' : '' ?>">
@@ -373,7 +374,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                 <?php if ($totalPages > 1): ?>
                     <nav aria-label="Page navigation" class="mt-4">
                         <ul class="flex justify-center gap-2">
-                            <?php 
+                            <?php
                             // Previous button
                             if ($page > 1): ?>
                                 <li>
@@ -396,7 +397,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                                 </li>
                             <?php endfor; ?>
 
-                            <?php 
+                            <?php
                             // Next button
                             if ($page < $totalPages): ?>
                                 <li>
@@ -595,7 +596,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Fungsi untuk mengupdate kategori
             window.updateCategory = function() {
                 const kategori = document.getElementById('kategori');
@@ -627,7 +628,7 @@ $totalPages = ceil($totalItems / $itemsPerPage);
             });
 
             // Event listener untuk tipe kategori
-            document.querySelectorAll('input[name="tipe_kategori"]').forEach(function (radio) {
+            document.querySelectorAll('input[name="tipe_kategori"]').forEach(function(radio) {
                 radio.addEventListener('change', updateCategory);
             });
 

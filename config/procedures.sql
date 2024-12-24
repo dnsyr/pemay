@@ -1,5 +1,5 @@
-Functions
-Check Reservation Date to Prevent Overlapping
+--Functions
+--Check Reservation Date to Prevent Overlapping
 CREATE OR REPLACE FUNCTION is_reservation_exist(
     f_kandang_id IN VARCHAR2,
     f_checkin IN TIMESTAMP,
@@ -20,8 +20,8 @@ BEGIN
     RETURN v_count;
 END;
 /
-Procedures
-Table Pegawai: CreatePegawai, SelectAllPegawai, SelectPegawaiByUsername, UpdatePegawai, DeletePegawai
+--Procedures
+--Table Pegawai: CreatePegawai, SelectAllPegawai, SelectPegawaiByUsername, UpdatePegawai, DeletePegawai
 -- Procedure to Create a new record in Pegawai
 CREATE OR REPLACE PROCEDURE CreatePegawai (
   p_Nama IN VARCHAR2,
@@ -110,12 +110,12 @@ END;
 -- Enable output in SQL*Plus or SQL Developer
 SET SERVEROUTPUT ON;
 
-– Test PL/SQL
-VARIABLE p_cursor REFCURSOR;
-EXEC SelectAllPegawai(:p_cursor);
-PRINT p_cursor;
-Table LayananHotel: CreateLayananHotel, SelectAllLayananHotel, SelectLayananHotelByID, UpdateLayananHotel, DeleteLayananHotel
-– Procedure to create layananhotel (reservation)
+-- Test PL/SQL
+--VARIABLE p_cursor REFCURSOR;
+--EXEC SelectAllPegawai(:p_cursor);
+--PRINT p_cursor;
+--Table LayananHotel: CreateLayananHotel, SelectAllLayananHotel, SelectLayananHotelByID, UpdateLayananHotel, DeleteLayananHotel
+-- Procedure to create layananhotel (reservation)
 CREATE OR REPLACE PROCEDURE CreateLayananHotel(
         p_checkin    IN TIMESTAMP,
         p_checkout   IN TIMESTAMP,
@@ -246,7 +246,7 @@ CREATE OR REPLACE PROCEDURE DeleteLayananHotel(p_id IN VARCHAR2) IS
         WHERE ID = p_id;
     END;
 /
-Table Kandang: SelectAllKandang
+--Table Kandang: SelectAllKandang
 -- Procedure to Read all records from Kandang
 CREATE OR REPLACE PROCEDURE SelectAllKandang(p_cursor OUT SYS_REFCURSOR) AS
 BEGIN
@@ -267,7 +267,7 @@ BEGIN
 END;
 /
 
-Table LayananMedis
+--Table LayananMedis
 -- Procedure to Create a new record in LayananMedis
 CREATE OR REPLACE PROCEDURE CreateLayananMedis (
     p_Tanggal        IN TIMESTAMP,
@@ -298,7 +298,6 @@ BEGIN
 END;
 /
 
-	
 -- Procedure to Read all records from LayananMedis
 CREATE OR REPLACE PROCEDURE SelectAllLayananMedis(p_cursor OUT SYS_REFCURSOR) AS
 BEGIN
@@ -324,7 +323,6 @@ BEGIN
         lm.onDelete = 0;
 END;
 /
-
 
 -- Procedure to Read a record by ID from LayananMedis
 CREATE OR REPLACE PROCEDURE SelectLayananMedisByID(
@@ -355,7 +353,6 @@ BEGIN
 END;
 /
 
-
 -- Procedure to Update a record in LayananMedis
 CREATE OR REPLACE PROCEDURE UpdateLayananMedis (
     p_ID             IN VARCHAR2,
@@ -382,7 +379,6 @@ BEGIN
 END;
 /
 
-
 -- Procedure to Delete a record (soft delete) in LayananMedis
 CREATE OR REPLACE PROCEDURE DeleteLayananMedis (
     p_ID IN VARCHAR2
@@ -394,7 +390,7 @@ BEGIN
 END;
 /
 
-Table Penjualan
+--Table Penjualan
 -- Procedure to Create a new record in Transaksi
 CREATE OR REPLACE PROCEDURE CreateTransaksi (
   p_TanggalTransaksi   IN TIMESTAMP,
@@ -517,56 +513,6 @@ BEGIN
     FROM Penjualan PJ
     WHERE PJ.ID = p_ID;
 END;
-/ 
-
-
-
-CREATE OR REPLACE PROCEDURE UpdatePenjualan(
-    p_id IN NUMBER,
-    p_customer_id IN NUMBER,
-    p_product_list IN VARCHAR2,
-    p_total_cost IN NUMBER
-)
-IS
-    v_product_array ARRAYPRODUK := ARRAYPRODUK();
-    v_product_id NUMBER;
-    v_pos NUMBER;
-    v_string VARCHAR2(4000);
-BEGIN
-    -- Convert comma-separated string to VARRAY
-    v_string := p_product_list;
-    LOOP
-        v_pos := INSTR(v_string, ',');
-        IF v_pos = 0 THEN
-            -- Last or only item
-            v_product_id := TO_NUMBER(v_string);
-            v_product_array.EXTEND;
-            v_product_array(v_product_array.COUNT) := v_product_id;
-            EXIT;
-        END IF;
-        
-        -- Get next item
-        v_product_id := TO_NUMBER(SUBSTR(v_string, 1, v_pos-1));
-        v_product_array.EXTEND;
-        v_product_array(v_product_array.COUNT) := v_product_id;
-        
-        -- Remove processed item and comma
-        v_string := SUBSTR(v_string, v_pos+1);
-    END LOOP;
-
-    -- Update transaction
-    UPDATE PENJUALAN 
-    SET PEMILIKHEWAN_ID = p_customer_id,
-        PRODUK = v_product_array,
-        TOTALBIAYA = p_total_cost
-    WHERE ID = p_id;
-    
-    COMMIT;
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        RAISE;
-END UpdatePenjualan;
 / 
 
 -- Procedure to Create a new record in Transaksi

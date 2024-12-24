@@ -38,13 +38,13 @@ try {
 
     foreach ($products as $prodId) {
         $quantity = $quantities[$prodId];
-        
+
         // Find product price and check stock
         $table = ($categoryType === 'produk') ? 'Produk' : 'Obat';
         $db->query("SELECT HARGA, JUMLAH FROM $table WHERE ID = :id AND onDelete = 0 FOR UPDATE");
         $db->bind(':id', $prodId);
         $product = $db->single();
-        
+
         if (!$product) {
             throw new Exception("Produk tidak ditemukan atau sudah dihapus.");
         }
@@ -74,7 +74,7 @@ try {
         $perubahan = -$quantity;
         $logTable = ($categoryType === 'produk') ? 'LOGPRODUK' : 'LOGOBAT';
         $idColumn = ($categoryType === 'produk') ? 'PRODUK_ID' : 'OBAT_ID';
-        
+
         $db->query("INSERT INTO $logTable (STOKAWAL, STOKAKHIR, PERUBAHAN, KETERANGAN, TANGGALPERUBAHAN, $idColumn, PEGAWAI_ID) 
                    VALUES (:stok_awal, :stok_akhir, :perubahan, 'Transaksi Penjualan', SYSTIMESTAMP, :produk_id, :pegawai_id)");
         $db->bind(':stok_awal', $stokAwal);
@@ -87,11 +87,13 @@ try {
 
     // Create VARRAY of products
     $arrayType = ($categoryType === 'produk') ? 'ARRAYPRODUK' : 'ARRAYOBAT';
-    $productArray = "$arrayType(" . implode(",", array_map(function($id) { return "'$id'"; }, $productArrayValues)) . ")";
-    
+    $productArray = "$arrayType(" . implode(",", array_map(function ($id) {
+        return "'$id'";
+    }, $productArrayValues)) . ")";
+
     // Insert into Penjualan table using SYSTIMESTAMP for current date and time
     $produkColumn = ($categoryType === 'produk') ? 'PRODUK' : 'OBAT';
-    
+
     // Prepare base query
     if ($customerId !== null) {
         $query = "INSERT INTO Penjualan (TANGGALTRANSAKSI, $produkColumn, TOTALBIAYA, PEGAWAI_ID, PEMILIKHEWAN_ID) 
@@ -109,10 +111,10 @@ try {
             ':employee_id' => $_SESSION['employee_id']
         ];
     }
-    
+
     error_log("Query: " . $query);
     error_log("Params: " . print_r($params, true));
-    
+
     $db->query($query);
     foreach ($params as $key => $value) {
         $db->bind($key, $value);

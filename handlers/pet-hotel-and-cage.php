@@ -6,7 +6,7 @@ function createDataReservation($db)
     $db->beginTransaction();
 
     $hewanID = $_POST['reservatorID'];
-    $kandangID = $_POST['kandang'];
+    $kandangID = $_POST['kandangID'];
     $checkIn = $_POST['checkIn'];
     $checkOut = $_POST['checkOut'];
     $totalBiaya = $_POST['price'];
@@ -74,10 +74,10 @@ function updateDataReservation($db, $reservationID)
   $checkIn = $_POST['updateCheckIn'];
   $checkOut = $_POST['updateCheckOut'];
   $totalBiaya = $_POST['updatePrice'];
-  $status = $_POST['status'];
-  $hewanID = $_POST['hewanID'];
-  $pegawaiID = $_POST['pegawaiID'];
-  $kandangID = $_POST['kandangID'];
+  $status = $_POST['updateStatus'];
+  $hewanID = $_POST['updateHewanID'];
+  $pegawaiID = $_POST['updatePegawaiID'];
+  $kandangID = $_POST['updateKandangID'];
 
   // Prepare the SQL for calling the procedure
   $sql = "
@@ -144,7 +144,24 @@ function deleteDataReservation($db)
 }
 
 // Handle Request for CRUD Cage
-function createDataCage($db) {}
+function createDataCage($db)
+{
+  $db->beginTransaction();
+
+  $ukuran = trim($_POST['ukuran']);
+
+  $sqlAddCage = "INSERT INTO Kandang (Ukuran, Status) VALUES (:ukuran, :status)";
+  $db->query($sqlAddCage);
+  $db->bind(':ukuran', $ukuran);
+  $db->bind(':status', 'Empty');
+
+  if ($db->execute()) {
+    $db->commit();
+    $_SESSION['success_message'] = "Cage created succesfully!";
+  } else {
+    $_SESSION['error_message'] = "Failed to create cage!";
+  }
+}
 
 function getAllDataCages($db)
 {
@@ -159,11 +176,11 @@ function updateDataCage($db) {}
 
 function deleteDataCage($db)
 {
-  $cageID = $_POST['delete_id'];
+  $db->beginTransaction();
+
+  $cageID = $_POST['deleteCageID'];
 
   $sql = "UPDATE Kandang SET onDelete = 1 WHERE ID = :cageID";
-
-  $db->beginTransaction();
 
   // Bind the parameters
   $db->query($sql);
@@ -172,8 +189,6 @@ function deleteDataCage($db)
   if ($db->execute()) {
     $db->commit();
     $_SESSION['success_message'] = "Data cage removed successfully!";
-    header("Location: dashboard.php");
-    exit();
   } else {
     $_SESSION['error_message'] = "Failed to removed data cage!";
   }

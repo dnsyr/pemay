@@ -97,7 +97,7 @@ $baseQueryMedical = "WITH ServiceInfo AS (
     LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
     CROSS JOIN TABLE(PM.JENISLAYANAN) TL
     LEFT JOIN JENISLAYANANMEDIS L ON TL.COLUMN_VALUE = L.ID
-    WHERE PM.STATUS IN ('Complete', 'Finished') AND PM.onDelete = 0
+    WHERE PM.STATUS IN ('Completed', 'Finished') AND PM.onDelete = 0
     " . ($startDate ? " AND TRUNC(PM.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
     " . ($endDate ? " AND TRUNC(PM.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
     GROUP BY PM.ID, PM.TANGGAL, PM.TOTALBIAYA, PH.NAMA, H.NAMA
@@ -126,7 +126,7 @@ $baseQuerySalon = "WITH ServiceInfo AS (
     LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
     CROSS JOIN TABLE(LS.JENISLAYANAN) TL  -- Changed from LEFT JOIN to CROSS JOIN
     LEFT JOIN JENISLAYANANSALON L ON TL.COLUMN_VALUE = L.ID
-    WHERE LS.STATUS = 'Complete' AND LS.onDelete = 0
+    WHERE LS.STATUS IN ('Completed', 'Finished') AND LS.onDelete = 0
     " . ($startDate ? " AND TRUNC(LS.TANGGAL) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
     " . ($endDate ? " AND TRUNC(LS.TANGGAL) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
     GROUP BY LS.ID, LS.TANGGAL, LS.TOTALBIAYA, PH.NAMA, H.NAMA
@@ -155,7 +155,7 @@ $baseQueryHotel = "WITH HotelInfo AS (
     LEFT JOIN HEWAN H ON LH.HEWAN_ID = H.ID
     LEFT JOIN PEMILIKHEWAN PH ON H.PEMILIKHEWAN_ID = PH.ID
     LEFT JOIN KANDANG K ON LH.KANDANG_ID = K.ID
-    WHERE LH.STATUS = 'Complete' AND LH.onDelete = 0
+    WHERE LH.STATUS IN ('Completed', 'Finished') AND LH.onDelete = 0
     " . ($startDate ? " AND TRUNC(LH.CHECKIN) >= TO_DATE(:start_date, 'YYYY-MM-DD')" : "") . "
     " . ($endDate ? " AND TRUNC(LH.CHECKIN) <= TO_DATE(:end_date, 'YYYY-MM-DD')" : "") . "
 )
@@ -288,7 +288,7 @@ if (!empty($baseQuery)) {
     ) WHERE rnum > :min_row";
 
     $db->query($query);
-    
+
     // Bind parameters
     if ($startDate) {
         $db->bind(':start_date', $startDate);
@@ -334,7 +334,7 @@ $categoriesObat = $db->resultSet();
         <div class="flex justify-between items-center mb-4">
             <p class="text-lg text-[#363636] font-semibold">
                 <?php
-                switch($activeTab) {
+                switch ($activeTab) {
                     case 'product':
                         echo 'Product Sales Transactions';
                         break;
@@ -350,11 +350,11 @@ $categoriesObat = $db->resultSet();
                 }
                 ?>
             </p>
-            
+
             <!-- Filter Form -->
             <form class="flex gap-4 items-end" id="filterForm">
                 <input type="hidden" name="tab" value="<?= $activeTab ?>">
-                
+
                 <!-- Quick Filter -->
                 <div class="form-control">
                     <select name="quick_filter" id="quick_filter" class="select select-bordered" onchange="applyQuickFilter(this.value)">
@@ -364,7 +364,7 @@ $categoriesObat = $db->resultSet();
                         <option value="year">Last 365 Days</option>
                     </select>
                 </div>
-                
+
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Start Date</span>
@@ -395,7 +395,7 @@ $categoriesObat = $db->resultSet();
                 <h1 class="text-2xl font-bold">Laporan Transaksi <?= ucfirst($activeTab) ?></h1>
                 <p>Periode: <?= $startDate ? date('d/m/Y', strtotime($startDate)) : 'Awal' ?> - <?= $endDate ? date('d/m/Y', strtotime($endDate)) : 'Akhir' ?></p>
             </div>
-            
+
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
@@ -420,27 +420,28 @@ $categoriesObat = $db->resultSet();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php $no = 1; foreach ($transactions as $transaction): ?>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $no++ ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['PEMILIK_NAMA'] ?></td>
-                        <?php if ($activeTab === 'product'): ?>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['PRODUK_INFO'] ?></td>
-                            <td class="px-6 py-4 text-center text-sm text-gray-900"><?= $transaction['TOTAL_QUANTITY'] ?></td>
-                        <?php elseif ($activeTab === 'medical'): ?>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
-                        <?php elseif ($activeTab === 'hotel'): ?>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
-                            <td class="px-6 py-4 text-sm text-gray-900">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['CHECKOUT'] ?></td>
-                        <?php elseif ($activeTab === 'salon'): ?>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
-                            <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
-                        <?php endif; ?>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
-                    </tr>
+                    <?php $no = 1;
+                    foreach ($transactions as $transaction): ?>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $no++ ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['TANGGALTRANSAKSI'] ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $transaction['PEMILIK_NAMA'] ?></td>
+                            <?php if ($activeTab === 'product'): ?>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['PRODUK_INFO'] ?></td>
+                                <td class="px-6 py-4 text-center text-sm text-gray-900"><?= $transaction['TOTAL_QUANTITY'] ?></td>
+                            <?php elseif ($activeTab === 'medical'): ?>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
+                            <?php elseif ($activeTab === 'hotel'): ?>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                                <td class="px-6 py-4 text-sm text-gray-900">Cage <?= $transaction['KANDANG_NOMOR'] ?> (<?= $transaction['KANDANG_UKURAN'] ?>)</td>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['CHECKOUT'] ?></td>
+                            <?php elseif ($activeTab === 'salon'): ?>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['HEWAN_NAMA'] ?></td>
+                                <td class="px-6 py-4 text-sm text-gray-900"><?= $transaction['LAYANAN_INFO'] ?></td>
+                            <?php endif; ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">Rp <?= number_format($transaction['TOTALHARGA'], 0, ',', '.') ?></td>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
                 <tfoot>
@@ -486,9 +487,9 @@ $categoriesObat = $db->resultSet();
                             <td colspan="<?= $activeTab === 'medical' ? '6' : ($activeTab === 'hotel' ? '7' : '7') ?>" class="text-center py-4">No transactions found.</td>
                         </tr>
                     <?php else: ?>
-                        <?php 
+                        <?php
                         $nomor = ($page - 1) * $itemsPerPage + 1;
-                        foreach ($transactions as $transaction): 
+                        foreach ($transactions as $transaction):
                         ?>
                             <tr class="text-[#363636] hover:bg-gray-50 border-b border-[#363636] last:border-b-0">
                                 <td class="py-4 px-6 text-center"><?= $nomor++ ?></td>
@@ -540,36 +541,36 @@ $categoriesObat = $db->resultSet();
         <div class="flex justify-center">
             <div class="btn-group">
                 <?php if ($page > 1): ?>
-                    <a href="?tab=<?= $activeTab ?>&page=1<?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
-                       class="btn btn-sm">«</a>
-                    
-                    <a href="?tab=<?= $activeTab ?>&page=<?= $page - 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
-                       class="btn btn-sm">Previous</a>
+                    <a href="?tab=<?= $activeTab ?>&page=1<?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>"
+                        class="btn btn-sm">«</a>
+
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $page - 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>"
+                        class="btn btn-sm">Previous</a>
                 <?php endif; ?>
-                
+
                 <?php
                 // Calculate range of pages to show
                 $startPage = max(1, min($page - 2, $totalPages - 4));
                 $endPage = min($totalPages, max(5, $page + 2));
-                
+
                 for ($i = $startPage; $i <= $endPage; $i++):
                 ?>
-                    <a href="?tab=<?= $activeTab ?>&page=<?= $i ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
-                       class="btn btn-sm <?= ($page === $i) ? 'btn-active bg-[#D4F0EA] text-[#363636]' : '' ?>">
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $i ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>"
+                        class="btn btn-sm <?= ($page === $i) ? 'btn-active bg-[#D4F0EA] text-[#363636]' : '' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
-                
+
                 <?php if ($page < $totalPages): ?>
-                    <a href="?tab=<?= $activeTab ?>&page=<?= $page + 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
-                       class="btn btn-sm">Next</a>
-                    
-                    <a href="?tab=<?= $activeTab ?>&page=<?= $totalPages ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>" 
-                       class="btn btn-sm">»</a>
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $page + 1 ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>"
+                        class="btn btn-sm">Next</a>
+
+                    <a href="?tab=<?= $activeTab ?>&page=<?= $totalPages ?><?= $startDate ? '&start_date=' . urlencode($startDate) : '' ?><?= $endDate ? '&end_date=' . urlencode($endDate) : '' ?>"
+                        class="btn btn-sm">»</a>
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <div class="text-center mt-2 text-sm text-gray-600">
             Showing page <?= $page ?> of <?= $totalPages ?> (<?= $totalItems ?> total items)
         </div>
@@ -625,164 +626,164 @@ $categoriesObat = $db->resultSet();
 </div>
 
 <script>
-let transactionToDelete = null;
+    let transactionToDelete = null;
 
-function deleteRecord(id) {
-    transactionToDelete = id;
-    document.getElementById('delete_modal').showModal();
-}
+    function deleteRecord(id) {
+        transactionToDelete = id;
+        document.getElementById('delete_modal').showModal();
+    }
 
-function confirmDelete() {
-    if (!transactionToDelete) return;
+    function confirmDelete() {
+        if (!transactionToDelete) return;
 
-    fetch('delete-transaction.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'id=' + encodeURIComponent(transactionToDelete)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'Terjadi kesalahan saat menghapus transaksi');
+        fetch('delete-transaction.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + encodeURIComponent(transactionToDelete)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Terjadi kesalahan saat menghapus transaksi');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menghapus transaksi');
+            })
+            .finally(() => {
+                document.getElementById('delete_modal').close();
+                transactionToDelete = null;
+            });
+    }
+
+    // Validasi tanggal
+    document.getElementById('start_date').addEventListener('change', function() {
+        const startDate = this.value;
+        const endDateInput = document.getElementById('end_date');
+
+        // Set minimum end date sama dengan start date
+        endDateInput.min = startDate;
+
+        // Jika end date sudah dipilih dan lebih kecil dari start date, reset end date
+        if (endDateInput.value && endDateInput.value < startDate) {
+            endDateInput.value = startDate;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menghapus transaksi');
-    })
-    .finally(() => {
-        document.getElementById('delete_modal').close();
-        transactionToDelete = null;
     });
-}
 
-// Validasi tanggal
-document.getElementById('start_date').addEventListener('change', function() {
-    const startDate = this.value;
-    const endDateInput = document.getElementById('end_date');
-    
-    // Set minimum end date sama dengan start date
-    endDateInput.min = startDate;
-    
-    // Jika end date sudah dipilih dan lebih kecil dari start date, reset end date
-    if (endDateInput.value && endDateInput.value < startDate) {
-        endDateInput.value = startDate;
-    }
-});
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
 
-document.getElementById('filterForm').addEventListener('submit', function(e) {
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    
-    if (startDate && endDate && endDate < startDate) {
-        e.preventDefault();
-        alert('End date tidak boleh lebih kecil dari start date');
-        return false;
-    }
-});
-
-// Global helper functions for transaction management
-function formatNumber(number) {
-    return new Intl.NumberFormat('id-ID').format(number);
-}
-
-function updateSubtotal($input) {
-    const $row = $input.closest('tr');
-    const price = parseFloat($row.find('td:eq(2)').text().replace(/[^\d]/g, ''));
-    const quantity = parseInt($input.val());
-    const subtotal = price * quantity;
-    $row.find('td:eq(4)').text(`Rp ${formatNumber(subtotal)}`);
-    updateTotal();
-}
-
-function updateTotal() {
-    const subtotals = $('#selected_products tr').map(function() {
-        return parseFloat($(this).find('td:eq(4)').text().replace(/[^\d]/g, '')) || 0;
-    }).get();
-    const total = subtotals.reduce((sum, subtotal) => sum + subtotal, 0);
-    $('#total_amount').text(formatNumber(total));
-}
-
-function renumberRows() {
-    $('#selected_products tr').each(function(index) {
-        $(this).find('td:first').text(index + 1);
+        if (startDate && endDate && endDate < startDate) {
+            e.preventDefault();
+            alert('End date tidak boleh lebih kecil dari start date');
+            return false;
+        }
     });
-}
 
-function removeProduct($button) {
-    $button.closest('tr').remove();
-    updateTotal();
-    renumberRows();
-}
+    // Global helper functions for transaction management
+    function formatNumber(number) {
+        return new Intl.NumberFormat('id-ID').format(number);
+    }
 
-function toggleProductDetail(element) {
-    const detailDiv = element.querySelector('.product-detail');
-    if (detailDiv) {
-        const moreText = element.querySelector('span');
-        if (detailDiv.classList.contains('hidden')) {
-            detailDiv.classList.remove('hidden');
-            const products = detailDiv.textContent.trim();
-            const visibleText = element.textContent.split('...')[0];
-            element.innerHTML = visibleText + products;
-        } else {
-            const allProducts = element.textContent.split(', ');
-            const displayProducts = allProducts.slice(0, 3);
-            const hiddenProducts = allProducts.slice(3);
-            element.innerHTML = displayProducts.join(', ') + 
-                ' <span class="text-blue-600">... ' + hiddenProducts.length + ' more</span>' +
-                '<div class="hidden product-detail">' + hiddenProducts.join(', ') + '</div>';
+    function updateSubtotal($input) {
+        const $row = $input.closest('tr');
+        const price = parseFloat($row.find('td:eq(2)').text().replace(/[^\d]/g, ''));
+        const quantity = parseInt($input.val());
+        const subtotal = price * quantity;
+        $row.find('td:eq(4)').text(`Rp ${formatNumber(subtotal)}`);
+        updateTotal();
+    }
+
+    function updateTotal() {
+        const subtotals = $('#selected_products tr').map(function() {
+            return parseFloat($(this).find('td:eq(4)').text().replace(/[^\d]/g, '')) || 0;
+        }).get();
+        const total = subtotals.reduce((sum, subtotal) => sum + subtotal, 0);
+        $('#total_amount').text(formatNumber(total));
+    }
+
+    function renumberRows() {
+        $('#selected_products tr').each(function(index) {
+            $(this).find('td:first').text(index + 1);
+        });
+    }
+
+    function removeProduct($button) {
+        $button.closest('tr').remove();
+        updateTotal();
+        renumberRows();
+    }
+
+    function toggleProductDetail(element) {
+        const detailDiv = element.querySelector('.product-detail');
+        if (detailDiv) {
+            const moreText = element.querySelector('span');
+            if (detailDiv.classList.contains('hidden')) {
+                detailDiv.classList.remove('hidden');
+                const products = detailDiv.textContent.trim();
+                const visibleText = element.textContent.split('...')[0];
+                element.innerHTML = visibleText + products;
+            } else {
+                const allProducts = element.textContent.split(', ');
+                const displayProducts = allProducts.slice(0, 3);
+                const hiddenProducts = allProducts.slice(3);
+                element.innerHTML = displayProducts.join(', ') +
+                    ' <span class="text-blue-600">... ' + hiddenProducts.length + ' more</span>' +
+                    '<div class="hidden product-detail">' + hiddenProducts.join(', ') + '</div>';
+            }
         }
     }
-}
 
-$(document).ready(function() {
-    // Inisialisasi Select2 dengan konfigurasi khusus untuk drawer
-    $('.select2-in-drawer').select2({
-        dropdownParent: $('#drawerAddProduct'),
-        width: '100%',
-        placeholder: 'Select an option',
-        closeOnSelect: true,
-        selectionCssClass: 'select2--small',
-        dropdownCssClass: 'select2--small',
-    });
+    $(document).ready(function() {
+        // Inisialisasi Select2 dengan konfigurasi khusus untuk drawer
+        $('.select2-in-drawer').select2({
+            dropdownParent: $('#drawerAddProduct'),
+            width: '100%',
+            placeholder: 'Select an option',
+            closeOnSelect: true,
+            selectionCssClass: 'select2--small',
+            dropdownCssClass: 'select2--small',
+        });
 
-    // Tambahkan event handler untuk menutup dropdown saat drawer ditutup
-    $('#drawerAddProduct').on('hidden.bs.modal', function () {
-        $('.select2-in-drawer').select2('close');
-    });
-
-    // Reset select2 saat drawer ditutup
-    $('label[for="drawerAddProduct"]').on('click', function() {
-        setTimeout(function() {
+        // Tambahkan event handler untuk menutup dropdown saat drawer ditutup
+        $('#drawerAddProduct').on('hidden.bs.modal', function() {
             $('.select2-in-drawer').select2('close');
-        }, 100);
+        });
+
+        // Reset select2 saat drawer ditutup
+        $('label[for="drawerAddProduct"]').on('click', function() {
+            setTimeout(function() {
+                $('.select2-in-drawer').select2('close');
+            }, 100);
+        });
     });
-});
 
-function showPreview() {
-    // Clone print content
-    const printContent = document.getElementById('print-content').cloneNode(true);
-    printContent.classList.remove('hidden');
-    
-    // Show in modal
-    document.getElementById('preview-content').innerHTML = printContent.outerHTML;
-    document.getElementById('previewModal').classList.add('modal-open');
-}
+    function showPreview() {
+        // Clone print content
+        const printContent = document.getElementById('print-content').cloneNode(true);
+        printContent.classList.remove('hidden');
 
-function closePreviewModal() {
-    document.getElementById('previewModal').classList.remove('modal-open');
-}
+        // Show in modal
+        document.getElementById('preview-content').innerHTML = printContent.outerHTML;
+        document.getElementById('previewModal').classList.add('modal-open');
+    }
 
-function printFromPreview() {
-    const printContent = document.getElementById('preview-content').firstChild;
-    
-    // Create new window
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
+    function closePreviewModal() {
+        document.getElementById('previewModal').classList.remove('modal-open');
+    }
+
+    function printFromPreview() {
+        const printContent = document.getElementById('preview-content').firstChild;
+
+        // Create new window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
         <html>
         <head>
             <title>Laporan Transaksi</title>
@@ -827,45 +828,45 @@ function printFromPreview() {
         </body>
         </html>
     `);
-    
-    // Print and close
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
-}
 
-function applyQuickFilter(value) {
-    const today = new Date();
-    let startDate = '';
-    
-    switch(value) {
-        case 'week':
-            startDate = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
-            break;
-        case 'month':
-            startDate = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-            break;
-        case 'year':
-            startDate = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
-            break;
-        default:
-            // Reset dates if "Custom Range" is selected
-            document.getElementById('start_date').value = '';
-            document.getElementById('end_date').value = '';
-            document.getElementById('filterForm').submit();
-            return;
+        // Print and close
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     }
-    
-    // Format dates
-    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
-    document.getElementById('end_date').value = today.toISOString().split('T')[0];
-    
-    // Submit form
-    document.getElementById('filterForm').submit();
-}
+
+    function applyQuickFilter(value) {
+        const today = new Date();
+        let startDate = '';
+
+        switch (value) {
+            case 'week':
+                startDate = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+                break;
+            case 'month':
+                startDate = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                break;
+            case 'year':
+                startDate = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
+                break;
+            default:
+                // Reset dates if "Custom Range" is selected
+                document.getElementById('start_date').value = '';
+                document.getElementById('end_date').value = '';
+                document.getElementById('filterForm').submit();
+                return;
+        }
+
+        // Format dates
+        document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
+        document.getElementById('end_date').value = today.toISOString().split('T')[0];
+
+        // Submit form
+        document.getElementById('filterForm').submit();
+    }
 </script>
 
 <style>
@@ -874,6 +875,7 @@ function applyQuickFilter(value) {
         border-top-right-radius: 0.5rem;
         position: relative;
     }
+
     .tab-active::after {
         content: '';
         position: absolute;
@@ -884,17 +886,20 @@ function applyQuickFilter(value) {
         background-color: #FCFCFC;
         z-index: 1;
     }
+
     .tab {
         border-top-left-radius: 0.5rem;
         border-top-right-radius: 0.5rem;
         border: 1px solid transparent;
         margin-right: 0.25rem;
     }
+
     .tab:hover:not(.tab-active) {
         border: 1px solid #363636;
         border-bottom: 0;
         background: transparent;
     }
+
     .tab:last-child {
         margin-right: 0;
     }
@@ -903,7 +908,7 @@ function applyQuickFilter(value) {
     .select2-container {
         z-index: 9999;
     }
-    
+
     .select2-dropdown {
         z-index: 9999;
     }

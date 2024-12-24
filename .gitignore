@@ -4,6 +4,3 @@
 
 # Ignore create dummy users
 /auth/generate-dummy-users.php
-
-# Ignore tables.php
-tables.php

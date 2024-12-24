@@ -1,14 +1,3 @@
-<?php
-ob_start();
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add'])) {
-  $db = new Database();
-  createDataEmployee($db);
-}
-
-ob_end_flush();
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -81,10 +70,10 @@ ob_end_flush();
               <label for="password">Password</label>
               <input type="password" class="mt-1 w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" name="password" placeholder="Leave empty to keep old password!">
             </div>
-            <a class="flex justify-end gap-5">
+            <div class="flex justify-end gap-5">
               <button type="submit" name="update" class="btn bg-[#B2B5E0] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC] flex items-center"><i class="fas fa-edit fa-md"></i> Update Employee</button>
               <label for="drawerUpdateEmployee" aria-label="close sidebar" class="btn bg-[#E0BAB2] text-[#565656] shadow-md shadow-[#565656] px-3 rounded-full hover:bg-[#565656] hover:text-[#FCFCFC]">Cancel</label>
-            </a>
+            </div>
           </div>
         </div>
       </form>

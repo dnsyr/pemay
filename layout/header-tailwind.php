@@ -52,35 +52,40 @@ $categoryUri = [
 // manage customer uri
 $customerUri = ["/pemay/pages/customer/customer.php"];
 
-// reports uri
-$reportUri = "/pemay/pages/owner/reports.php";
+// transactions uri
+$transactionUri = ["/pemay/pages/pet-transaction/pet-transaction.php"];
 
 $role = $_SESSION['posisi'];
 $linkActive = 'underline-offset-[5px] underline decoration-[#565656] decoration-2';
 
 $isManagementsActive = false;
-if (in_array($currentUri, $usersUri) ||
-    in_array($currentUri, $productUris) ||
-    in_array($currentUri, $categoryUri) ||
-    in_array($currentUri, $customerUri)) {
-    $isManagementsActive = true;
+if (
+  in_array($currentUri, $usersUri) ||
+  in_array($currentUri, $productUris) ||
+  in_array($currentUri, $categoryUri) ||
+  in_array($currentUri, $customerUri) ||
+  in_array($currentUri, $transactionUri)
+) {
+  $isManagementsActive = true;
 }
 
 // Perbaikan logika untuk active state Pet Services
 $isPetServicesActive = false;
-if (in_array($currentUri, $petHotelUri) ||
-    in_array($currentUri, $petSalonUri) ||
-    in_array($currentUri, $petMedicalUri)) {
-    $isPetServicesActive = true;
+if (
+  in_array($currentUri, $petHotelUri) ||
+  in_array($currentUri, $petSalonUri) ||
+  in_array($currentUri, $petMedicalUri)
+) {
+  $isPetServicesActive = true;
 }
 
-$managementsActive = strpos($currentUri, 'product.php') !== false || 
-                    strpos($currentUri, 'category.php') !== false ||
-                    strpos($currentUri, 'pet-transaction.php') !== false;
+$managementsActive = strpos($currentUri, 'product.php') !== false ||
+  strpos($currentUri, 'category.php') !== false ||
+  strpos($currentUri, 'pet-transaction.php') !== false;
 
-$managementsActiveClass = $managementsActive ? 
-    'bg-[#D4F0EA] text-[#363636] font-semibold px-4 py-2 rounded-lg' : 
-    'text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC] px-4 py-2 rounded-lg';
+$managementsActiveClass = $managementsActive ?
+  'bg-[#D4F0EA] text-[#363636] font-semibold px-4 py-2 rounded-lg' :
+  'text-[#363636] hover:bg-[#565656] hover:text-[#FCFCFC] px-4 py-2 rounded-lg';
 
 $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 ?>
@@ -91,7 +96,7 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 <head>
   <meta charset="UTF-8">
   <title><?php echo isset($pageTitle) ? $pageTitle : 'Owner'; ?></title>
-  <link rel="shortcut icon" href="/pemay/public/img/icon.png" type="image/x-icon">
+  <link rel="shortcut icon" href="/pemay/public/img/pemay-logo.png" type="image/x-icon">
 
   <!-- Daisy UI + Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -117,7 +122,7 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 
   <script>
     $(document).ready(function() {
-        $('.select2').select2();
+      $('.select2').select2();
     });
   </script>
 </head>
@@ -132,13 +137,10 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
 
       <div class="w-full flex justify-between border border-[#565656] rounded-full px-5">
         <div class="flex gap-5 items-center" id="navbarNav">
-          <!-- Dashboard Menu Item -->
-          <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $ownerDashboardUri) ? $linkActive : ''; ?> hover:font-semibold" href="/pemay/pages/<?php echo $role; ?>/dashboard.php">Dashboard</a>
-
           <!-- Management Dropdown -->
-          <div class="relative inline-block w-[140px]">
+          <div class="relative inline-block w-[152px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $managementsActiveClass; ?> hover:font-semibold">
+            <label tabindex="0" class="btn btnManagement min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-2 px-2 w-full justify-between bg-transparent text-[#363636] text-xs <?php echo $isManagementsActive; ?> hover:font-semibold italic">
               <span id="selectedManagement">Managements</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -151,20 +153,20 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
               class="menuManagement dropdown-content menu absolute z-10 mt-2 py-1 px-3 shadow bg-[#FCFCFC] border border-[#565656] text-[#565656] rounded-2xl w-full hidden">
               <?php if ($role === 'owner'): ?>
                 <li>
-                  <a href="/pemay/pages/owner/users.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $usersUri)) ? $linkActive : ''; ?>">Employees</a>
+                  <a href="/pemay/pages/owner/users.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $usersUri)) ? $linkActive : ''; ?> italic text-xs">Employees</a>
                 </li>
               <?php endif; ?>
               <li>
-                <a href="/pemay/pages/product/product.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $productUris)) ? $linkActive : ''; ?>">Products</a>
+                <a href="/pemay/pages/product/product.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $productUris)) ? $linkActive : ''; ?> italic text-xs">Products</a>
               </li>
               <li>
-                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $categoryUri)) ? $linkActive : ''; ?>">Categories</a>
+                <a href="/pemay/pages/category/category.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $categoryUri)) ? $linkActive : ''; ?> italic text-xs">Categories</a>
               </li>
               <li>
-                <a href="/pemay/pages/customer/customer.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === $categoryUri) ? $linkActive : ''; ?>">Customers</a>
+                <a href="/pemay/pages/customer/customer.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $customerUri)) ? $linkActive : ''; ?> italic text-xs">Customers</a>
               </li>
               <li>
-                <a href="/pemay/pages/pet-transaction/pet-transaction.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo ($currentUri === 'pet-transaction.php') ? $linkActive : ''; ?>">Transaction</a>
+                <a href="/pemay/pages/pet-transaction/pet-transaction.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $transactionUri)) ? $linkActive : ''; ?> italic text-xs">Transactions</a>
               </li>
             </ul>
           </div>
@@ -172,7 +174,7 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
           <!-- Pet Services Dropdown -->
           <div class="relative inline-block w-[140px]">
             <!-- Dropdown Toggle -->
-            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#363636] text-sm <?php echo $petServicesActiveClass; ?> hover:font-semibold">
+            <label tabindex="0" class="btn btnPetService min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] border-none font-normal hover:bg-[#FCFCFC] py-1 px-1 w-full justify-between bg-transparent text-[#363636] text-xs <?php echo $isPetServicesActive; ?> hover:font-semibold italic">
               <span id="selectedPetService">Pet Services</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -184,26 +186,21 @@ $petServicesActiveClass = $isPetServicesActive ? $linkActive : '';
               tabindex="0"
               class="menuPetService dropdown-content menu absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] border border-[#565656] text-[#565656] rounded-2xl w-full hidden">
               <li>
-                <a href="/pemay/pages/pet-hotel/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petHotelUri)) ? $linkActive : ''; ?>">Pet Hotel</a>
+                <a href="/pemay/pages/pet-hotel/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petHotelUri)) ? $linkActive : ''; ?> italic text-xs">Pet Hotel</a>
               </li>
               <li>
-                <a href="/pemay/pages/pet-medical/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?>">Pet Medical</a>
+                <a href="/pemay/pages/pet-medical/dashboard.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petMedicalUri)) ? $linkActive : ''; ?> italic text-xs">Pet Medical</a>
               </li>
               <li>
-                <a href="/pemay/pages/salon/salon-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petSalonUri)) ? $linkActive : ''; ?>">Pet Salon</a>
+                <a href="/pemay/pages/salon/salon-services.php" class="hover:bg-[#565656] hover:font-semibold hover:text-[#FCFCFC] text-[#363636] <?php echo (in_array($currentUri, $petSalonUri)) ? $linkActive : ''; ?> italic text-xs">Pet Salon</a>
               </li>
             </ul>
           </div>
-
-          <!-- Report Menu Item -->
-          <?php if ($role === 'owner'): ?>
-            <a class="text-[#363636] font-normal text-sm py-1 px-3 <?php echo ($currentUri === $reportUri) ? $linkActive : ''; ?> hover:font-semibold" href="/pemay/pages/owner/reports.php">Reports</a>
-          <?php endif; ?>
         </div>
 
         <!-- Logout Button -->
         <form action="/pemay/auth/logout.php" method="post" class="flex items-center">
-          <button class="text-[#363636] font-normal text-sm py-1 px-3 decoration-none hover:font-semibold" type="submit">Logout</button>
+          <button class="text-[#363636] font-normal text-xs py-1 px-3 decoration-none hover:font-semibold italic" type="submit">Logout</button>
         </form>
       </div>
     </div>

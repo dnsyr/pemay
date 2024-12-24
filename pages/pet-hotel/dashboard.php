@@ -5,7 +5,11 @@ require_once '../../config/database.php';
 include '../../handlers/pet-hotel-and-cage.php';
 
 $pageTitle = 'Pet Hotel';
-include '../../layout/header.php';
+
+include '../../layout/header-tailwind.php';
+include '../../components/drawer/update-pet-hotel-reservation.php';
+include '../../components/modal/delete-pet-hotel-reservation.php';
+include '../../components/modal/delete-cage.php';
 
 $pegawaiID = $_SESSION['employee_id'];
 
@@ -13,23 +17,6 @@ if (!isset($_SESSION['username'])) {
   header("Location: ../../auth/restricted.php");
   exit();
 }
-
-// Default tab
-$tab = isset($_GET['tab']) ? $_GET['tab'] : 'reservation';
-
-// Define table mapping for tabs
-$tables = [
-  'reservation' => ['table' => 'LayananHotel', 'label' => 'Reservation'],
-  'cage' => ['table' => 'Kandang', 'label' => 'Cage']
-];
-
-// Validate tab and set defaults if invalid
-if (!array_key_exists($tab, $tables)) {
-  $tab = 'reservation';
-}
-
-$currentTable = $tables[$tab]['table'];
-$currentLabel = $tables[$tab]['label'];
 
 function formatTimestamp($timestamp)
 {
@@ -58,19 +45,17 @@ $db = new Database();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   if ($_POST['action'] === 'addReservation') {
     createDataReservation($db);
+  } elseif ($_POST['action'] === 'updateReservation') {
+    $reservationID = $_POST['updateReservationID'];
+    updateDataReservation($db, $reservationID);
   } elseif ($_POST['action'] === 'addCage') {
-    include '../../handlers/add-cage.php';
+    createDataCage($db);
   } elseif ($_POST['action'] === 'deleteReservation') {
     deleteDataReservation($db);
   } elseif ($_POST['action'] === 'deleteCage') {
     deleteDataCage($db);
   }
 }
-
-// Fetch Data
-$results = $tab === 'reservation'
-  ? getAllDataReservations($db)
-  : getAllDataCages($db);
 
 $petAndOwnerNameQuery = "SELECT h.ID AS ID, h.NAMA AS NAMA, ph.NAMA AS PEMILIK 
                          FROM HEWAN h
@@ -80,6 +65,7 @@ $petAndOwnerNameQuery = "SELECT h.ID AS ID, h.NAMA AS NAMA, ph.NAMA AS PEMILIK
 $db->query($petAndOwnerNameQuery);
 $petAndOwnerNames = $db->resultSet(); // Fetch all results for pet and owner names
 
+$petHotelReservations = getAllDataReservations($db);
 $cageRooms = getAllDataCages($db);
 
 ob_end_flush();
@@ -108,122 +94,195 @@ ob_end_flush();
     .w-10 {
       width: 10%;
     }
+
+    .menuReservatorID a.selected,
+    .menuKandangID a.selected,
+    .menuKandangIDUpdate a.selected,
+    .menuStatusUpdate a.selected {
+      text-underline-offset: 5px;
+      text-decoration: underline;
+      text-decoration-color: #565656;
+      text-decoration-thickness: 2px;
+    }
   </style>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="/pemay/public/js/handleFormReservationHotel.js?v=<?php echo time(); ?>"></script>
+  <script src="/pemay/public/js/handleFormUpdateReservationHotel.js?v=<?php echo time(); ?>"></script>
 </head>
 
 <body>
-  <div class="page-container">
-    <h2>Pet Hotel</h2>
+  <div class="pb-6 px-12 text-[#363636]">
+    <div class="flex justify-between mb-6">
+      <h2 class="text-3xl font-bold italic">Pet Hotel</h2>
 
-    <!-- Alert -->
-    <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
-      <div class="alert alert-info">
-        <?php echo htmlentities($_SESSION['success_message']);
-        unset($_SESSION['success_message']); ?>
+      <!-- Alert -->
+      <?php if (isset($_SESSION['success_message']) && $_SESSION['success_message'] !== ""): ?>
+        <div role="alert" class="alert alert-success py-2 px-7 rounded-full w-fit">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 shrink-0 stroke-current"
+            fill="none"
+            viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>
+            <?php echo htmlentities($_SESSION['success_message']);
+            unset($_SESSION['success_message']); ?></span>
+        </div>
+      <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
+        <div role="alert" class="alert alert-error py-2 px-7 rounded-full w-fit">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 shrink-0 stroke-current"
+            fill="none"
+            viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span><?php echo htmlentities($_SESSION['error_message']);
+                unset($_SESSION['error_message']); ?></span>
+        </div>
+      <?php endif; ?>
+
+      <div role="alert" id="alertPetHotel" class="alert bg-[#D4F0EA] py-2 px-7 rounded-full w-fit hidden text-[#363636]">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          class="h-6 w-6 shrink-0 stroke-current">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span></span>
+        <div>
+          <button class="btn btn-circle btn-outline w-6 h-6 min-h-fit text-black hover:bg-black hover:text-white border border-2 hover:border-none" onclick="closeAlertPetHotel()">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
-    <?php elseif (isset($_SESSION['error_message']) && $_SESSION['error_message'] !== ""): ?>
-      <div class="alert alert-danger">
-        <?php echo htmlentities($_SESSION['error_message']);
-        unset($_SESSION['error_message']); ?>
-      </div>
-    <?php endif; ?>
+    </div>
 
-    <!-- Tabs for Category Types -->
-    <ul class="nav nav-tabs">
-      <?php foreach ($tables as $key => $table): ?>
-        <li class="nav-item">
-          <a class="nav-link <?php echo $tab === $key ? 'active' : ''; ?>" href="?tab=<?php echo $key; ?>">
-            <?php echo htmlentities($table['label']); ?>
-          </a>
-        </li>
-      <?php endforeach; ?>
-    </ul>
+    <div role="tablist" class="tabs tabs-lifted relative z-0">
+      <!-- Pet Hotel -->
+      <input type="radio" name="my_tabs_2" role="tab" checked class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636] min-w-[105px] w-[105px]" aria-label="Pet Hotel" />
+      <div role="tabpanel" class="tab-content  bg-[#FCFCFC] border-base-300 rounded-box p-6">
+        <!-- Form Add Reservation -->
+        <div class="w-[62%] h-auto border border-[#565656] rounded-xl text-[#343434] shadow-md py-5 px-7 flex flex-col justify-between gap-4">
+          <form method="POST">
+            <p class="text-lg tracking-wide font-semibold">Pet Check-In Information</p>
 
-    <div class="mt-3">
-      <!-- Add Form -->
-      <div class="d-flex flex-column gap-3">
-        <form method="POST" action="?tab=<?php echo $tab; ?>">
-          <!-- Form Reservation -->
-          <div>
-            <?php if ($tab === 'reservation'): ?>
+            <div class="flex flex-col gap-3">
               <input type="hidden" name="action" value="addReservation">
+              <input type="hidden" name="reservatorID" id="reservatorID">
 
-              <div class="d-flex gap-5">
-                <div class="mb-3 w-100">
-                  <label for="reservatorID" class="form-label">Reservator Name</label>
-                  <select name="reservatorID" id="reservatorID" class="form-select" required>
-                    <option value="" disabled selected>-- Choose Pet and Owner --</option>
-                    <?php foreach ($petAndOwnerNames as $petAndOwnerName): ?>
-                      <option value="<?php echo $petAndOwnerName['ID'];  ?>">
+              <div class="relative inline-block w-full mt-1">
+                <!-- Dropdown Toggle -->
+                <label tabindex="0" class="btn btnReservatorID min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] rounded-full font-normal hover:bg-[#FCFCFC] py-2 px-7 w-full justify-between bg-[#FCFCFC] border border-[#565656] text-[#565656] focus:outline-none focus:ring-[#565656] text-sm">
+                  <span id="selectedreservatorID">Reservator Name</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </label>
+
+                <!-- Dropdown Menu -->
+                <ul
+                  tabindex="0"
+                  class="dropdown-content menu menuReservatorID absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] text-[#565656] rounded-2xl w-full border border-[#565656] hidden">
+                  <?php foreach ($petAndOwnerNames as $petAndOwnerName): ?>
+                    <li>
+                      <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" id="<?php echo $petAndOwnerName['ID'];  ?>" onclick="handleSelectReservatorID('<?php echo $petAndOwnerName['ID'];  ?>', 'Pet: <?php echo htmlentities($petAndOwnerName['NAMA']); ?> | Owner: <?php echo htmlentities($petAndOwnerName['PEMILIK']); ?>')">
                         Pet: <?php echo htmlentities($petAndOwnerName['NAMA']); ?> | Owner: <?php echo htmlentities($petAndOwnerName['PEMILIK']); ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
+                      </a>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              </div>
+
+              <div class="flex gap-3">
+                <div class="flex text-sm flex-col text-[#565656] font-medium">
+                  <label for="checkIn">Check-In</label>
+                  <input type="text" class="mt-2 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" id="checkIn" placeholder="Check-In Date" name="checkIn" required disabled>
+                </div>
+                <div class="flex text-sm flex-col text-[#565656] font-medium">
+                  <label for="checkOut">Check-Out</label>
+                  <input type="text" class="mt-2 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" id="checkOut" placeholder="Check-Out Date" name="checkOut" required disabled>
+                </div>
+
+                <div class="divider divider-horizontal divider-neutral"></div>
+
+                <div class="flex text-sm flex-col text-[#565656] font-medium w-full">
+                  <input type="hidden" name="kandangID" id="kandangID">
+
+                  <label>Room No.</label>
+                  <div class="relative inline-block w-full mt-2">
+                    <!-- Dropdown Toggle -->
+                    <label tabindex="0" class="btn btnKandangID min-h-[2.375rem] h-[2.375rem] max-h-[2.375rem] rounded-full font-normal hover:bg-[#FCFCFC] py-2 px-7 w-full justify-between bg-[#FCFCFC] border border-[#565656] text-[#565656] focus:outline-none focus:ring-[#565656] text-sm">
+                      <span id="selectedKandangID">Room No.</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline float-right" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </label>
+
+                    <!-- Dropdown Menu -->
+                    <ul
+                      tabindex="0"
+                      class="dropdown-content menu menuKandangID absolute z-10 mt-2 py-2 px-3 shadow bg-[#FCFCFC] text-[#565656] rounded-2xl w-full border border-[#565656] hidden">
+                      <?php foreach ($cageRooms as $cageRoom): ?>
+                        <li>
+                          <a href="#" class="hover:bg-[#565656] hover:text-semibold hover:text-[#FCFCFC]" id="<?php echo $cageRoom['ID'];  ?>" data-size="<?php echo $cageRoom['UKURAN']; ?>" onclick="handleSelectKandangID('<?php echo $cageRoom['ID'];  ?>', 'No: <?php echo htmlentities($cageRoom['NOMOR']); ?> | Size: <?php echo htmlentities($cageRoom['UKURAN']); ?>')">
+                            No: <?php echo htmlentities($cageRoom['NOMOR']); ?> | Size: <?php echo htmlentities($cageRoom['UKURAN']); ?>
+                          </a>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
-              <div class="d-flex gap-4">
-                <div class="mb-3 w-25 flatpickr">
-                  <label for="checkIn" class="form-label">Check In</label>
-                  <input type="text" class="form-control" id="checkIn" placeholder="Select Date Time" name="checkIn" required disabled>
+              <div class="flex gap-3">
+                <div class="flex text-sm flex-col text-[#565656] font-medium w-[65%]">
+                  <label for="price">Room Price</label>
+                  <input type="hidden" name="price" id="price">
+                  <input type="text" class="mt-2 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" id="biaya" placeholder="Rp.---" name="biaya" disabled required>
                 </div>
-                <div class="mb-3 w-25 flatpickr">
-                  <label for="checkOut" class="form-label">Check Out</label>
-                  <input type="text" class="form-control" id="checkOut" placeholder="Select Date Time" name="checkOut" required disabled>
-                </div>
-                <div class="mb-3 w-25">
-                  <label for="kandang" class="form-label" id="cageLabel" style="display: none;">Cage Room</label>
-                  <select name="kandang" id="kandang" class="form-select" required>
-                    <option value="" disabled selected>-- Choose Cage Room --</option>
-                    <?php foreach ($cageRooms as $cageRoom): ?>
-                      <option value="<?php echo $cageRoom['ID']; ?>" data-size="<?php echo $cageRoom['UKURAN']; ?>">
-                        No: <?php echo htmlentities($cageRoom['NOMOR']); ?> | Size: <?php echo htmlentities($cageRoom['UKURAN']); ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-                <div class="mb-3 w-25">
-                  <label for="biaya" class="form-label" id="biayaLabel" style="display: none; margin-bottom: 12px;">Price</label>
-                  <input type="hidden" id="price" name="price">
-                  <input type="text" class="form-control" id="biaya" name="biaya" placeholder="Price: Rp0" disabled required style="display: none;">
+                <div class="flex text-smtext-[#565656] font-medium w-[34%] items-end">
+                  <button disabled id="btnAddReservation" class="bg-[#B2B5E0] text rounded-full border border-[#565656] text-black text-md font-semibold py-2 px-5 w-full" type="submit"><i class="fa-solid fa-plus"></i> Add Item</button>
                 </div>
               </div>
-            <?php endif; ?>
+            </div>
+          </form>
+        </div>
 
-            <!-- Form Cage -->
-            <?php if ($tab === 'cage'): ?>
-              <input type="hidden" name="action" value="addCage">
-              <div class="mb-3">
-                <label for="ukuran" class="form-label"><?php echo $currentLabel; ?> Size</label>
-                <select name="ukuran" id="ukuran" class="form-select" required>
-                  <option value="" disabled selected>-- Choose Size --</option>
-                  <option value="XS">XS</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
-                </select>
-              </div>
-            <?php endif; ?>
-          </div>
+        <div class="divider divider-neutral mt-8"></div>
 
-          <button type="submit" name="add" class="btn btn-add rounded-circle"><i class="fas fa-plus fa-xl"></i></button>
-        </form>
-      </div>
-
-      <!-- Display Reservation & Cage -->
-      <div>
-        <table class="table mt-3">
-          <thead>
-            <tr>
-              <!-- Reservation -->
-              <?php if ($tab === 'reservation'): ?>
+        <p class="text-lg text-[#363636] font-semibold italic">Listed Pet Stays</p>
+        <div class="overflow-hidden border border-[#565656] rounded-xl shadow-md shadow-[#717171] mt-3">
+          <table class="table border-collapse">
+            <thead>
+              <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
                 <th>Reservator Name</th>
                 <th>Cage Room</th>
                 <th>Check In</th>
@@ -231,21 +290,12 @@ ob_end_flush();
                 <th>Status</th>
                 <th>Price</th>
                 <th>Cashier</th>
-              <?php endif; ?>
-
-              <!-- Cage -->
-              <?php if ($tab === 'cage'): ?>
-                <th>Nomor</th>
-                <th>Ukuran</th>
-                <th>Status</th>
-              <?php endif; ?>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($results as $result): ?>
-              <!-- Reservation Data -->
-              <?php if ($tab === 'reservation'): ?>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($petHotelReservations as $result): ?>
+                <!-- Reservation Data -->
                 <tr class="<?php if ($result['STATUS'] == 'Completed') {
                               echo 'table-success';
                             } elseif ($result['STATUS'] == 'Scheduled') {
@@ -265,86 +315,338 @@ ob_end_flush();
                   <td><?php echo htmlentities($result['PEGAWAI_NAMA']); ?></td>
                   <!-- Action Button -->
                   <td>
-                    <div class="d-flex gap-3">
-                      <?php if ($result['STATUS'] === 'Completed' || $result['STATUS'] === 'Canceled'): ?>
-                        <button
-                          class="btn btn-warning btn-sm"
-                          onclick="alert('Cannot update this reservation!');">
-                          Update
-                        </button>
-                      <?php else: ?>
-                        <a href="update-reservation.php?id=<?php echo $result['ID']; ?>"
-                          class="btn btn-warning btn-sm">
-                          Update
-                        </a>
-                      <?php endif; ?>
+                    <div class="flex gap-3 justify-center items-center">
+                      <button
+                        type="button"
+                        class="btn btn-warning btn-sm"
+                        onclick="handleUpdateReservationBtn('<?php echo $result['ID']; ?>', '<?php echo $result['STATUS']; ?>')">
+                        <i class="fas fa-edit"></i>
+                      </button>
 
-                      <?php if ($result['STATUS'] === 'In Progress' || $result['STATUS'] === 'Scheduled'): ?>
-                        <button
-                          class="btn btn-danger btn-sm"
-                          onclick="alert('Cannot remove this reservation!');">
-                          Delete
-                        </button>
-                      <?php else: ?>
-                        <form method="POST" action="?tab=<?php echo $tab; ?>">
-                          <input type="hidden" name="action" value="deleteReservation">
-                          <input type="hidden" name="delete_id" value="<?php echo $result['ID']; ?>">
-                          <button
-                            type="submit"
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('Are you sure you want to delete this item?');">
-                            Delete
-                          </button>
-                        </form>
-                      <?php endif; ?>
+                      <button
+                        type="button"
+                        class="btn btn-error btn-sm"
+                        onclick="handleDeleteReservationBtn('<?php echo $result['ID']; ?>', '<?php echo $result['STATUS']; ?>')">
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
-              <?php elseif ($tab === 'cage'): ?>
-                <tr class="<?php if ($result['STATUS'] == 'Empty') {
+
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cage -->
+      <input
+        type="radio"
+        name="my_tabs_2"
+        role="tab"
+        class="tab text-[#363636] text-base font-semibold [--tab-bg:#D4F0EA] [--tab-border-color:#363636]"
+
+        aria-label="Cage" />
+      <div role="tabpanel" class="tab-content  bg-[#FCFCFC] border-base-300 rounded-box p-6">
+        <!-- Form Add Cage -->
+        <div class="w-[40%] h-auto border border-[#565656] rounded-xl text-[#343434] shadow-md py-5 px-7 flex flex-col justify-between gap-4">
+          <form method="POST">
+            <p class="text-lg tracking-wide font-semibold">Pet Cage Information</p>
+
+            <div class="flex flex-col gap-3 mt-4">
+              <input type="hidden" name="action" value="addCage">
+              <div class="flex gap-3">
+                <div class="flex text-sm flex-col text-[#565656] font-medium w-[65%]">
+                  <label for="ukuran">Ukuran</label>
+                  <input type="text" class="mt-2 rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm placeholder:text-[#565656] placeholder:text-sm px-7 py-2" id="ukuran" placeholder="Size of Cage" name="ukuran" required>
+                </div>
+                <div class="flex text-sm text-[#565656] font-medium w-[34%] items-end">
+                  <button id="btnAddCage" class="bg-[#B2B5E0] text rounded-full border border-[#565656] text-black text-md font-semibold py-2 px-5 w-full" type="submit"><i class="fa-solid fa-plus"></i> Add Item</button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="divider divider-neutral mt-8"></div>
+
+        <p class="text-lg text-[#363636] font-semibold italic">Listed Cages</p>
+        <div class="overflow-hidden border border-[#565656] rounded-xl shadow-md shadow-[#717171] mt-3">
+          <table class="table border-collapse">
+            <thead>
+              <tr class="bg-[#D4F0EA] text-[#363636] font-semibold">
+                <th>Nomor</th>
+                <th>Ukuran</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($cageRooms as $result): ?>
+                <!-- Reservation Data -->
+                <tr class="<?php if ($result['STATUS'] == 'Completed') {
                               echo 'table-success';
                             } elseif ($result['STATUS'] == 'Scheduled') {
                               echo 'table-secondary';
-                            } elseif ($result['STATUS'] == 'Filled') {
+                            } elseif ($result['STATUS'] == 'In Progress') {
                               echo 'table-info';
-                            } elseif ($result['STATUS'] == 'Emergency') {
+                            } elseif ($result['STATUS'] == 'Canceled') {
                               echo 'table-danger';
                             }
                             ?>">
                   <td><?php echo htmlentities($result['NOMOR']); ?></td>
                   <td><?php echo htmlentities($result['UKURAN']); ?></td>
                   <td><?php echo htmlentities($result['STATUS']); ?></td>
-
-                  <!-- Delete Button -->
+                  <!-- Action Button -->
                   <td>
-                    <div class="d-flex gap-3">
-                      <?php if ($result['STATUS'] !== 'Empty'): ?>
-                        <button
-                          class="btn btn-danger btn-sm"
-                          onclick="alert('Cannot remove cage while used');">
-                          Delete
-                        </button>
-                      <?php elseif ($result['STATUS'] === 'Empty'): ?>
-                        <form method="POST" action="?tab=<?php echo $tab; ?>">
-                          <input type="hidden" name="action" value="deleteCage">
-                          <input type="hidden" name="delete_id" value="<?php echo $result['NOMOR']; ?>">
-                          <button
-                            type="submit"
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('Are you sure you want to delete this item?');">
-                            Delete
-                          </button>
-                        </form>
-                      <?php endif; ?>
+                    <div class="flex gap-3 justify-start items-center">
+                      <button
+                        type="button"
+                        class="btn btn-error btn-sm"
+                        onclick="handleDeleteCageBtn('<?php echo $result['ID']; ?>', '<?php echo $result['STATUS']; ?>')">
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
-              <?php endif; ?>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  </div>
 </body>
+
+<script>
+  // Custom Dynamic Alert
+  function showAlertPetHotel(message) {
+    const alert = document.getElementById('alertPetHotel')
+    const spanElement = alert.querySelector('span');
+
+    spanElement.textContent = message;
+    alert.classList.remove('hidden')
+  }
+
+  function closeAlertPetHotel() {
+    document.getElementById('alertPetHotel').classList.add('hidden')
+  }
+
+  // HANDLE Delete
+  function handleDeleteReservationBtn(reservationID, reservationStatus) {
+    if (reservationStatus === "Scheduled" || reservationStatus === "In Progress" || reservationStatus === "Completed") {
+      showAlertPetHotel("You can't delete 'Scheduled', 'In Progress', 'Completed' Reservation")
+      window.scrollTo({
+        top: 0, // Scroll to the top
+        behavior: 'smooth' // Smooth scrolling animation
+      });
+    } else {
+      document.getElementById('delete_id').value = reservationID;
+      document.getElementById('modalDeleteReservationHotel').showModal()
+    }
+  }
+
+  function handleDeleteCageBtn(cageID, cageStatus) {
+    console.log("cageid", cageID, cageStatus);
+
+    if (cageStatus === "Filled" || cageStatus === "Scheduled") {
+      showAlertPetHotel("You can't delete 'Scheduled' & 'Filled' Cage")
+      window.scrollTo({
+        top: 0, // Scroll to the top
+        behavior: 'smooth' // Smooth scrolling animation
+      });
+    } else {
+      document.getElementById('deleteCageID').value = cageID;
+      document.getElementById('modalDeleteCage').showModal()
+    }
+  }
+
+  // HANDLE UPDATE
+  const reservations = <?php echo json_encode(array_reduce($petHotelReservations, function ($carry, $reservation) {
+                          $carry[$reservation['ID']] = [
+                            'reservationID' => $reservation['ID'],
+                            'hewanID' => $reservation['HEWAN_ID'],
+                            'pegawaiID' => $reservation['PEGAWAI_ID'],
+                            'kandangID' => $reservation['KANDANG_ID'],
+                            'status' => $reservation['STATUS'],
+                            'totalBiaya' => $reservation['TOTALBIAYA'],
+                            'checkIn' => $reservation['CHECKIN'],
+                            'checkOut' => $reservation['CHECKOUT'],
+                            'hewanNama' => $reservation['HEWAN_NAMA'],
+                            'kandangNomor' => $reservation['KANDANG_NOMOR'],
+                            'kandangUkuran' => $reservation['KANDANG_UKURAN'],
+                          ];
+                          return $carry;
+                        }, [])); ?>;
+
+  function getDataReservation(reservationID) {
+    console.log("data reservation", reservations[reservationID]);
+
+    return reservations[reservationID] || {};
+  }
+
+  function handleUpdateReservationBtn(reservationID, reservationStatus) {
+    if (reservationStatus === "Canceled" || reservationStatus === "Completed") {
+      showAlertPetHotel("You can't update 'Canceled' & 'Completed' Reservation")
+      window.scrollTo({
+        top: 0, // Scroll to the top
+        behavior: 'smooth' // Smooth scrolling animation
+      });
+    } else {
+      const reservationData = getDataReservation(reservationID);
+
+      document.getElementById('updateReservationID').value = reservationData.reservationID;
+      document.getElementById('updateHewanID').value = reservationData.hewanID;
+      document.getElementById('selectedreservatorIDUpdate').textContent = reservationData.hewanNama;
+      document.getElementById('updatePegawaiID').value = reservationData.pegawaiID;
+      document.getElementById('updateKandangID').value = reservationData.kandangID;
+      document.getElementById('updateStatus').value = reservationData.status;
+      document.getElementById('updatePrice').value = reservationData.totalBiaya;
+      document.getElementById('updateBiaya').value = "Rp " + (reservationData.totalBiaya).toLocaleString();
+      document.getElementById('updateCheckIn').value = reservationData.checkIn;
+      document.getElementById('updateCheckOut').value = reservationData.checkOut;
+
+      handleSelectUpdateKandangID(reservationData.kandangID, `No: ${reservationData.kandangNomor} | Size: ${reservationData.kandangUkuran}`)
+
+      let cancelOption = document.getElementById('liCanceledOption')
+      let scheduledOption = document.getElementById('liScheduledOption')
+      let inProgressOption = document.getElementById('liInProgressOption')
+      let completedOption = document.getElementById('liCompletedOption')
+
+      if (reservationData.status === "In Progress") {
+        handleSelectUpdateStatus("InProgress")
+        cancelOption.hidden = true;
+        scheduledOption.hidden = false;
+        inProgressOption.hidden = false;
+        completedOption.hidden = false;
+      } else if (reservationData.status === "Scheduled") {
+        handleSelectUpdateStatus(reservationData.status)
+        cancelOption.hidden = false;
+        scheduledOption.hidden = false;
+        inProgressOption.hidden = false;
+        completedOption.hidden = true;
+      }
+
+      document.getElementById('drawerUpdateReservationHotel').checked = true;
+    }
+  }
+
+  // FORM ADD RESERVATION
+  const dropdownLabelReservatorID = document.querySelector('.btnReservatorID');
+  const dropdownMenuReservatorID = document.querySelector('.menuReservatorID');
+  const dropdownItemsReservatorID = document.querySelectorAll('.menuReservatorID a');
+
+  const dropdownLabelKandangID = document.querySelector('.btnKandangID');
+  const dropdownMenuKandangID = document.querySelector('.menuKandangID');
+  const dropdownItemsKandangID = document.querySelectorAll('.menuKandangID a');
+
+  const checkIn = document.getElementById('checkIn');
+  const checkOut = document.getElementById('checkOut');
+  let reservatorID = document.getElementById('reservatorID');
+  let kandangID = document.getElementById('kandangID');
+
+  let cageSize = "";
+
+  dropdownLabelReservatorID.addEventListener('click', () => {
+    dropdownMenuReservatorID.classList.toggle('hidden');
+  });
+
+  dropdownLabelKandangID.addEventListener('click', () => {
+    dropdownMenuKandangID.classList.toggle('hidden');
+  });
+
+  function handleSelectReservatorID(selectedID, selectedName) {
+    const optionSelected = document.getElementById(selectedID);
+    selectedReservatorID(selectedName);
+
+    dropdownItemsReservatorID.forEach(item => {
+      item.classList.remove('selected');
+    });
+    optionSelected.classList.add('selected');
+
+    reservatorID.value = selectedID;
+
+    checkIn.disabled = false;
+
+    undisabledBtnAddReservation()
+  }
+
+  function selectedReservatorID(name) {
+    document.getElementById('selectedreservatorID').textContent = name;
+    dropdownMenuReservatorID.classList.add('hidden');
+  }
+
+  function handleSelectKandangID(selectedID, selectedName) {
+    const optionSelectedKandangID = document.getElementById(selectedID);
+    selectKandangID(selectedID, selectedName);
+
+    dropdownItemsKandangID.forEach(item => {
+      item.classList.remove('selected');
+    });
+    optionSelectedKandangID.classList.add('selected');
+
+    kandangID.value = selectedID;
+
+    cageSize = optionSelectedKandangID.dataset.size;
+
+    undisabledBtnAddReservation()
+
+    checkPrice()
+  }
+
+  function selectKandangID(id, name) {
+    document.getElementById('selectedKandangID').textContent = name;
+    dropdownMenuKandangID.classList.add('hidden');
+  }
+
+  function undisabledBtnAddReservation() {
+    if (reservatorID.value != "" && checkIn.value != "" && checkOut.value != "" && kandangID.value != "") {
+      let btnAddReservation = document.getElementById('btnAddReservation')
+
+      btnAddReservation.disabled = false;
+    }
+  }
+
+  function checkPrice() {
+    let checkin = document.getElementById('checkIn').value;
+    let checkout = document.getElementById('checkOut').value;
+
+    if (!checkin || !checkout) {
+      alert('Please select both check-in and check-out dates.');
+      return;
+    }
+
+    let checkinDate = new Date(checkin);
+    let checkoutDate = new Date(checkout);
+
+    if (checkoutDate <= checkinDate) {
+      alert('Check-out date must be after check-in date.');
+      return;
+    }
+
+    let durationInMillis = checkoutDate - checkinDate; // Duration in milliseconds
+    let durationInDays = durationInMillis / (1000 * 3600 * 24); // Convert to days
+
+    // Round up to the next whole day if the duration is less than 1 day
+    let roundedDuration = Math.ceil(durationInDays);
+
+    let pricePerDay = {
+      "XS": 20000,
+      "S": 30000,
+      "M": 50000,
+      "L": 60000,
+      "XL": 80000,
+      "XXL": 90000,
+      "XXXL": 100000
+    };
+
+    let price = pricePerDay[cageSize] * roundedDuration;
+
+    // Update the price in the form
+    document.getElementById('price').value = price; // Set hidden input value
+    document.getElementById('biaya').value = "Rp " + price.toLocaleString();
+  }
+</script>
 
 </html>
