@@ -235,11 +235,11 @@ ob_end_flush();
               <select id="pemilikId" name="pemilikId" class="select select-bordered w-full rounded-full bg-[#FCFCFC] border border-[#565656] text-[#565656] text-sm" required>
                 <option value="">Select Pet Owner</option>
                 <?php foreach ($pemilikList as $pemilik): ?>
-                  <option value="<?php echo $pemilik['ID']; ?>">
-                    <?php echo htmlspecialchars($pemilik['NAMA']); ?>
-                  </option>
+                    <option value="<?php echo $pemilik['ID']; ?>">
+                        <?php echo htmlspecialchars($pemilik['NAMA']); ?>
+                    </option>
                 <?php endforeach; ?>
-              </select>
+            </select>
             </div>
 
             <div class="form-control">
@@ -271,7 +271,7 @@ ob_end_flush();
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-              </select>
+            </select>
             </div>
 
             <div class="form-control">
@@ -314,7 +314,7 @@ ob_end_flush();
             </div>
           </div>
         </div>
-      </form>
+        </form>
     </div>
   </div>
 
