@@ -473,9 +473,11 @@ $totalPages = ceil($totalItems / $itemsPerPage);
                             if (isset($_POST['tab']) && $_POST['tab'] === 'log') {
                                 if (!empty($_POST['date_from'])) {
                                     $logQuery .= " AND L.TanggalPerubahan >= TO_TIMESTAMP(:date_from, 'YYYY-MM-DD HH24:MI:SS')";
+                                    $params[':date_from'] = date('Y-m-d H:i:s', strtotime($_POST['date_from']));
                                 }
                                 if (!empty($_POST['date_to'])) {
                                     $logQuery .= " AND L.TanggalPerubahan <= TO_TIMESTAMP(:date_to, 'YYYY-MM-DD HH24:MI:SS')";
+                                    $params[':date_to'] = date('Y-m-d H:i:s', strtotime($_POST['date_to']));
                                 }
                             }
 

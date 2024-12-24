@@ -284,8 +284,8 @@ if (!empty($baseQuery)) {
         SELECT a.*, ROWNUM rnum FROM (
             " . $baseQuery . "
             ORDER BY TANGGALTRANSAKSI DESC
-        ) a WHERE ROWNUM <= " . ($offset + $itemsPerPage) . "
-    ) WHERE rnum > " . $offset;
+        ) a WHERE ROWNUM <= :max_row
+    ) WHERE rnum > :min_row";
 
     $db->query($query);
     
@@ -296,6 +296,9 @@ if (!empty($baseQuery)) {
     if ($endDate) {
         $db->bind(':end_date', $endDate);
     }
+    // Bind pagination parameters dengan nama yang benar
+    $db->bind(':min_row', $offset);
+    $db->bind(':max_row', $offset + $itemsPerPage);
     
     $transactions = $db->resultSet();
 } else {
